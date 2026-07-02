@@ -70,24 +70,24 @@ via the mediasrv method allowlist.
 
 ## Upstream files touched (merge-difficulty analysis)
 
-| File | Change | Future-merge risk |
-| --- | --- | --- |
-| `proto/anki/deck_config.proto` | +2 fields (47/48) | **Low** — additive; risk only if upstream claims the same numbers; renumbering is a one-line fix pre-release |
-| `proto/anki/stats.proto` | +1 rpc, +2 messages | **Low** — additive |
-| `rslib/src/scheduler/queue/builder/mod.rs` | 2 fields on `QueueSortOptions`/`QueueBuilder`, contrast hook in `build()`/`build_queues` | **Medium** — this file changes upstream occasionally; the hook is ~20 focused lines |
-| `rslib/src/scheduler/queue/builder/contrast.rs` | new file | **None** |
-| `rslib/src/deckconfig/mod.rs` | +2 defaults | **Low** |
-| `rslib/src/deckconfig/schema11.rs` | +2 fields, both From impls, reserved keys | **Low** — mechanical, mirrors upstream's own pattern for new fields |
-| `rslib/src/stats/{mod,service}.rs` | module + trait impl | **Low** |
-| `rslib/src/stats/mastery.rs` | new file | **None** |
-| `rslib/src/storage/card/mod.rs` | +1 read-only query helper | **Low** |
-| `rslib/src/storage/revlog/mod.rs` | +1 count query | **Low** |
-| `rslib/src/tests.rs` | test-only `NoteAdder.tags()` builder | **None** |
-| `build/ninja_gen/src/{configure,git}.rs` | build from a monorepo whose `.git` is at the repo root; skip submodule sync for vendored trees | **Low** — build-system only, no runtime effect |
-| `pylib/anki/collection.py` | +`topic_mastery()` wrapper | **Low** |
-| `qt/aqt/{__init__,toolbar,webview,mediasrv,main}.py`, `qt/aqt/speedrun_dashboard.py` | dashboard dialog, toolbar link, page/API allowlists, window title | **Low** — additive registrations |
-| `ts/routes/dashboard/*`, `ts/routes/deck-options/ContrastOptions.svelte`, `DeckOptionsPage.svelte` | new page + options section | **Low** |
-| `ftl/core/deck-config.ftl`, `ftl/qt/qt-misc.ftl` | +6 strings | **Low** — append-only |
+| File                                                                                               | Change                                                                                         | Future-merge risk                                                                                            |
+| -------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| `proto/anki/deck_config.proto`                                                                     | +2 fields (47/48)                                                                              | **Low** — additive; risk only if upstream claims the same numbers; renumbering is a one-line fix pre-release |
+| `proto/anki/stats.proto`                                                                           | +1 rpc, +2 messages                                                                            | **Low** — additive                                                                                           |
+| `rslib/src/scheduler/queue/builder/mod.rs`                                                         | 2 fields on `QueueSortOptions`/`QueueBuilder`, contrast hook in `build()`/`build_queues`       | **Medium** — this file changes upstream occasionally; the hook is ~20 focused lines                          |
+| `rslib/src/scheduler/queue/builder/contrast.rs`                                                    | new file                                                                                       | **None**                                                                                                     |
+| `rslib/src/deckconfig/mod.rs`                                                                      | +2 defaults                                                                                    | **Low**                                                                                                      |
+| `rslib/src/deckconfig/schema11.rs`                                                                 | +2 fields, both From impls, reserved keys                                                      | **Low** — mechanical, mirrors upstream's own pattern for new fields                                          |
+| `rslib/src/stats/{mod,service}.rs`                                                                 | module + trait impl                                                                            | **Low**                                                                                                      |
+| `rslib/src/stats/mastery.rs`                                                                       | new file                                                                                       | **None**                                                                                                     |
+| `rslib/src/storage/card/mod.rs`                                                                    | +1 read-only query helper                                                                      | **Low**                                                                                                      |
+| `rslib/src/storage/revlog/mod.rs`                                                                  | +1 count query                                                                                 | **Low**                                                                                                      |
+| `rslib/src/tests.rs`                                                                               | test-only `NoteAdder.tags()` builder                                                           | **None**                                                                                                     |
+| `build/ninja_gen/src/{configure,git}.rs`                                                           | build from a monorepo whose `.git` is at the repo root; skip submodule sync for vendored trees | **Low** — build-system only, no runtime effect                                                               |
+| `pylib/anki/collection.py`                                                                         | +`topic_mastery()` wrapper                                                                     | **Low**                                                                                                      |
+| `qt/aqt/{__init__,toolbar,webview,mediasrv,main}.py`, `qt/aqt/speedrun_dashboard.py`               | dashboard dialog, toolbar link, page/API allowlists, window title                              | **Low** — additive registrations                                                                             |
+| `ts/routes/dashboard/*`, `ts/routes/deck-options/ContrastOptions.svelte`, `DeckOptionsPage.svelte` | new page + options section                                                                     | **Low**                                                                                                      |
+| `ftl/core/deck-config.ftl`, `ftl/qt/qt-misc.ftl`                                                   | +6 strings                                                                                     | **Low** — append-only                                                                                        |
 
 No shipped schema migration was edited; no DB schema bump (edges are tags);
 no protobuf field renumbered or removed; the public add-on API is untouched.

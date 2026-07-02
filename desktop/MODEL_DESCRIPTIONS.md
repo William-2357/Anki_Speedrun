@@ -63,10 +63,10 @@ live there and in `cfa_weights_2026.json`).
   - ≥ **70% weighted topic coverage** (topics with ≥ 1 studied card),
   - ≥ **50 held-out performance probes answered**, and
   - the resulting band's half-width ≤ **0.20**.
-  When abstaining it names each missing input (e.g. "0 held-out probes; the
-  probe bank ships in a later phase", "Not studied yet: Derivatives, …").
-  Phase 1 ships no probe bank, so Readiness **always abstains in real use**
-  — that is the honest state, not a bug.
+    When abstaining it names each missing input (e.g. "0 held-out probes; the
+    probe bank ships in a later phase", "Not studied yet: Derivatives, …").
+    Phase 1 ships no probe bank, so Readiness **always abstains in real use**
+    — that is the honest state, not a bug.
 - **Test mode.** `dashboard?readinessTest=1` relaxes the gates so the
   pipeline can be exercised end-to-end, but every number is banner-labelled
   "TEST DATA — not a real prediction". The default that ships and demos is

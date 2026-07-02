@@ -25,7 +25,9 @@ from cfa_sample_cards import CARDS  # type: ignore[import-not-found]  # noqa: E4
 from anki.collection import Collection  # noqa: E402
 from anki.import_export_pb2 import ExportAnkiPackageOptions  # noqa: E402
 
-DECK_NAME = "CFA Level 1"
+# Distinct from a plain "CFA Level 1" so importing next to an existing
+# collection stays cleanly additive.
+DECK_NAME = "CFA Level 1 Speedrun"
 
 
 def main() -> None:

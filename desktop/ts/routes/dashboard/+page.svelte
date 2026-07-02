@@ -10,7 +10,9 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
     // Dev-only escape hatch: ?readinessTest=1 relaxes the give-up gates so
     // the readiness pipeline can be exercised end to end. Its output is
     // loudly labelled as test data and never looks like a real prediction.
-    const testMode = $page.url.searchParams.get("readinessTest") === "1";
+    $: testMode = $page.url.searchParams.get("readinessTest") === "1";
 </script>
 
-<DashboardPage {testMode} />
+{#key testMode}
+    <DashboardPage {testMode} />
+{/key}
