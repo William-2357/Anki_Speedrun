@@ -135,6 +135,7 @@ class DialogManager:
         "DeckStats": [stats.DeckStats, None],
         "NewDeckStats": [stats.NewDeckStats, None],
         "SpeedrunDashboard": [speedrun_dashboard.SpeedrunDashboard, None],
+        "SpeedrunConceptMap": [speedrun_dashboard.SpeedrunConceptMap, None],
         "About": [about.show, None],
         "Preferences": [preferences.Preferences, None],
         "sync_log": [mediasync.MediaSyncDialog, None],

@@ -10,6 +10,26 @@
 > them; make self-explain a real template toggle only). The whole FSRS fade ladder (hysteresis +
 > spaced-session gate) is **PLAN-ONLY** for the deadline (biggest engine risk, not a named challenge).
 
+> 🏗 **ARCHITECTURE ERRATA (2026-07-02, verified against source) — supersedes the seam/formula/symbol
+> claims below.** Two corrections the grilling pass did not name, found by reading the real queue
+> builder (`rslib/src/scheduler/queue/builder/`):
+>
+> - **[A1] Rung gating must live in the GATHER path, NOT the post-gather `contrast.rs` seam.** Deck
+>   limits (`LimitTreeMap`) are decremented _during_ `gather_cards()`, inside `add_new_card` /
+>   `add_due_card` (`builder/gathering.rs`); the contrast seam (`load_contrast_clusters` /
+>   `apply_contrast`, called from `build()`) runs _after_ limits are spent and is **pure reordering**.
+>   The only limit-preserving skip in the whole builder is **burying**. So "gate in the contrast seam
+>   without decrementing limits" is impossible — the gate has to be a **bury-style skip** in
+>   `add_new_card`/`add_due_card`.
+> - **[A2] The fade signal must be computed in/before the gather query**, the way the
+>   `RETRIEVABILITY_*` review orders already compute R — not in a post-gather batch lookup, or the
+>   gate can't preserve limits. FSRS memory state is not in the lightweight `NewCard`/`DueCard`
+>   structs.
+> - **Symbols:** `contrast.rs` has **no `cluster_for_tags`** (phantom — the real seams are
+>   `load_contrast_clusters` + `apply_contrast`); new deck-config fields also thread through
+>   `QueueSortOptions` + `sort_options()` (`builder/mod.rs`) and the `DEFAULT` const
+>   (`deckconfig/mod.rs`); the next free proto field is **49** (48 = `contrast_tag_prefix`).
+
 > Companion to `brainlift.md`, `PHASE1_PLAN.md`, `PRD.md`, and — new for v2 —
 > `RESEARCH_ADDENDUM.md`. Phase 2 (Friday) builds the **Memory → Performance bridge**:
 > `SPOV 2` (FSRS-driven faded worked examples) on the **same engine commit** that ships to
@@ -73,9 +93,10 @@ The following are the substantive refinements, each grounded in `RESEARCH_ADDEND
 
 - `SPOV 2` — the worked → faded → solve ladder, with the **fade level read off predicted
   retrievability at the exam horizon** ([R10]) and gated by **spaced-session count** ([R12]).
-- **Dependency model via rung tags** — `rung::worked|faded|solve` within a cluster; gating
-  computed in `build_queues` from FSRS-derived signals + tags. **No `card_relationships` table**
-  → no schema change, no sync-protocol work (rides native tag sync; works on stock AnkiDroid).
+- **Dependency model via rung tags** — `rung::worked|faded|solve` within a cluster; gating computed
+  at queue-build time **in the gather path** ([A1]) from FSRS-derived signals + tags. **No
+  `card_relationships` table** → no schema change, no sync-protocol work (rides native tag sync;
+  works on stock AnkiDroid).
 - **Mandatory feedback rung** ([R9]) — every rung ends in a reveal/feedback step, enforced as an
   engine invariant, not left to the note author.
 - **Solve-rung format** — a **custom A/B/C MCQ note type + self-contained HTML/JS template**
@@ -106,10 +127,13 @@ The following are the substantive refinements, each grounded in `RESEARCH_ADDEND
 
 **Builds on Phase 1**
 
-- Reuses the `contrast.rs` post-gather hook, the deck-config toggle mechanism, and the
-  **two-level tag taxonomy** — now adding the **rung** level, an **element-interactivity** tag,
-  and **gating**. (Phase 1 code state confirmed: toggles `contrast_scheduling`(47) /
-  `contrast_tag_prefix`(48), `contrast.rs` reorder, `TopicMastery` RPC — all present.)
+- Reuses the `contrast.rs` **reorder** seam (for adjacency + the compare card), the deck-config
+  toggle mechanism, and the **two-level tag taxonomy** — now adding the **rung** level, an
+  **element-interactivity** tag, and **gating** (the gate is **new work in the gather path**, not
+  in the reorder seam — [A1]). (Phase 1 code state confirmed against source: toggles
+  `contrast_scheduling`(47) / `contrast_tag_prefix`(48) in `deck_config.proto` +
+  `deckconfig/mod.rs`, `load_contrast_clusters`/`apply_contrast` reorder in `contrast.rs`,
+  `TopicMastery` RPC in `stats/mastery.rs` — all present.)
 
 **Deferred (measurement / Phase 3)**
 
@@ -123,8 +147,10 @@ The following are the substantive refinements, each grounded in `RESEARCH_ADDEND
 ## What's genuinely new vs Phase 1
 
 - **Gating, not just reordering.** Phase 1 only reordered cards. Phase 2 must **hold a rung back**
-  until its prerequisite has passed **~3 spaced relearning sessions** ([R12]) and re-gate on
-  answer, with a **two-sided hysteresis band** on the fade signal ([R11]).
+  until its prerequisite has passed **~3 spaced relearning sessions** ([R12]) — implemented as a
+  **bury-style skip in the gather path** ([A1]), re-checked at the **next queue build** (Anki
+  excludes `AnswerCard` from rebuilds — C2), with a **two-sided hysteresis band** on the fade
+  signal ([R11]).
 - **Mandatory feedback** ([R9]) — a hard invariant that did not exist in v1.
 - **Content + a custom note type.** Phase 2 _creates_ worked / faded / solve cards (incl. the
   custom MCQ note type and the compare card) for the narrow slice.
@@ -193,13 +219,17 @@ behavioral signal — both incompatible with Phase 1's AI-free, no-new-manual-la
 - **[R18](b) CURATED signal (authoring-time fallback).** If hand-curated at all, the manual
   `confusable::high` labeling is a **Phase-2 SME task** performed alongside the AI item
   authoring (M1) — never a Phase-1 burden.
-- **[R18] Deck-config field + gate check.** Add **`contrast_confusable_tag`** (string, next
-  free field) to `DeckConfigInner` (`proto/anki/deck_config.proto`,
-  `rslib/src/deckconfig/mod.rs`); default `confusable::high`; empty → treat all clusters as
-  gated-on (legacy ungated behavior, for the ablation OFF-gate arm). In the Phase-1
-  `contrast.rs` `cluster_for_tags` / cluster resolution, **only force adjacency when the pair
-  is above the confusability threshold** (carries the marker / scores high); below-threshold →
-  leave in default SRS spacing/blocking. Proto change needs a full `just check`.
+- **[R18] Deck-config field + gate check.** Add **`contrast_confusable_tag`** (string, **field 49**
+  — 48 = `contrast_tag_prefix` is the last used) to the deck config: `proto/anki/deck_config.proto`,
+  defaulted in `rslib/src/deckconfig/mod.rs` (the `DEFAULT` const), and threaded through
+  `QueueSortOptions` + `sort_options()` in `builder/mod.rs` **exactly like `contrast_tag_prefix`**
+  (the field is inert until it reaches `QueueSortOptions`). Default `confusable::high`; empty → treat
+  all clusters as gated-on (legacy ungated behavior, for the ablation OFF-gate arm). Read the marker
+  in **`load_contrast_clusters`** (where the interned `(topic, cluster)` membership is already
+  derived from each note's tags) and enforce the threshold in **`apply_contrast`** (which today
+  forces adjacency for any cluster with ≥2 present members): **only force adjacency above the
+  confusability threshold**; below → leave in default SRS spacing/blocking. _(There is no
+  `cluster_for_tags` function — that was a phantom symbol.)_ Proto change needs a full `just check`.
 - **[R18] Ablation (still THREE arms).** The confusability-gated contrast experiment compares
   **gated contrast vs shipped-ungated (Phase-1) contrast vs vanilla Anki** — three arms, no 4th
   mis-targeted-adjacency arm. _[R18] Evidence: Carvalho & Goldstone (2014) blocking wins d=0.76
@@ -242,15 +272,28 @@ behavioral signal — both incompatible with Phase 1's AI-free, no-new-manual-la
 
 ### M4 — Engine: FSRS-driven fade gating **[REVISE]**
 
-- In the `build_queues` hook (reusing the Phase-1 `contrast.rs` post-gather seam), for each card
-  read its FSRS state and its `rung::` / `cluster::` / `interactivity::` tags.
-- **Fade signal** ([R10]): compute **predicted retrievability at the exam horizon** using the
-  collection's **fitted decay** — R(t) = (1 + (19/81)·t/S)^decay with `decay` read from the
-  collection (FSRS-6 per-user), `t` = days from now to the configured exam date. Do NOT gate on raw
-  `S` nor on instantaneous R. Store S and D via `extract_fsrs_variable(data,'s')` /
-  `(data,'d')` in `storage/sqlite.rs`; compute R at horizon in Rust. _[R10] Evidence: T6 —
-  instantaneous R is a due-ness signal; S is only interpretable relative to a retention target;
-  there is no FSRS-defined "mastered" value._
+- **Where the gate runs** ([A1] — corrects "reuse the post-gather `contrast.rs` seam"): rung gating
+  admits or **skips whole cards**, so it must run in the **gather path** — a bury-style skip inside
+  `add_new_card` / `add_due_card` (`builder/gathering.rs`), the _only_ place a card can be withheld
+  **without** consuming its `LimitTreeMap` slot. The post-gather `contrast.rs` seam
+  (`load_contrast_clusters` / `apply_contrast`) runs after limits are already spent and only
+  _reorders_ admitted cards — it cannot gate. There, for each candidate card, read its FSRS-derived
+  signal (below) and its `rung::` / `cluster::` / `interactivity::` tags.
+- **Fade signal** ([R10]; formula corrected per **C1**): the signal is **predicted retrievability at
+  the exam horizon**, `t = days_to_exam`. Compute it by calling
+  `FSRS::current_retrievability_seconds(memory_state, seconds_elapsed = t·86400, decay)` with
+  `decay = card.decay.unwrap_or(FSRS5_DEFAULT_DECAY)` — the same primitive
+  `extract_fsrs_retrievability` uses (`storage/sqlite.rs:360-367`); natural home
+  `scheduler/fsrs/memory_state.rs`. **Do NOT hand-roll `(1+(19/81)·t/S)^decay`** — wrong sign (the
+  engine applies `^(-decay)` with `decay` stored **positive**), and `19/81`=0.2346 is the legacy
+  fixed-`decay=-0.5` factor, stale under per-user FSRS-6. The existing `extract_fsrs_retrievability`
+  UDF hard-wires the horizon to **now**, so it can't be reused verbatim for a future exam date — add
+  a horizon argument / sibling UDF, or compute in Rust. **[A2]** produce this signal **in/before the
+  gather query** (extend the SQL path the `RETRIEVABILITY_*` review orders already use) so `add_*`
+  can consult it; a post-gather batch lookup is too late to preserve limits. `S`/`D` remain available
+  via `extract_fsrs_variable(data, 's'/'d')` (`storage/sqlite.rs:283`). Do NOT gate on raw `S` nor on
+  instantaneous R. _[R10] Evidence: T6 — instantaneous R is a due-ness signal; S is only
+  interpretable relative to a retention target; there is no FSRS-defined "mastered" value._
 - **Two-sided hysteresis band** ([R11]): if predicted-R < `fade_down_R` keep worked/cloze; if
   predicted-R > `fade_up_R` serve solve-MCQ; set **`fade_up_R` > `fade_down_R`** (asymmetric —
   harder to fade UP than to fall back DOWN). Suggested defaults (tunable, `fade_signal`-gated):
@@ -268,33 +311,51 @@ behavioral signal — both incompatible with Phase 1's AI-free, no-new-manual-la
   are above an FSRS-stability floor**. The fluency floor is **A/B-tested and time-decaying** (relax
   as intervals lengthen). _[R13] Evidence: Redifer 2025 (cognitive load a significant negative
   mediator, B≈−0.55); Hinze 2013; Danzglock 2025 (provisional — hence A/B)._
-- **Format congruency = continuous multiplier** ([R14]): do NOT block promotion because an early
-  rung was cloze rather than MCQ. Apply a **transfer-credit multiplier** (matched format = 1.0,
-  mismatched ≈ 0.75) rather than a hard gate; keep the **terminal rung MCQ** (exam-congruent).
+- **Format congruency = continuous factor, applied analysis-time** ([R14]; **C9** — not an engine
+  field): do NOT block promotion because an early rung was cloze rather than MCQ (no hard gate), and
+  keep the **terminal rung MCQ** (exam-congruent). The congruency weight (matched = 1.0, mismatched ≈
+  0.75) is **not** a `DeckConfigInner` field — nothing in the engine reads it — so apply it as a
+  documented factor in the Memory→Performance write-up until an outcome-based transfer scorer exists.
   _[R14] Evidence: Yang 2021 (mismatched g=0.399 still significant; matched g=0.531); Pan & Rickard
   congruency b≈0.35._
-- **Re-gate on answer**: `clear_study_queues()` (or a hook in `update_queues_after_answering_card`,
-  `scheduler/queue/mod.rs`) so a newly-qualified prereq unlocks its dependent mid-session.
-- Gated-out cards **must not** decrement deck limits (`LimitTreeMap`) — drop them the way burying
-  does. **Main correctness risk** — a dependent must reappear when its prereq qualifies.
+- **Re-gating is BUILD-time only** (**C2** / [A1] — corrects "re-gate on answer"): Anki deliberately
+  **excludes `Op::AnswerCard`** from queue rebuilds (`maybe_clear_study_queues_after_op`,
+  `scheduler/queue/mod.rs:207-211`) for performance, so `clear_study_queues()` on answer is off the
+  table (a naive rebuild = a full gather on every button press). A newly-qualified prereq unlocks its
+  dependent on the **next** queue build (day rollover / manual rebuild), exactly like sibling
+  burying. _Optional:_ a cheap in-memory promotion into `CardQueues` from
+  `update_queues_after_answering_card` (no full regather) if mid-session unlock is wanted — document
+  the perf tradeoff.
+- Because the gate is a **bury-style skip** ([A1]), gated-out cards never enter a pile and therefore
+  never decrement `LimitTreeMap` — no extra bookkeeping needed (see `add_new_card`, which already
+  returns `false`/does-not-decrement for buried cards). **Main correctness risk** — a dependent must
+  **reappear on a later build** once its prereq passes the spaced-session gate.
 
 ### M5 — Toggles / ablation dimensions **[REVISE]**
 
 New/changed fields on `DeckConfigInner` (`proto/anki/deck_config.proto`,
 `rslib/src/deckconfig/mod.rs`), all synced via deck config:
 
-| Field                        | Values                                          | Purpose                                                                 | Cite  |
-| ---------------------------- | ----------------------------------------------- | ----------------------------------------------------------------------- | ----- |
-| `fade_enabled`               | bool                                            | ladder on / always-worked / always-cold                                 | v1    |
-| `fade_signal`                | enum {exam_horizon_R, stability, success_count} | which fade signal                                                       | [R10] |
-| `fade_up_R` / `fade_down_R`  | float                                           | hysteresis band bounds (up>down)                                        | [R11] |
-| `promotion_spaced_sessions`  | int (default 3)                                 | spaced-session promotion gate                                           | [R12] |
-| `fluency_stability_floor`    | float (A/B, time-decaying)                      | comprehension/fluency precondition                                      | [R13] |
-| `format_congruency_mult`     | float (default 0.75)                            | mismatched-format credit multiplier                                     | [R14] |
-| `fade_order`                 | enum {mastery, backward, forward}               | fade-order ablation dimension                                           | [R15] |
-| `self_explain_enabled`       | bool (default OFF)                              | self-explanation ablation flag                                          | [R16] |
-| `element_interactivity_gate` | bool                                            | restrict ladder to `interactivity::high`                                | [R17] |
-| `contrast_confusable_tag`    | string (default `confusable::high`)             | signed confusability gate for SPOV3 adjacency; empty → ungated (legacy) | [R18] |
+| Field                        | Values                                          | Purpose                                                                                           | Cite  |
+| ---------------------------- | ----------------------------------------------- | ------------------------------------------------------------------------------------------------- | ----- |
+| `fade_enabled`               | bool                                            | ladder on / always-worked / always-cold                                                           | v1    |
+| `fade_signal`                | enum {exam_horizon_R, stability, success_count} | which fade signal                                                                                 | [R10] |
+| `fade_up_R` / `fade_down_R`  | float                                           | hysteresis band bounds (up>down)                                                                  | [R11] |
+| `promotion_spaced_sessions`  | int (default 3)                                 | spaced-session promotion gate                                                                     | [R12] |
+| `fluency_stability_floor`    | float (A/B, time-decaying)                      | comprehension/fluency precondition                                                                | [R13] |
+| ~~`format_congruency_mult`~~ | — (NOT an engine field, **C9**)                 | inert as config — no scorer reads it; apply congruency as an analysis-time factor in the write-up | [R14] |
+| `fade_order`                 | enum {mastery, backward, forward}               | fade-order ablation dimension                                                                     | [R15] |
+| `self_explain_enabled`       | bool (default OFF)                              | self-explanation ablation flag                                                                    | [R16] |
+| `element_interactivity_gate` | bool                                            | restrict ladder to `interactivity::high`                                                          | [R17] |
+| `contrast_confusable_tag`    | string (default `confusable::high`)             | signed confusability gate for SPOV3 adjacency; empty → ungated (legacy)                           | [R18] |
+
+_Plumbing (verified against source):_ each real field occupies proto number **49 and up** (48 is the
+last used); besides `deck_config.proto` + the `DEFAULT` const in `deckconfig/mod.rs`, any field the
+**scheduler** reads must also be added to `QueueSortOptions` and mapped in `sort_options()`
+(`builder/mod.rs`), the same path `contrast_scheduling`/`contrast_tag_prefix` take today — a proto
+field alone is invisible to `build_queues`. Per **C9**, `format_congruency_mult` is **not** added as a
+field (nothing reads it); `self_explain_enabled` stays because it changes the **rendered template**
+(so it is not inert).
 
 ### M6 — Ablation toggle (experiment **[Deferred]**) **[REVISE]**
 
@@ -324,10 +385,12 @@ New/changed fields on `DeckConfigInner` (`proto/anki/deck_config.proto`,
    on the slice — no schema change, syncs natively; ungraded items excluded from readiness ([R24]).
 4. worked / faded / **custom-MCQ solve** / **compare** card variants ([R20]), all **feedback-terminated**
    ([R9]), self-graded, cross-platform; self-explanation as an OFF-by-default variant ([R16]).
-5. **FSRS-driven gating** in `build_queues`: **exam-horizon-R fade signal** ([R10]), **two-sided
-   hysteresis** ([R11]), **spaced-session promotion gate** ([R12]), **comprehension/fluency
-   preconditions** ([R13]), **continuous format-congruency multiplier** ([R14]); re-gating; the full
-   toggle/ablation set ([R15]/[R16]/[R17]).
+5. **FSRS-driven gating** as a **bury-style skip in the gather path** ([A1]; **build-time re-gating**
+   only — C2): **exam-horizon-R fade signal** ([R10], via `current_retrievability_seconds` — C1),
+   **two-sided hysteresis** ([R11]), **spaced-session promotion gate** ([R12]),
+   **comprehension/fluency preconditions** ([R13]), **format-congruency credit** applied at
+   analysis-time (**not** an engine field — C9) ([R14]); the full toggle/ablation set
+   ([R15]/[R16]/[R17]).
 6. **[R18 — moved from Phase 1] Signed confusability gate on SPOV3 adjacency**: the
    `contrast_confusable_tag` deck-config field + the gate check in `contrast.rs` cluster
    resolution (force adjacency only above threshold; below → default SRS spacing), driven by a
@@ -341,39 +404,42 @@ New/changed fields on `DeckConfigInner` (`proto/anki/deck_config.proto`,
 
 ## Engine touch points (reference)
 
-| Concern                                    | File / symbol                                                                                                                                                          | Cite        |
-| ------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------- |
-| Gating + fade selection                    | `Collection::build_queues`, `add_due_card`/`add_new_card`, Phase-1 `contrast.rs` post-gather seam — `rslib/src/scheduler/queue/builder/`                               | —           |
-| FSRS state at queue time                   | `extract_fsrs_variable(data,'s')` / `(data,'d')` — `rslib/src/storage/sqlite.rs`                                                                                       | [R10]       |
-| Predicted-R at exam horizon                | compute R(t)=(1+(19/81)·t/S)^decay with collection's fitted `decay`; `scheduler/fsrs/`                                                                                 | [R10]       |
-| Spaced-session gate                        | review-log timestamps + stability jumps → session count — `scheduler/queue/builder/`                                                                                   | [R12]       |
-| Re-gate on answer                          | `update_queues_after_answering_card` / `clear_study_queues` — `scheduler/queue/mod.rs`                                                                                 | —           |
-| Rung/cluster/interactivity/provenance tags | `notes.tags` (`rung::*`, `cluster::*`, `interactivity::*`, `aig::*`); `rslib/src/tags/` (native sync)                                                                  | [R17][R24]  |
-| Faded (cloze), mastery-order fade          | `notetype/cardgen.rs`, `rslib/src/cloze.rs`                                                                                                                            | [R15]       |
-| Solve (custom MCQ) + feedback reveal       | new note type + self-contained HTML/JS (desktop + AnkiDroid)                                                                                                           | [R9]        |
-| Compare card                               | side-by-side note type/template, small confusable set                                                                                                                  | [R20]       |
-| Signed confusability gate (SPOV3)          | new `contrast_confusable_tag` field; gate check in `contrast.rs` `cluster_for_tags` / cluster resolution; computed revlog-confusion signal (offline) or curated marker | [R18]       |
-| Toggles                                    | `proto/anki/deck_config.proto`, `rslib/src/deckconfig/mod.rs` (see M5 table)                                                                                           | [R11]–[R18] |
-| AI (offline tooling)                       | drafter+critic generation, self-consistency solve-check, gold-set SME sign-off; RRF+rerank retrieval; BM25 + dense baselines                                           | [R21]–[R24] |
+| Concern                                    | File / symbol                                                                                                                                                                                                            | Cite        |
+| ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------- |
+| Rung gating (admit/skip)                   | **bury-style skip in `add_new_card`/`add_due_card`** (`builder/gathering.rs`) — the only limit-preserving skip; **not** the post-gather `contrast.rs` seam                                                               | [A1]        |
+| FSRS state at queue time                   | `extract_fsrs_variable(data, 's'/'d'/'dr')` — `storage/sqlite.rs:283`; expose the horizon signal in/before the gather SQL                                                                                                | [R10][A2]   |
+| Predicted-R at exam horizon                | `FSRS::current_retrievability_seconds(state, t·86400, decay)`, `decay = card.decay.unwrap_or(FSRS5_DEFAULT_DECAY)` — `storage/sqlite.rs:360-367`, `scheduler/fsrs/memory_state.rs` (**not** `(1+(19/81)·t/S)^decay`, C1) | [R10]       |
+| Spaced-session gate                        | review-log timestamps + stability jumps → session count — `scheduler/queue/builder/`                                                                                                                                     | [R12]       |
+| Re-gate timing                             | **BUILD-time only**; `AnswerCard` excluded from rebuilds (`maybe_clear_study_queues_after_op`, `scheduler/queue/mod.rs:207`) — unlock on next build                                                                      | [R12]/C2    |
+| Rung/cluster/interactivity/provenance tags | `notes.tags` (`rung::*`, `cluster::*`, `interactivity::*`, `aig::*`); `rslib/src/tags/` (native sync)                                                                                                                    | [R17][R24]  |
+| Faded (cloze), mastery-order fade          | `notetype/cardgen.rs`, `rslib/src/cloze.rs`                                                                                                                                                                              | [R15]       |
+| Solve (custom MCQ) + feedback reveal       | new note type + self-contained HTML/JS (desktop + AnkiDroid)                                                                                                                                                             | [R9]        |
+| Compare card                               | side-by-side note type/template, small confusable set                                                                                                                                                                    | [R20]       |
+| Signed confusability gate (SPOV3)          | new `contrast_confusable_tag` field (→ `QueueSortOptions`); read marker in `load_contrast_clusters`, gate in `apply_contrast` (no `cluster_for_tags`); computed revlog-confusion signal (offline) or curated marker      | [R18]       |
+| Toggles                                    | `proto/anki/deck_config.proto`, `rslib/src/deckconfig/mod.rs` (see M5 table)                                                                                                                                             | [R11]–[R18] |
+| AI (offline tooling)                       | drafter+critic generation, self-consistency solve-check, gold-set SME sign-off; RRF+rerank retrieval; BM25 + dense baselines                                                                                             | [R21]–[R24] |
 
 ---
 
 ## Risks & decisions
 
-- **FSRS state isn't in the lightweight gather structs** → SQL extraction (S, D) + compute R at
-  horizon in Rust; watch query cost ([R10]).
+- **FSRS state isn't in the lightweight gather structs** (`NewCard`/`DueCard`) → compute the
+  horizon-R signal **in/before the gather SQL** ([A2], reusing the `RETRIEVABILITY_*` review-order
+  path) so the bury-style gate in `add_*` can read it; watch query cost ([R10]).
 - **Custom MCQ / compare cross-platform** → keep templates **dependency-free** and **self-grade**
   (no `pycmd`/JS-bridge grading — it diverges desktop vs AnkiDroid); verify on the emulator early.
 - **Feedback invariant enforcement** ([R9]) — a rung shipping without a feedback step silently
   nulls the effect; enforce via a generation-time template lint, not convention.
-- **Re-gating consistency** — the main correctness risk; a dependent must reappear when its prereq
-  passes the spaced-session gate ([R12]).
+- **Re-gating consistency** — the main correctness risk; a dependent must reappear (on the **next
+  build** — re-gating is build-time, C2/[A1]) once its prereq passes the spaced-session gate ([R12]).
 - **Hysteresis tuning** ([R11]) — `fade_up_R`/`fade_down_R` defaults (0.90/0.80) are starting
   points; the asymmetry direction (up>down) is the evidence-backed invariant, the exact values are
   A/B fodder.
 - **Element-interactivity gate is a hypothesis** ([R17]) — ship it behind
   `element_interactivity_gate` and treat "atomic facts don't benefit from the ladder" as testable.
-- **Limit/count bookkeeping** for gated-out cards.
+- **Limit/count bookkeeping** for gated-out cards — solved by gating as a **bury-style skip** in the
+  gather path ([A1]): a card withheld in `add_new_card`/`add_due_card` never decrements
+  `LimitTreeMap`, so counts stay valid with no extra bookkeeping.
 - **AI (authoring-time only):** runtime is AI-free by construction (no review-time AI calls);
   generation is **adversarially validated** with a pre-registered cutoff ([R23]); distractors are
   **misconception-grounded and pruned at <5%** ([R22]); retrieval **beats BOTH tuned BM25 and

@@ -84,3 +84,4 @@ qt-misc-replace-your-collection-with-an-earlier = Replace your collection with a
 ## Anki Speedrun
 
 qt-misc-speedrun-dashboard = Dashboard
+qt-misc-speedrun-concept-map = Concept map

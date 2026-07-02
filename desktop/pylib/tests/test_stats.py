@@ -67,6 +67,39 @@ def test_topic_mastery():
     assert [topic.topic for topic in scoped.topics] == ["quant"]
 
 
+def test_concept_graph():
+    "Anki Speedrun: the Rust ConceptGraph RPC is reachable from Python."
+    col = getEmptyCol()
+    for front, tags in [
+        ("duration", "cfa::topic::fixed_income cluster::fi::duration"),
+        ("convexity", "cfa::topic::fixed_income cluster::fi::duration"),
+        ("bayes", "cfa::topic::quant"),
+    ]:
+        note = col.newNote()
+        note["Front"] = front
+        note.tags = tags.split()
+        col.addNote(note)
+
+    graph = col.concept_graph()
+    nodes_by_tag = {node.tag: node for node in graph.nodes}
+    assert set(nodes_by_tag) == {
+        "cfa::topic::fixed_income",
+        "cluster::fi::duration",
+        "cfa::topic::quant",
+    }
+    assert nodes_by_tag["cfa::topic::fixed_income"].card_count == 2
+    # the two duration notes carry both fixed-income tags -> one edge of weight 2
+    assert len(graph.edges) == 1
+    assert graph.edges[0].note_count == 2
+
+    # grading feeds the answer-difficulty signal
+    card = col.sched.getCard()
+    col.sched.answerCard(card, 1)  # Again
+    graph = col.concept_graph()
+    graded = [n for n in graph.nodes if n.graded_answers]
+    assert graded and all(n.again_hard_answers == 1 for n in graded)
+
+
 def test_graphs():
     dir = tempfile.gettempdir()
     col = getEmptyCol()

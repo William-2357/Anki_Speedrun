@@ -20,6 +20,10 @@ service StatsService {
   // computed in a single SQL pass. Powers the Memory gauge, the coverage
   // map, and the dashboard give-up rule.
   rpc TopicMastery(TopicMasteryRequest) returns (TopicMasteryResponse);
+  // Anki Speedrun: the concept-graph knowledge map. One node per tag, one
+  // edge per pair of tags that co-occur on a note, plus per-tag recall and
+  // answer-difficulty aggregates for colouring.
+  rpc ConceptGraph(ConceptGraphRequest) returns (ConceptGraphResponse);
 }
 
 // Implicitly includes any of the above methods that are not listed in the
@@ -92,6 +96,39 @@ message TopicMasteryRequest {
   // scheduling target, not a competence threshold). Values <= 0 use the
   // default of 0.9.
   float high_recall_threshold = 3;
+}
+
+message ConceptGraphRequest {
+  // Deck to scope the map to; 0 means the whole collection. Child decks are
+  // included.
+  int64 deck_id = 1;
+}
+
+message ConceptGraphResponse {
+  message Node {
+    // Full tag name, lowercased.
+    string tag = 1;
+    uint32 card_count = 2;
+    // Cards with an FSRS memory state.
+    uint32 studied_cards = 3;
+    // Mean predicted retrievability over studied cards; 0 when none.
+    float average_retrievability = 4;
+    // Graded reviews (ease > 0) on this tag's cards.
+    uint32 graded_answers = 5;
+    // Of those, answers graded Again or Hard - the behavioural
+    // answer-difficulty signal used to colour nodes.
+    uint32 again_hard_answers = 6;
+  }
+  message Edge {
+    // Indexes into `nodes`.
+    uint32 first = 1;
+    uint32 second = 2;
+    // Number of notes carrying both tags.
+    uint32 note_count = 3;
+  }
+  repeated Node nodes = 1;
+  repeated Edge edges = 2;
+  bool fsrs_enabled = 3;
 }
 
 message TopicMasteryResponse {

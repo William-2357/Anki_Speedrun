@@ -424,6 +424,7 @@ def is_sveltekit_page(path: str) -> bool:
         "image-occlusion",
         # Anki Speedrun
         "dashboard",
+        "concept-graph",
     ]
 
 
@@ -743,6 +744,7 @@ exposed_backend_list = [
     "get_graph_preferences",
     "set_graph_preferences",
     "topic_mastery",
+    "concept_graph",
     # TagsService
     "complete_tag",
     # ImageOcclusionService

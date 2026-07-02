@@ -16,6 +16,11 @@ that turns a spaced-repetition app into a **transfer-and-readiness** engine:
   curated cluster tags.
 - **Per-topic mastery RPC**: a new `TopicMastery` backend call aggregates
   FSRS recall per topic tag in one SQL pass, powering the dashboard.
+- **Concept map**: a force-directed knowledge graph (`ConceptGraph` RPC) —
+  one node per tag, edges where two tags co-occur on a note, coloured by
+  behavioural answer difficulty (Again/Hard share) with a toggle for FSRS
+  recall. Open it from a deck's gear menu, or at `/concept-graph` in the
+  dev server.
 - **An honest readiness dashboard**: three separate gauges — **Memory**,
   **Performance**, **Readiness** — each with a range, its reasons, and a
   written **give-up rule**. Readiness abstains until it has real evidence.
@@ -114,7 +119,9 @@ adb push desktop/tools/speedrun/cfa_level1_sample.apkg /sdcard/Download/
 | `desktop/proto/anki/deck_config.proto` | `contrast_scheduling` (field 47), `contrast_tag_prefix` (field 48) |
 | `desktop/rslib/src/scheduler/queue/builder/contrast.rs` | the contrast pass (new file, 4 unit tests) |
 | `desktop/rslib/src/stats/mastery.rs` | `TopicMastery` RPC (new file, 3 unit tests) |
-| `desktop/proto/anki/stats.proto` | `TopicMastery` request/response messages |
+| `desktop/rslib/src/stats/concept_graph.rs` | `ConceptGraph` RPC (new file, 2 unit tests) |
+| `desktop/proto/anki/stats.proto` | `TopicMastery` + `ConceptGraph` messages |
+| `desktop/ts/routes/concept-graph/` | force-directed knowledge map (new page) |
 | `desktop/pylib/anki/collection.py` | `Collection.topic_mastery()` + pytest |
 | `desktop/ts/routes/dashboard/` | the three-gauge dashboard (new page) |
 | `desktop/ts/routes/deck-options/ContrastOptions.svelte` | the toggle UI |

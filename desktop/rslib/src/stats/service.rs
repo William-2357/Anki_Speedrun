@@ -41,6 +41,13 @@ impl crate::services::StatsService for Collection {
         )
     }
 
+    fn concept_graph(
+        &mut self,
+        input: anki_proto::stats::ConceptGraphRequest,
+    ) -> error::Result<anki_proto::stats::ConceptGraphResponse> {
+        self.concept_graph(crate::decks::DeckId(input.deck_id))
+    }
+
     fn set_graph_preferences(
         &mut self,
         input: anki_proto::stats::GraphPreferences,

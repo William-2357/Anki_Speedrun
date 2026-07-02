@@ -34,6 +34,17 @@ corrupt. Toggle + prefix are protobuf fields 47/48 on `DeckConfig.Config`,
 mapped through schema11 so they survive the legacy JSON round-trip and sync
 to mobile like any other deck option.
 
+### 2a. `ConceptGraph` RPC (StatsService)
+
+`rslib/src/stats/concept_graph.rs` (new). Builds the knowledge-map data for
+a deck (or the whole collection): one node per tag with card/studied counts,
+mean FSRS retrievability and an answer-difficulty signal (share of graded
+answers that were Again/Hard, from the revlog), plus one edge per tag pair
+co-occurring on a note. Two SQL passes over the searched set; tag semantics
+stay in the frontend. Exposed as `Collection.concept_graph()` in Python and
+rendered by the `ts/routes/concept-graph` force-directed page (d3-force),
+which colours abstaining nodes grey rather than guessing.
+
 ### 2. `TopicMastery` RPC (StatsService)
 
 `rslib/src/stats/mastery.rs` (new). One SQL pass joins the searched cards to

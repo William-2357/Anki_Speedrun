@@ -623,8 +623,24 @@ impl super::SqliteStorage {
     where
         F: FnMut(&str, Option<f32>),
     {
+        self.for_each_searched_card_note_tags_and_retrievability(
+            timing,
+            |_note_id, tags, retrievability| func(tags, retrievability),
+        )
+    }
+
+    /// Anki Speedrun: as above, but also yields the note id, so callers can
+    /// aggregate per note (e.g. tag co-occurrence for the concept graph).
+    pub(crate) fn for_each_searched_card_note_tags_and_retrievability<F>(
+        &self,
+        timing: SchedTimingToday,
+        mut func: F,
+    ) -> Result<()>
+    where
+        F: FnMut(NoteId, &str, Option<f32>),
+    {
         let mut stmt = self.db.prepare_cached(
-            "SELECT n.tags,
+            "SELECT n.id, n.tags,
                     extract_fsrs_retrievability(c.data,
                         CASE WHEN c.odue != 0 THEN c.odue ELSE c.due END,
                         c.ivl, ?1, ?2, ?3)
@@ -637,6 +653,27 @@ impl super::SqliteStorage {
             timing.next_day_at.0,
             timing.now.0
         ])?;
+        while let Some(row) = rows.next()? {
+            func(row.get(0)?, row.get_ref(1)?.as_str()?, row.get(2)?);
+        }
+        Ok(())
+    }
+
+    /// Anki Speedrun: for each graded review (ease > 0) on the searched
+    /// cards, yield the owning note's tags and the button pressed. Powers
+    /// the concept graph's answer-difficulty colouring in one SQL pass.
+    pub(crate) fn for_each_searched_card_graded_answer<F>(&self, mut func: F) -> Result<()>
+    where
+        F: FnMut(&str, u32),
+    {
+        let mut stmt = self.db.prepare_cached(
+            "SELECT n.tags, r.ease
+             FROM revlog r
+             JOIN cards c ON c.id = r.cid
+             JOIN notes n ON n.id = c.nid
+             WHERE r.ease > 0 AND c.id IN (SELECT cid FROM search_cids)",
+        )?;
+        let mut rows = stmt.query([])?;
         while let Some(row) = rows.next()? {
             func(row.get_ref(0)?.as_str()?, row.get(1)?);
         }

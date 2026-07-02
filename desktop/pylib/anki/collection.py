@@ -1050,6 +1050,18 @@ class Collection(DeprecatedNamesMixin):
             high_recall_threshold=high_recall_threshold,
         )
 
+    def concept_graph(
+        self, deck_id: DeckId = DeckId(0)
+    ) -> stats_pb2.ConceptGraphResponse:
+        """Anki Speedrun: the concept-graph knowledge map.
+
+        One node per tag on the deck's notes (0 = whole collection, children
+        included), one edge per pair of tags co-occurring on a note, with
+        per-tag recall and answer-difficulty aggregates for colouring.
+        Computed by the Rust backend in single SQL passes.
+        """
+        return self._backend.concept_graph(deck_id=deck_id)
+
     # Undo
     ##########################################################################
 
