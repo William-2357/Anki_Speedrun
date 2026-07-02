@@ -1,0 +1,6 @@
+# scratch checkouts (not part of the project)
+.upstream/
+.ref-anki-speedrun/
+
+# macOS
+.DS_Store
