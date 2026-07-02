@@ -122,6 +122,8 @@ fun isSvelteKitPage(path: String): Boolean {
         "import-csv",
         "import-page",
         "image-occlusion",
+        // Anki Speedrun
+        "concept-graph",
         -> true
         else -> false
     }

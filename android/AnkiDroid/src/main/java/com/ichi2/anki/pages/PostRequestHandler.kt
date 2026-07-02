@@ -40,6 +40,7 @@ import com.ichi2.anki.libanki.sched.computeFsrsParamsRaw
 import com.ichi2.anki.libanki.sched.computeOptimalRetentionRaw
 import com.ichi2.anki.libanki.sched.simulateFsrsReviewRaw
 import com.ichi2.anki.libanki.stats.cardStatsRaw
+import com.ichi2.anki.libanki.stats.conceptGraphRaw
 import com.ichi2.anki.libanki.stats.getGraphPreferencesRaw
 import com.ichi2.anki.libanki.stats.graphsRaw
 import com.ichi2.anki.libanki.stats.setGraphPreferencesRaw
@@ -109,6 +110,8 @@ val collectionMethods =
         "completeTag" to { bytes -> completeTagRaw(bytes) },
         "getFieldNames" to { bytes -> getFieldNamesRaw(bytes) },
         "cardStats" to { bytes -> cardStatsRaw(bytes) },
+        // Anki Speedrun
+        "conceptGraph" to { bytes -> conceptGraphRaw(bytes) },
         "getDeckConfigsForUpdate" to { bytes -> getDeckConfigsForUpdateRaw(bytes) },
         "computeOptimalRetention" to { bytes -> computeOptimalRetentionRaw(bytes) },
         "computeFsrsParams" to { bytes -> computeFsrsParamsRaw(bytes) },

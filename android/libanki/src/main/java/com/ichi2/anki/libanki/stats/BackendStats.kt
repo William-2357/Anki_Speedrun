@@ -34,3 +34,7 @@ fun Collection.getGraphPreferencesRaw(): ByteArray {
 }
 
 fun Collection.setGraphPreferencesRaw(input: ByteArray): ByteArray = backend.setGraphPreferencesRaw(input)
+
+// Anki Speedrun: concept-graph knowledge map (nodes = tags, edges = tag
+// co-occurrence on notes), computed by the shared Rust engine.
+fun Collection.conceptGraphRaw(input: ByteArray): ByteArray = backend.conceptGraphRaw(input)

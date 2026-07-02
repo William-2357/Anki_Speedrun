@@ -104,6 +104,8 @@ class DeckPickerMenuContentProvider(
                     add(DeckPickerContextMenu.DeckPickerContextMenuOption.CREATE_SUBDECK)
                 }
                 add(DeckPickerContextMenu.DeckPickerContextMenuOption.DECK_OPTIONS)
+                // Anki Speedrun: knowledge map for the deck
+                add(DeckPickerContextMenu.DeckPickerContextMenuOption.CONCEPT_MAP)
                 if (!isDynamic) {
                     add(DeckPickerContextMenu.DeckPickerContextMenuOption.CUSTOM_STUDY)
                 }

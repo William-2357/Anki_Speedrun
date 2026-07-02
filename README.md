@@ -19,8 +19,9 @@ that turns a spaced-repetition app into a **transfer-and-readiness** engine:
 - **Concept map**: a force-directed knowledge graph (`ConceptGraph` RPC) —
   one node per tag, edges where two tags co-occur on a note, coloured by
   behavioural answer difficulty (Again/Hard share) with a toggle for FSRS
-  recall. Open it from a deck's gear menu, or at `/concept-graph` in the
-  dev server.
+  recall. Desktop: a deck's gear menu, or `/concept-graph` in the dev
+  server. Android: long-press a deck → **Concept map** (the same Svelte
+  page, served from the `.aar` on-device).
 - **An honest readiness dashboard**: three separate gauges — **Memory**,
   **Performance**, **Readiness** — each with a range, its reasons, and a
   written **give-up rule**. Readiness abstains until it has real evidence.

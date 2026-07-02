@@ -151,6 +151,7 @@ import com.ichi2.anki.libanki.sched.DeckNode
 import com.ichi2.anki.mediacheck.MediaCheckFragment
 import com.ichi2.anki.observability.ChangeManager
 import com.ichi2.anki.pages.AnkiPackageImporterFragment
+import com.ichi2.anki.pages.ConceptGraph
 import com.ichi2.anki.pages.CongratsPage
 import com.ichi2.anki.pages.CongratsPage.Companion.onDeckCompleted
 import com.ichi2.anki.receiver.SdCardReceiver
@@ -976,6 +977,11 @@ open class DeckPicker :
             DeckPickerContextMenuOption.SCHEDULE_REMINDERS -> {
                 Timber.i("Scheduling review reminders for deck '%d'", deckId)
                 viewModel.scheduleReviewReminders(deckId)
+                dismissAllDialogFragments()
+            }
+            DeckPickerContextMenuOption.CONCEPT_MAP -> {
+                Timber.i("ContextMenu: Concept map selected for deck '%d'", deckId)
+                startActivity(ConceptGraph.getIntent(this, deckId))
                 dismissAllDialogFragments()
             }
         }
