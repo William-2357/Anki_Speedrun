@@ -153,6 +153,12 @@ Notes:
 - If the server is restarted with a different `SYNC_BASE` or different
   credentials, clients hold a stale login (an `hkey` the server no longer
   accepts) and must log out and back in once.
+- Startup failing with `opening media → open media db → DbError → Locked`
+  means another server instance is already running against the same
+  `SYNC_BASE` (SQLite holds the lock). Stop it first —
+  `pkill -f anki.syncserver` — or use a different `SYNC_BASE`. Restarting
+  with the same `SYNC_BASE` and users is transparent to the apps: the data
+  and logins carry over, no re-login needed.
 
 ## What is custom in this fork (Phase 1)
 
