@@ -112,6 +112,48 @@ the same deck the desktop app uses:
 adb push desktop/tools/speedrun/cfa_level1_sample.apkg /sdcard/Download/
 ```
 
+## Setting up sync (desktop ↔ Android)
+
+Both apps share Anki's sync engine; they just need a server. The engine
+ships a self-hosted one:
+
+```bash
+# 1. Run the sync server (any machine both apps can reach)
+cd desktop
+PYTHONPATH=out/pylib \
+  SYNC_BASE=~/.anki-speedrun-syncserver \
+  SYNC_PORT=27701 \
+  SYNC_USER1=cfa:speedrun \
+  out/pyenv/bin/python -m anki.syncserver
+```
+
+Pick a port other than 8080 (the dev app uses it for devtools). Users are
+`SYNC_USER1..N` as `username:password`; the folder in `SYNC_BASE` holds the
+server-side collections.
+
+**Desktop:** Preferences → Syncing → Self-hosted sync server →
+`http://127.0.0.1:27701/`, restart, then press **Sync** in the toolbar and
+log in (`cfa` / `speedrun`).
+
+**Android (emulator):** Settings → Sync → Custom sync server → Sync URL
+`http://10.0.2.2:27701/` (10.0.2.2 is the emulator's alias for the host's
+localhost; on a real phone use the host's LAN IP). Then Settings → Sync →
+AnkiWeb account → log in with the same credentials, and press the Sync icon
+in the deck list.
+
+Notes:
+
+- The **first** sync between two non-empty collections is a **one-way full
+  sync** — Anki asks which side wins (upload or download). After that,
+  syncs are incremental and merge both ways.
+- Conflict rule (Anki-native, documented for challenge 7b): the review log
+  is **append-only**, so reviews made on both devices are all kept — none
+  lost, none double-counted; for a card's scheduling state, the copy with
+  the newer modification time wins.
+- If the server is restarted with a different `SYNC_BASE` or different
+  credentials, clients hold a stale login (an `hkey` the server no longer
+  accepts) and must log out and back in once.
+
 ## What is custom in this fork (Phase 1)
 
 | Area | Change |
