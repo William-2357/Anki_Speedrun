@@ -23,6 +23,40 @@ distance-to-1600, inert config, IRT for n=1), and the honesty+held-out weight (3
 via the manual **30×2 paraphrase set**, not the deferred AI pipeline. Full details + the corrected
 C1–C14 spec + the ordered MVP are in `GRILLING_NOTES.md`.
 
+**Update (2026-07-02) — fade engine promoted to committed scope.** Per owner decision, the FSRS fade
+engine (SPOV 2: gather-path rung gating + exam-horizon-R fade signal + two-sided hysteresis +
+spaced-session promotion gate) is moved **out of PLAN-ONLY into committed Phase 2 scope, to be
+implemented before Phase 3.** The grilling correctness fixes **C1** (reuse
+`current_retrievability_seconds`) and **C2** (build-time gating) plus the architecture corrections
+**A1/A2** (`PHASE2_PLAN_V2.md`) still define **how** it is built; it ships behind a default-off
+`fade_enabled` toggle with unit tests. Reconciled in `PHASE2_PLAN_V2.md` (banner) and
+`GRILLING_NOTES.md` (§2 + top UPDATE note). Doc-only change; no code yet.
+
+**Update (2026-07-02) — planned: user-editable tag→topic mapping (dashboard).** Added a design to
+`DASHBOARD.md` (new "Tag → topic mapping" section + milestone **M5** + touch-points) for a
+**read-time, AI-free** feature letting users assign any deck tag to one of the 10 dashboard topics.
+Stored in **synced collection config** (`speedrun:tagTopicMap`) and folded onto subjects in the
+frontend (`metrics.ts`/`topics.ts`); **non-destructive**, with abstention preserved for unmapped tags.
+Fixes the shipped gap where decks lacking `cfa::topic::*` tags read "no data," and realises the
+original (unbuilt) `DASHBOARD.md` reading→topic map. Distinct from Phase 3 M5's AI edge-sourcing.
+**Committed into `PHASE2_PLAN_V2.md`** (Scope bullet + milestone **M6b** + Deliverable 7). Doc-only;
+not yet implemented.
+
+**Update (2026-07-02) — Phase 2 made fully human-free; CFA sample MCQs added as exemplars.** Per owner
+decision, removed the human SME sign-off and the human-vetted gold set from the AIG pipeline:
+generation is now accepted **automatically** by machine gates only (independent model critic +
+self-consistency solve-check + numeric validation + multi-model consensus), and retrieval is evaluated
+on **synthetic qrels** (no human relevance labels). This **explicitly accepts the automation-bias
+risk** R23/C7 warn about; the mitigation is the automated gates plus the runtime guard that **ungraded
+generated items never feed readiness** (auto-retired by live point-biserial). Reconciled in
+`PHASE2_PLAN_V2.md` (banner, Scope, M1, Deliverable 1, Risks, touch-points) and `GRILLING_NOTES.md`
+(top UPDATE note superseding the SME parts of C7 / R23). **Extended the same day** to **M1b** — the
+confusability gate now uses **only the computed behavioral signal, auto-validated** against held-out
+revlog labels; the curated `confusable::high` SME label is **dropped** — so **no human is in any
+Phase-2 loop**. Also added the **30 official CFA Institute L1 sample MCQs** as **few-shot exemplars**
+for the drafter (© CFA — **git-ignored** local reference at `desktop/tools/speedrun/reference/`, **not
+a template**; generated items stay net-new + leakage-walled). Doc-only (plus the git-ignored asset).
+
 ---
 
 ## Headline verdict: the three SPOVs survive, but each is now _bounded_ by a measured moderator
@@ -84,7 +118,7 @@ shows a **point** number. The grader auto-fails "made-up / misleading readiness 
   (interleaving merely-similar pairs → the d=0.76 blocking-loss risk) is accepted in Phase 1 and
   resolved by the Phase-2 gate. _(Carvalho & Goldstone 2014 d=0.76.)_
 
-### D. Fade ladder (SPOV2, Phase 2 — not yet built)
+### D. Fade ladder (SPOV2, Phase 2 — committed scope, to build before Phase 3; see 2026-07-02 update)
 
 - **[R9][P2·ADD]** **Mandatory feedback after every rung** (engine invariant) — omitted in v1.
 - **[R10][P2·CHANGE]** Fade signal = **predicted retrievability at the exam horizon** (fitted FSRS-6 decay),

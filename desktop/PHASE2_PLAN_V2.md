@@ -7,8 +7,18 @@
 > perf regression — gate at BUILD time, unlock on next build); **C7** (the full AI IR pipeline that
 > "beats tuned BM25 AND tuned dense" is descoped to a defensible minimal slice — one cluster, ~20-30 qrels,
 > gold ~50); **C9** (`format_congruency_mult`/self-explanation credit fields are inert — no scorer reads
-> them; make self-explain a real template toggle only). The whole FSRS fade ladder (hysteresis +
-> spaced-session gate) is **PLAN-ONLY** for the deadline (biggest engine risk, not a named challenge).
+> them; make self-explain a real template toggle only). **The FSRS fade ladder (gather-path gating +
+> hysteresis + spaced-session gate) is now COMMITTED Phase 2 scope, to be implemented BEFORE Phase 3**
+> (owner decision 2026-07-02, reversing the grilling PLAN-ONLY call — reconciled in `GRILLING_NOTES.md`
+> §2 + `PLAN_CHANGELOG.md`). It remains the **biggest engine risk**, so it MUST follow the
+> [A1]/[A2]/C1/C2 corrections above, ship behind a **default-off deck-config toggle** (`fade_enabled`),
+> and land with full unit-test coverage + a green `just check` before any Phase 3 work begins.
+>
+> **AIG is now FULLY AUTOMATED (2026-07-02):** the M1 content pipeline has **no human interaction or
+> validation** — no SME sign-off, no human-vetted gold set, and **synthetic (not human) qrels** for the
+> retrieval eval (so C7's "gold ~50" / SME step no longer applies). The automation-bias risk R23/C7
+> raise is **explicitly accepted**; the mitigation is the automated gates plus the runtime guard that
+> **ungraded generated items never feed readiness**.
 
 > 🏗 **ARCHITECTURE ERRATA (2026-07-02, verified against source) — supersedes the seam/formula/symbol
 > claims below.** Two corrections the grilling pass did not name, found by reading the real queue
@@ -82,6 +92,8 @@ The following are the substantive refinements, each grounded in `RESEARCH_ADDEND
 - **[R23] Two-stage generate→validate AIG with ADVERSARIAL human gold sign-off** (drafter +
   independent critic, self-consistency solve-check, pre-registered cutoff, gold set ≥100–200).
   v1 had a single gold-set checker; automation bias means review must be adversarial.
+  _(⚠️ Superseded 2026-07-02 — owner decision: the **human** sign-off + gold set are **removed**; M1 is
+  now fully automated. The automation-bias risk R23 flags is **accepted** — see the banner + M1 + Risks.)_
 - **[R24] Never let ungraded generated items feed the readiness estimate;** track per-item
   point-biserial from live responses and auto-retire non-discriminating items (new).
 
@@ -109,21 +121,31 @@ The following are the substantive refinements, each grounded in `RESEARCH_ADDEND
   (it may interleave merely-similar clusters — the Carvalho & Goldstone d=0.76 blocking-loss
   risk). Phase 2 adds the **signed gate**: force adjacency **only above a confusability
   threshold**; below it fall back to default SRS spacing/blocking. The confusability signal is
-  produced Phase-2-appropriately — **(a) COMPUTED** (preferred; satisfies R21 "AI beats
-  BM25/vector"): `confusability(a,b) = surface_similarity × discrimination_need`, grounded in
-  **behavioral confusion-mining from the revlog** (error-substitution / co-occurrence), NOT
-  raw embedding similarity, **within-topic only**, and **validated against held-out
-  human/behavioral labels before use**; or **(b) CURATED** (authoring-time): any manual
-  `confusable::high` labeling done as a Phase-2 SME task alongside AI item authoring. Adds the
+  produced **fully computed, no human** (owner decision 2026-07-02):
+  `confusability(a,b) = surface_similarity × discrimination_need`, grounded in **behavioral
+  confusion-mining from the revlog** (error-substitution / co-occurrence), NOT raw embedding
+  similarity, **within-topic only**, and **auto-validated against held-out behavioral labels**
+  (revlog-derived; no human labeling) before use. The **curated `confusable::high` SME-labeling
+  option is dropped** — the marker is written by the computed pass, never hand-curated. Adds the
   `contrast_confusable_tag` deck-config field and the gate check in the contrast cluster
   resolution.
-- **AI (validated accelerator) — authoring-time only; runtime is AI-free by construction.**
-  1. **Generation** — two-stage generate→validate (drafter + independent critic) with adversarial
-     SME gold sign-off and a self-consistency solve-check pre-filter ([R23]).
+- **AI (fully-automated accelerator) — authoring-time only; runtime is AI-free by construction; NO
+  human in the loop for generation or validation** (owner decision 2026-07-02).
+  1. **Generation** — two-stage generate→validate (drafter + independent **model** critic) gated
+     **automatically** by a self-consistency solve-check + numeric validation + multi-model consensus;
+     **no SME sign-off, no human-vetted gold set** ([R23]; automation-bias risk accepted — see Risks).
   2. **Retrieval-for-grounding** — finds the source passage each card is grounded on and **beats
-     BOTH tuned BM25 AND tuned dense** on precision@k at held-out qrels via RRF+rerank ([R21]).
+     BOTH tuned BM25 AND tuned dense** on precision@k via RRF+rerank, evaluated on **synthetic (not
+     human) qrels** ([R21]).
 - **Toggles / ablation dimensions** — `fade_enabled`, `fade_signal`, `fade_order`,
   `self_explain_enabled`, `element_interactivity_gate` on `DeckConfigInner`.
+- **Dashboard: user-editable tag→topic mapping** (read-time, **no AI**, non-destructive) **[ADDED
+  2026-07-02]** — lets a user map any deck tag onto one of the 10 readiness-dashboard topics, so
+  BYO / flat-tagged decks stop reading "no data." Stored in **synced collection config**
+  (`speedrun:tagTopicMap`) and folded onto subjects in the frontend; unmapped tags stay surfaced
+  (abstention preserved). Self-contained — **no scheduler/engine risk**. Full spec: `DASHBOARD.md`
+  **M5**. _(Distinct from the Phase-3 AI edge-sourcing generalization; this is manual, deterministic
+  topic attribution for the gauges.)_
 
 **Builds on Phase 1**
 
@@ -170,15 +192,30 @@ The following are the substantive refinements, each grounded in `RESEARCH_ADDEND
   where worked→faded pays; treat as a testable hypothesis (guarded by `element_interactivity_gate`)._
 - Prove the layer on this slice before breadth.
 
-### M1 — Content pipeline (AI-accelerated, adversarially validated) **[REVISE]**
+### M1 — Content pipeline (AI-accelerated, **fully automated — no human validation**) **[REVISE]**
 
-- **Two-stage generate→validate AIG** ([R23]): a **drafter** model proposes items; an
-  **independent critic** model challenges each; a **self-consistency solve-check** pre-filter runs
-  the item and rejects any with >1 correct answer (the #1 defect). Then **adversarial** human SME
-  sign-off — 2 SMEs, pre-registered acceptance cutoff: (a) factual accuracy, (b) single-best-answer,
-  (c) ≥3 functioning distractors. Gold set **≥100–200 human-vetted items**; accept at the observed
-  keep-rate (~58–70%). _Review must be adversarial, not rubber-stamp — automation bias increases
-  flaws. [R23] Evidence: Riehm 2026 (GRADE VERY LOW); Frontiers 2026 automation bias._
+- **Fully-automated generate→validate AIG** ([R23]; **no human in the loop** — owner decision
+  2026-07-02): a **drafter** model proposes items; an **independent critic** model (ideally a
+  *different* model family) challenges each and enforces the accept cutoff — (a) factual accuracy,
+  (b) single-best-answer, (c) ≥3 functioning distractors; a **self-consistency solve-check** pre-filter
+  solves the item and rejects any with >1 correct answer (the #1 defect); parameterized items also pass
+  **numeric validation** (below). **Acceptance is automatic** — every item clearing all machine gates
+  is emitted; there is **no SME sign-off and no human-vetted gold set**. Harden the gate with
+  **multi-sample / multi-model consensus** (accept only when independent draws agree) to blunt a single
+  model's blind spots. _⚠️ This removes the human adversarial review [R23] found necessary: with no
+  human check, automation bias means more flawed items pass. The compensating controls are the machine
+  gates here **plus** the runtime guard that **ungraded generated items never feed readiness** and are
+  **auto-retired by live point-biserial** ([R24]) — so defects degrade study material, not the honesty
+  gauges. [R23] Evidence: Riehm 2026 (GRADE VERY LOW); Frontiers 2026 automation bias._
+- **Seed exemplars (few-shot, NOT a template):** prime the drafter with the **30 official CFA Institute
+  "Are you ready for Level I?" sample MCQs** (3 per topic × 10 topics; A/B/C single-best with rationale
+  + distractor explanations) as **few-shot style/format/difficulty exemplars** — they inform the
+  exam-congruent A/B/C shape, the concise application-style stems, and the answer-rationale + distractor
+  pattern (which feeds the misconception step below). **Do NOT template off them:** generate **net-new**
+  items across the whole slice, cover concepts beyond the 30, and enforce the **leakage wall + n-gram
+  check** so no stem is a verbatim/near-verbatim copy. _© CFA Institute (all rights reserved) — kept as
+  a **local, git-ignored** authoring-time reference (`desktop/tools/speedrun/reference/`, never
+  committed/redistributed); generated output must be original._
 - **Misconception-grounded distractors** ([R22]): generate distractors **solve-first**, simulating
   the specific student errors in the **known CFA confusable set** (duration trio; FIFO/LIFO/WAC +
   LIFO-reserve direction; forwards/futures/swaps vs options), NOT surface similarity. This ties the
@@ -187,14 +224,17 @@ The following are the substantive refinements, each grounded in `RESEARCH_ADDEND
   non-functioning for regeneration)._
 - **Numeric validation** for parameterized generators (random inputs → computed answer →
   error-pattern distractors) — every generator numerically checked before emitting notes.
-- **Provenance/leakage wall**: the grounding corpus and the gold eval set are walled off from any
-  generator prompt/fine-tune; log provenance; n-gram check that stems aren't verbatim from source.
+- **Provenance/leakage wall**: the grounding corpus and any (now automated) eval/qrel set are walled
+  off from any generator prompt/fine-tune; log provenance; n-gram check that stems aren't verbatim from
+  source.
 - **Retrieval-for-grounding** ([R21]): index the source(s); for each card retrieve the supporting
   passage and store it as the card's **named source**. The **fair "beats a simpler method" claim**
-  = beat **BOTH a tuned BM25 AND a tuned dense retriever** at the **same cutoff** on **held-out
-  qrels**, reporting **precision@k AND latency**. Pipeline: **BM25 top-100 + dense top-100 →
-  RRF(k=60) → cross-encoder rerank top-N**. _Dense-only is a strawman. [R21] Evidence: BEIR (2021,
-  BM25 often wins OOD); Cormack RRF (2009, p<.003); Rosa (2022, cross-encoder +>4 nDCG at ~10–100×
+  = beat **BOTH a tuned BM25 AND a tuned dense retriever** at the **same cutoff**, reporting
+  **precision@k AND latency**. Pipeline: **BM25 top-100 + dense top-100 → RRF(k=60) → cross-encoder
+  rerank top-N**. **No human qrels** (fully automated): use **synthetic qrels** — each card's own
+  grounding passage is its relevance label — and **disclose** that this self-referential eval is
+  weaker than human-judged relevance. _Dense-only is a strawman. [R21] Evidence: BEIR (2021, BM25
+  often wins OOD); Cormack RRF (2009, p<.003); Rosa (2022, cross-encoder +>4 nDCG at ~10–100×
   latency)._
 - _(Deferred: the disjoint held-out MCQ bank for Performance scoring — and it must be **delayed**
   application MCQs, not immediate accuracy.)_
@@ -206,19 +246,22 @@ engine-correctness refinements (C3 merged-queue contiguity, C10 sibling-adjacenc
 **no confusability signal** — so it can force adjacency on merely-similar clusters, risking the
 **Carvalho & Goldstone (2014) d=0.76 blocking-loss** on dissimilar pairs. Phase 2 resolves this
 by producing a confusability signal (below) and **gating** adjacency on it. This label / signal
-work belongs in Phase 2 because it needs either manual per-pair SME judgment or a computed
-behavioral signal — both incompatible with Phase 1's AI-free, no-new-manual-labeling constraint.
+work belongs in Phase 2 because it needs a computed behavioral signal (Phase 1 is AI-free with no new
+labeling). **No human labeling is used** (owner decision 2026-07-02): the signal is fully **computed
+and auto-validated** — no curated `confusable::high` SME labels, no human relevance labels anywhere.
 
 - **[R18](a) COMPUTED signal (preferred — satisfies R21 "AI beats BM25/vector").**
   `confusability(a,b) = surface_similarity × discrimination_need`, where the core term is
   **behavioral confusion-mining from the revlog** (error-substitution / co-occurrence of
   lapses across the pair), **NOT raw embedding similarity**. Scope to **within-topic** pairs
-  only (`cfa::topic::*`). **Validate against held-out human/behavioral labels before use** —
-  the score must beat a BM25/vector-similarity baseline on those held-out labels (ties to the
-  R21 evaluation discipline) before it is allowed to drive scheduling.
-- **[R18](b) CURATED signal (authoring-time fallback).** If hand-curated at all, the manual
-  `confusable::high` labeling is a **Phase-2 SME task** performed alongside the AI item
-  authoring (M1) — never a Phase-1 burden.
+  only (`cfa::topic::*`). **Auto-validate against held-out BEHAVIORAL labels** (revlog-derived —
+  error-substitution / lapse co-occurrence, held out by time; **no human labeling**): the score must
+  beat a BM25/vector-similarity baseline on those held-out behavioral labels (ties to the R21
+  discipline) before it is allowed to drive scheduling.
+- **[R18](b) ~~CURATED signal~~ — REMOVED (no human, 2026-07-02).** The manual `confusable::high` SME
+  labeling option is **dropped**; the gate uses **only the computed behavioral signal** above.
+  (`contrast_confusable_tag` still exists as the marker/field, but the marker is written by the
+  computed pass — never hand-curated.)
 - **[R18] Deck-config field + gate check.** Add **`contrast_confusable_tag`** (string, **field 49**
   — 48 = `contrast_tag_prefix` is the last used) to the deck config: `proto/anki/deck_config.proto`,
   defaulted in `rslib/src/deckconfig/mod.rs` (the `DEFAULT` const), and threaded through
@@ -280,7 +323,9 @@ behavioral signal — both incompatible with Phase 1's AI-free, no-new-manual-la
   _reorders_ admitted cards — it cannot gate. There, for each candidate card, read its FSRS-derived
   signal (below) and its `rung::` / `cluster::` / `interactivity::` tags.
 - **Fade signal** ([R10]; formula corrected per **C1**): the signal is **predicted retrievability at
-  the exam horizon**, `t = days_to_exam`. Compute it by calling
+  the exam horizon**, `t = days_to_exam` — the exam date comes from a **collection-config key**
+  `speedrun:exam_date` (same store as the M6b tag map; no proto field needed). If it is unset, **fading
+  is disabled** (fall back to always-worked) rather than guessing a horizon. Compute it by calling
   `FSRS::current_retrievability_seconds(memory_state, seconds_elapsed = t·86400, decay)` with
   `decay = card.decay.unwrap_or(FSRS5_DEFAULT_DECAY)` — the same primitive
   `extract_fsrs_retrievability` uses (`storage/sqlite.rs:360-367`); natural home
@@ -338,7 +383,7 @@ New/changed fields on `DeckConfigInner` (`proto/anki/deck_config.proto`,
 
 | Field                        | Values                                          | Purpose                                                                                           | Cite  |
 | ---------------------------- | ----------------------------------------------- | ------------------------------------------------------------------------------------------------- | ----- |
-| `fade_enabled`               | bool                                            | ladder on / always-worked / always-cold                                                           | v1    |
+| `fade_enabled`               | bool                                            | ladder on / always-worked / always-cold (**default OFF**)                                                           | v1    |
 | `fade_signal`                | enum {exam_horizon_R, stability, success_count} | which fade signal                                                                                 | [R10] |
 | `fade_up_R` / `fade_down_R`  | float                                           | hysteresis band bounds (up>down)                                                                  | [R11] |
 | `promotion_spaced_sessions`  | int (default 3)                                 | spaced-session promotion gate                                                                     | [R12] |
@@ -349,13 +394,20 @@ New/changed fields on `DeckConfigInner` (`proto/anki/deck_config.proto`,
 | `element_interactivity_gate` | bool                                            | restrict ladder to `interactivity::high`                                                          | [R17] |
 | `contrast_confusable_tag`    | string (default `confusable::high`)             | signed confusability gate for SPOV3 adjacency; empty → ungated (legacy)                           | [R18] |
 
-_Plumbing (verified against source):_ each real field occupies proto number **49 and up** (48 is the
-last used); besides `deck_config.proto` + the `DEFAULT` const in `deckconfig/mod.rs`, any field the
-**scheduler** reads must also be added to `QueueSortOptions` and mapped in `sort_options()`
-(`builder/mod.rs`), the same path `contrast_scheduling`/`contrast_tag_prefix` take today — a proto
-field alone is invisible to `build_queues`. Per **C9**, `format_congruency_mult` is **not** added as a
-field (nothing reads it); `self_explain_enabled` stays because it changes the **rendered template**
-(so it is not inert).
+_Plumbing + field allocation (verified against source):_ these take the **next free proto numbers**
+(48 = `contrast_tag_prefix` is the last used) — one number **per field**, so `fade_up_R` and
+`fade_down_R` are two separate fields:
+
+- **49** `contrast_confusable_tag` (M1b), **50** `fade_enabled`, **51** `fade_signal`,
+  **52** `fade_up_R`, **53** `fade_down_R`, **54** `promotion_spaced_sessions`,
+  **55** `fluency_stability_floor`, **56** `fade_order`, **57** `self_explain_enabled`,
+  **58** `element_interactivity_gate`.
+
+Besides `deck_config.proto` + the `DEFAULT` const in `deckconfig/mod.rs`, any field the **scheduler**
+reads must also be added to `QueueSortOptions` and mapped in `sort_options()` (`builder/mod.rs`), the
+same path `contrast_scheduling`/`contrast_tag_prefix` take today — a proto field alone is invisible to
+`build_queues`. Per **C9**, `format_congruency_mult` is **not** added as a field (nothing reads it);
+`self_explain_enabled` stays because it changes the **rendered template** (so it is not inert).
 
 ### M6 — Ablation toggle (experiment **[Deferred]**) **[REVISE]**
 
@@ -363,6 +415,23 @@ field (nothing reads it); `self_explain_enabled` stays because it changes the **
   ablations: `fade_order`, `self_explain_enabled`, `element_interactivity_gate`) _can_ be compared.
 - **[Deferred]:** running the ablation + the **delayed held-out** Performance bank + the
   Memory/Performance write-up. (Ablation stays 3 arms: full / feature-off / vanilla.)
+
+### M6b — Dashboard: user-editable tag→topic mapping (read-time, no AI) **[ADDED 2026-07-02]**
+
+Self-contained dashboard feature — **no scheduler touch, no AI** — that fixes decks lacking
+`cfa::topic::*` tags reading "no data." Full spec: `DASHBOARD.md` (§"Tag → topic mapping" + its M5).
+
+- **Backend:** the mastery path returns **per-raw-tag** buckets (all topic logic stays in the
+  frontend; engine stays exam-agnostic); add config get/set for `speedrun:tagTopicMap` via the
+  existing config service (`rslib/src/backend/config.rs`).
+- **Frontend:** fold raw tags → the 10 subjects via canonical `cfa::topic::` + aliases + the user map
+  (`ts/routes/dashboard/{metrics,topics}.ts`); a **"Map tags"** editor in `DashboardPage.svelte`
+  (a topic dropdown per unmapped tag, plus "ignore"); persist to **synced collection config**.
+- **Precedence + honesty:** canonical `cfa::topic::` > user map > unmapped; unmapped tags stay counted
+  in `cardsWithoutTopic` and shown as coverage gaps (deterministic, auditable, no proxy).
+- **Out of scope here:** materialising the map as `cfa::topic::` tags on cards (destructive; would
+  also fix the phone reviewer + concept graph). The readiness dashboard is desktop-only today.
+- **Tests:** folding precedence, prefix matching (`finance::*`), and the `cardsWithoutTopic` count.
 
 ### M7 — Build, run, verify **[REVISE]**
 
@@ -376,9 +445,10 @@ field (nothing reads it); `self_explain_enabled` stays because it changes the **
 
 ## Deliverables
 
-1. A **two-stage generate→validate** pipeline (drafter + critic + self-consistency solve-check +
-   numeric validation) with **adversarial SME gold sign-off**, pre-registered cutoff, gold set
-   ≥100–200 ([R23]); **misconception-grounded distractors** from the CFA confusable set ([R22]).
+1. A **fully-automated generate→validate** pipeline (drafter + independent model critic +
+   self-consistency solve-check + numeric validation + multi-model consensus) — **no human sign-off,
+   no gold set** ([R23]; automation-bias risk accepted, see Risks); **misconception-grounded
+   distractors** from the CFA confusable set ([R22]).
 2. A **retrieval-for-grounding** component that attaches a named source and **beats BOTH tuned
    BM25 AND tuned dense** (precision@k + latency) via **RRF(k=60) + cross-encoder rerank** ([R21]).
 3. **Rung + interactivity + provenance tags** (`rung::*`, `interactivity::*`, `aig::graded|ungraded`)
@@ -394,11 +464,14 @@ field (nothing reads it); `self_explain_enabled` stays because it changes the **
 6. **[R18 — moved from Phase 1] Signed confusability gate on SPOV3 adjacency**: the
    `contrast_confusable_tag` deck-config field + the gate check in `contrast.rs` cluster
    resolution (force adjacency only above threshold; below → default SRS spacing), driven by a
-   **computed** behavioral-confusion-mining signal (`surface_similarity × discrimination_need`,
-   within-topic, validated vs held-out labels, must beat BM25/vector — R21) or a **curated**
-   authoring-time `confusable::high` label. Confusability-gated ablation = **3 arms** (gated /
-   shipped-ungated / vanilla).
-7. **[Deferred]:** delayed held-out MCQ bank, Performance calibration, full ablation + write-up.
+   **computed, no-human** behavioral-confusion-mining signal (`surface_similarity × discrimination_need`,
+   within-topic, **auto-validated vs held-out behavioral labels**, must beat BM25/vector — R21). The
+   curated `confusable::high` SME-label option is **dropped** (no human). Confusability-gated ablation
+   = **3 arms** (gated / shipped-ungated / vanilla).
+7. **Dashboard user-editable tag→topic mapping** (read-time, **no AI**) **[ADDED]**: per-raw-tag
+   mastery buckets + `speedrun:tagTopicMap` in synced collection config + frontend folding + a
+   "Map tags" editor; unmapped tags still surfaced (abstention preserved). Spec: `DASHBOARD.md` M5.
+8. **[Deferred]:** delayed held-out MCQ bank, Performance calibration, full ablation + write-up.
 
 ---
 
@@ -415,9 +488,9 @@ field (nothing reads it); `self_explain_enabled` stays because it changes the **
 | Faded (cloze), mastery-order fade          | `notetype/cardgen.rs`, `rslib/src/cloze.rs`                                                                                                                                                                              | [R15]       |
 | Solve (custom MCQ) + feedback reveal       | new note type + self-contained HTML/JS (desktop + AnkiDroid)                                                                                                                                                             | [R9]        |
 | Compare card                               | side-by-side note type/template, small confusable set                                                                                                                                                                    | [R20]       |
-| Signed confusability gate (SPOV3)          | new `contrast_confusable_tag` field (→ `QueueSortOptions`); read marker in `load_contrast_clusters`, gate in `apply_contrast` (no `cluster_for_tags`); computed revlog-confusion signal (offline) or curated marker      | [R18]       |
+| Signed confusability gate (SPOV3)          | new `contrast_confusable_tag` field (→ `QueueSortOptions`); read marker in `load_contrast_clusters`, gate in `apply_contrast` (no `cluster_for_tags`); computed revlog-confusion signal (offline), auto-validated; no curated marker (no human)      | [R18]       |
 | Toggles                                    | `proto/anki/deck_config.proto`, `rslib/src/deckconfig/mod.rs` (see M5 table)                                                                                                                                             | [R11]–[R18] |
-| AI (offline tooling)                       | drafter+critic generation, self-consistency solve-check, gold-set SME sign-off; RRF+rerank retrieval; BM25 + dense baselines                                                                                             | [R21]–[R24] |
+| AI (offline tooling)                       | drafter+critic generation, self-consistency solve-check, numeric validation + multi-model consensus (**no SME / no gold set**); RRF+rerank retrieval on synthetic qrels; BM25 + dense baselines                                                                                             | [R21]–[R24] |
 
 ---
 
@@ -440,18 +513,23 @@ field (nothing reads it); `self_explain_enabled` stays because it changes the **
 - **Limit/count bookkeeping** for gated-out cards — solved by gating as a **bury-style skip** in the
   gather path ([A1]): a card withheld in `add_new_card`/`add_due_card` never decrements
   `LimitTreeMap`, so counts stay valid with no extra bookkeeping.
-- **AI (authoring-time only):** runtime is AI-free by construction (no review-time AI calls);
-  generation is **adversarially validated** with a pre-registered cutoff ([R23]); distractors are
-  **misconception-grounded and pruned at <5%** ([R22]); retrieval **beats BOTH tuned BM25 and
-  tuned dense** and supplies the **named source** ([R21]); **ungraded generated items never feed
-  readiness** and non-discriminating items (point-biserial) are auto-retired ([R24]); train/test
-  kept disjoint; prompt-injection in sources handled; **adversarial review guards automation bias**.
+- **AI (authoring-time only, FULLY AUTOMATED — no human validation):** runtime is AI-free by
+  construction (no review-time AI calls); generation is validated **only by machine gates** (independent
+  model critic enforcing the accept cutoff, self-consistency solve-check, numeric validation,
+  multi-model consensus) — **no SME sign-off, no human-vetted gold set** (owner decision 2026-07-02).
+  ⚠️ **This accepts the automation-bias risk [R23] warns about** — with no human adversarial review,
+  undetected factual/answer flaws pass more often. **Compensating controls:** **ungraded generated
+  items never feed readiness** and non-discriminating items (point-biserial) are **auto-retired** from
+  live responses ([R24]) — so defects degrade *study material*, not the honesty gauges; distractors are
+  **misconception-grounded and pruned at <5%** ([R22]); retrieval supplies a **named source** and beats
+  tuned BM25+dense on **synthetic qrels** ([R21]); train/test kept disjoint; prompt-injection in sources
+  handled.
 - **[R18] Confusability gate is make-or-break for SPOV3, and must not be a strawman.**
   Confusable ≠ merely similar; wrong-side adjacency is a _measured loss_ (Carvalho & Goldstone
-  d=0.76). The computed signal must be **behavioral** (revlog confusion-mining), within-topic,
-  and **validated vs held-out labels / beat BM25/vector** before it drives scheduling; a
-  curated `confusable::high` label is the authoring-time fallback. This is why R18 is Phase 2,
-  not Phase 1 (Phase 1 has no confusability signal and no manual-labeling budget).
+  d=0.76). The signal is **fully computed, no human** (owner decision): **behavioral** (revlog
+  confusion-mining), within-topic, and **auto-validated vs held-out behavioral labels / beat
+  BM25/vector** before it drives scheduling — the curated SME-label fallback is **dropped**. This is
+  why R18 is Phase 2, not Phase 1 (Phase 1 has no confusability signal and no labeling budget).
 - **No schema/sync work** — rung/cluster/interactivity/provenance tags ride native sync; a
   first-class synced edge table is deferred to Phase 3 "only if needed."
 - **Supply scope** — keep to the narrow high-element-interactivity cluster(s) until the layer is

@@ -6,6 +6,28 @@
 (each v2 plan carries a banner pointing here). It is the "further adjustments" output of the
 grilling step. **No code was implemented** (per instruction).
 
+> 🔄 **UPDATE 2026-07-02 (owner decision) — supersedes the fade-ladder disposition below.** The FSRS
+> fade engine (gather-path gating + exam-horizon-R + two-sided hysteresis + spaced-session gate) is
+> **promoted from PLAN-ONLY to COMMITTED Phase 2 scope, to be implemented BEFORE Phase 3.** The
+> engine-correctness fixes **C1** (reuse `current_retrievability_seconds`, not the hand-rolled
+> formula) and **C2** (gate at BUILD time; `AnswerCard` is excluded from rebuilds) still **govern HOW
+> it is built**, together with the architecture corrections **A1/A2** in `PHASE2_PLAN_V2.md`. §2's
+> PLAN-ONLY list is updated accordingly. (This note does not change the historical record that no code
+> was implemented at grilling time.)
+
+> 🔄 **UPDATE 2026-07-02 (owner decision) — NO HUMAN ANYWHERE IN PHASE 2; supersedes the
+> human-validation parts of C7 / R23 / R18.** (1) **M1 content pipeline** is **fully automated**: no SME
+> sign-off, no human-vetted gold set; IR eval uses **synthetic (not human) qrels**. C7's "you are SME +
+> adversarial model critic" / "gold ~50" and R23's human sign-off **no longer apply**. (2) **M1b
+> confusability gate (R18)** uses **only the computed behavioral signal**, **auto-validated** against
+> held-out behavioral (revlog) labels — the **curated `confusable::high` SME label is dropped** (no
+> human labeling). The automation-bias risk R23/C7/R18 raise is **explicitly accepted**; the mitigations
+> are the automated gates (model critic + self-consistency solve-check + numeric validation +
+> multi-model consensus) **plus** the runtime guard that **ungraded generated items never feed
+> readiness** (auto-retired by live point-biserial). The drafter is seeded with the **30 official CFA
+> Institute L1 sample MCQs** as **few-shot exemplars only** (© CFA — git-ignored local reference, not a
+> template; items are net-new + leakage-walled). See `PHASE2_PLAN_V2.md` M1 / M1b / Risks.
+
 ---
 
 ## 0. Headline
@@ -73,9 +95,12 @@ behavioral signal). **Minimal traceable AI slice** (C7) to clear AI-section-0; *
 build+sync spike** after the rebase cherry-pick spike (C-mobile), with a fixed go/no-go checkpoint.
 
 **PLAN-ONLY (cite as future work — do NOT build for the deadline):** IRT/PFA/LKT, Rudner CA/CC,
-Venn-Abers, conformal (C6); the full fade ladder with FSRS-horizon-R + hysteresis + spaced-session
-re-gating (C1/C2 — biggest engine risk, not a named challenge); the full "beats tuned dense"
-RRF+cross-encoder IR project (C7).
+Venn-Abers, conformal (C6); the full "beats tuned dense" RRF+cross-encoder IR project (C7).
+
+**PROMOTED 2026-07-02 (was PLAN-ONLY → now COMMITTED, before Phase 3):** the full FSRS fade ladder
+with exam-horizon-R + hysteresis + spaced-session gating. Still the biggest engine risk, so build it
+per **C1/C2 + A1/A2**, behind a **default-off toggle** with unit tests + green `just check` (see the
+UPDATE note at the top of this file).
 
 ---
 

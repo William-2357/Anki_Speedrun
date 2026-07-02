@@ -76,6 +76,13 @@ curated **reading → topic map** already used by the concept graph
 **documented, config-editable table** (published as ranges; midpoints shown) — the engine stays
 topic-agnostic, so the map + weights + transfer factors all live in the frontend.
 
+> **Status note (2026-07-02):** as *shipped* this differs from the text above — there is **no**
+> `concept-graph/topics.ts` reading→topic map, and the `topic_mastery` RPC groups by the
+> `cfa::topic::` prefix **in Rust** (aliasing only suffixes already under it). Decks with flat/other
+> tags therefore fall entirely into `cardsWithoutTopic` and every subject abstains. The
+> **user-editable tag→topic mapping** (new section below + milestone **M5**) realises and generalises
+> the original frontend-map design — read-time, non-destructive, and AI-free.
+
 | Subject                          | Exam weight `w(s)` | Transfer factor `τ(s)` |
 | -------------------------------- | -----------------: | ---------------------: |
 | Ethical & Professional Standards |                15% |                   0.90 |
@@ -92,6 +99,46 @@ topic-agnostic, so the map + weights + transfer factors all live in the frontend
 `τ(s)` = how much recall is expected to transfer to exam questions (recall-heavy topics like Ethics
 high; computation/application-heavy like Derivatives/Quant lower). **These are documented guesses**
 for Phase 1; Phase 2's measured Memory→Performance gap replaces them.
+
+## Tag → topic mapping (user-editable) — [PLANNED 2026-07-02, read-time, no AI]
+
+**Why.** Attribution currently requires a `cfa::topic::<area>` tag; a deck with flat reading tags (or
+any other scheme) shows "N of N cards have no `cfa::topic::*` tag" and every subject abstains. This
+feature lets the user **map any tag → one of the 10 topics** so their own deck lights up the dashboard.
+It is **deterministic and AI-free** (the Phase-1 "No AI" dashboard rule; the PRD "Marcus / BYO-deck"
+persona's "path for untagged decks") and **non-destructive** — applied at read time; the deck's tags
+are never rewritten.
+
+**Storage (synced, no schema change).** A JSON map in **collection config**:
+`speedrun:tagTopicMap = { "<tag-or-prefix>": "<canonical topic id | ignore>" }`, read/written via the
+existing config service (`getConfigJson` / `setConfigJson`, `rslib/src/backend/config.rs`). Collection
+config **syncs natively**, so the map reaches other devices with no new sync work.
+
+**Resolution order (per card).**
+
+1. a built-in `cfa::topic::<area>` tag (+ the existing suffix aliases) — unchanged;
+2. the **user map** — exact tag, or prefix match for hierarchical tags (`finance::*`);
+3. otherwise **unmapped** → still counted in `cardsWithoutTopic` and shown as a coverage gap
+   (abstention preserved; nothing is invented). A tag mapped to `ignore` is dropped (noise tags).
+
+**Backend (realises the original M1 intent).** Return **per-raw-tag** buckets from the mastery path
+(`{ tag, total, studied, high_recall, mean_R, stddev }`) instead of collapsing by `cfa::topic::` in
+Rust, so *all* topic logic lives in the frontend and the engine stays exam-agnostic. `metrics.ts` then
+folds tags → subjects using canonical + aliases + the user map. (Alternatively the map could be passed
+into the RPC; the per-tag-return option is preferred and matches this doc's M1.)
+
+**UI.** The "N cards have no `cfa::topic::*` tag" note becomes a **"Map tags →"** action that opens an
+editor: the deck's **unmapped** tags (from the per-tag data), each with a 10-topic dropdown **+
+"ignore"**; Save persists to config and refreshes. (Later, optionally: an import-time nudge when a
+newly-added deck has many unmapped tags.)
+
+**Out of scope (this feature).** Materialising the map as `cfa::topic::` tags on cards — a separate,
+*destructive* option that would also fix the phone reviewer + concept graph. The readiness **dashboard
+is desktop-only** today, so the synced map has no phone consumer yet.
+
+**Not to be confused with Phase 3 M5** ("Generalization / BYO decks"), which is **AI/behavioural
+edge-sourcing for *scheduling*** (clusters/rungs). This is manual, no-AI **topic attribution for the
+*dashboard*** — complementary and independently shippable.
 
 ## How each value is calculated
 
@@ -177,6 +224,8 @@ studied card (otherwise that subject abstains).
 - Reuse the **reading → topic map** (`concept-graph/topics.ts`) and add the **weights** + **transfer
   factor** tables as frontend constants (config-editable). Confirm every reading maps to one of the 10
   topics; noise tags dropped.
+  - _Note (2026-07-02): the `concept-graph/topics.ts` map was never built; topic attribution shipped
+    via the `cfa::topic::` prefix. The **user-editable map (M5)** generalises this for any tag scheme._
 
 ### M1 — Backend metrics RPC (extends `StatsService`, one SQL pass)
 
@@ -206,6 +255,16 @@ studied card (otherwise that subject abstains).
 - Brier/log-loss for Memory on held-out reviews; P(pass) calibration against held-out mocks. Phase 1
   ships the _method_ + ranges + abstention, not the calibration proof.
 
+### M5 — User-editable tag→topic mapping (**[PLANNED]** — read-time, no AI)
+
+- **Backend:** mastery path returns **per-raw-tag** buckets (reconciles M1's "raw per-tag numbers");
+  add config get/set for `speedrun:tagTopicMap` via the existing config service.
+- **Frontend:** fold raw tags → the 10 subjects via canonical + aliases + the user map in
+  `metrics.ts` / `topics.ts`; add the **"Map tags"** editor to `DashboardPage.svelte`; persist to the
+  synced collection config.
+- **Honesty:** unmapped tags stay counted + surfaced (no proxy, no AI). **Tests:** folding precedence
+  (canonical > user map > unmapped), prefix matching, and the `cardsWithoutTopic` count.
+
 ## Deliverables
 
 1. A **deck-scoped metrics RPC** (per-reading stats + graded-review count), fast on 50k cards.
@@ -224,7 +283,8 @@ studied card (otherwise that subject abstains).
 | Metrics RPC                     | `proto/anki/stats.proto` (`StatsService`), `rslib/src/stats/` (reuse `mastery.rs` / `searched_cards_graph_data`) |
 | FSRS retrievability / stability | `extract_fsrs_*` — `rslib/src/storage/sqlite.rs`                                                                 |
 | Graded-reviews count            | `revlog` count (SQL) for the give-up rule                                                                        |
-| Reading→topic map, weights, `τ` | frontend constants (`ts/routes/concept-graph/topics.ts` + a dashboard config)                                    |
+| Reading→topic map, weights, `τ` | frontend constants in `ts/routes/dashboard/topics.ts` (the `concept-graph/topics.ts` map was never built) |
+| **User tag→topic map [PLANNED]** | `speedrun:tagTopicMap` in collection config (`getConfigJson`/`setConfigJson`, `rslib/src/backend/config.rs`); folding in `ts/routes/dashboard/{metrics,topics}.ts`; editor in `DashboardPage.svelte` |
 | Dashboard page                  | new `ts/routes/dashboard/` (pattern: `concept-graph`), API-enabled webview                                       |
 | Launch point                    | **top toolbar** link in `qt/aqt/toolbar.py` (`_centerLinks`, next to Stats); `AnkiWebViewKind.CFA_DASHBOARD`     |
 | Styling / components            | `ts/lib/sass/_vars.scss` tokens; `ts/lib/components/`                                                            |

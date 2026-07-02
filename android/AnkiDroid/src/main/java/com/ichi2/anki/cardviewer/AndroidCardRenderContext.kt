@@ -47,6 +47,9 @@ class AndroidCardRenderContext(
         content = expandSounds(content, card.renderOutput(col), col)
         // fixes an Android bug where font-weight:600 does not display
         content = CardAppearance.fixBoldStyle(content)
+        // Anki Speedrun: always display the note's tags alongside the card, rather than
+        // keeping them hidden during review.
+        content += renderTagsFooter(card.note(col).tags)
 
         // based on the content, load appropriate scripts such as MathJax, then render
         return render(content, card.ord)
@@ -86,6 +89,39 @@ class AndroidCardRenderContext(
             append(content)
             append("</div>")
         }
+
+    /**
+     * Anki Speedrun: builds an always-visible footer listing the note's tags so the learner
+     * sees a card's tags during review instead of them being hidden. Styled inline with
+     * theme-neutral colours so it renders legibly over any card CSS in both light and dark modes.
+     *
+     * @param tags the note's tags (may be empty)
+     * @return an HTML `<div>` to append after the card content
+     */
+    private fun renderTagsFooter(tags: List<String>): String {
+        val chips =
+            if (tags.isEmpty()) {
+                """<span style="opacity:0.6">(no tags)</span>"""
+            } else {
+                tags.joinToString(separator = " ") { tag ->
+                    val chipStyle =
+                        "display:inline-block;padding:1px 7px;margin:2px;" +
+                            "border:1px solid rgba(128,128,128,0.5);border-radius:9px;white-space:nowrap;"
+                    """<span class="anki-tag" style="$chipStyle">${escapeHtml(tag)}</span>"""
+                }
+            }
+        val footerStyle =
+            "margin-top:1em;padding-top:0.5em;border-top:1px solid rgba(128,128,128,0.35);" +
+                "font-size:0.8em;line-height:1.9;opacity:0.85;text-align:center;word-break:break-word;"
+        return """<div id="anki-tags" dir="auto" style="$footerStyle">$chips</div>"""
+    }
+
+    private fun escapeHtml(text: String): String =
+        text
+            .replace("&", "&amp;")
+            .replace("<", "&lt;")
+            .replace(">", "&gt;")
+            .replace("\"", "&quot;")
 
     private fun filterTypeAnswer(
         content: String,

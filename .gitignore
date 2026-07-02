@@ -4,3 +4,7 @@
 
 # macOS
 .DS_Store
+
+# Copyrighted third-party reference material (e.g. official CFA sample questions,
+# © CFA Institute) used only as private authoring-time exemplars — never committed/redistributed.
+desktop/tools/speedrun/reference/
