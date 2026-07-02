@@ -372,6 +372,14 @@ class Toolbar:
                 tip=tr.actions_shortcut_key(val="T"),
                 id="stats",
             ),
+            # Anki Speedrun: whole-collection readiness dashboard
+            self.create_link(
+                "speedrun_dashboard",
+                tr.qt_misc_speedrun_dashboard(),
+                self._speedrunDashboardLinkHandler,
+                tip=tr.actions_shortcut_key(val="R"),
+                id="speedrun_dashboard",
+            ),
         ]
 
         links.append(self._create_sync_link())
@@ -449,6 +457,9 @@ class Toolbar:
 
     def _statsLinkHandler(self) -> None:
         self.mw.onStats()
+
+    def _speedrunDashboardLinkHandler(self) -> None:
+        aqt.dialogs.open("SpeedrunDashboard", self.mw)
 
     def _syncLinkHandler(self) -> None:
         self.mw.on_sync_button_clicked()

@@ -80,3 +80,7 @@ qt-misc-open-anki-launcher = Change to a different Anki version?
 ## to be translated
 
 qt-misc-replace-your-collection-with-an-earlier = Replace your collection with an earlier backup?
+
+## Anki Speedrun
+
+qt-misc-speedrun-dashboard = Dashboard

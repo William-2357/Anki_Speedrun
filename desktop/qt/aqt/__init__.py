@@ -122,6 +122,7 @@ import aqt.forms
 
 from aqt import addcards, addons, browser, editcurrent, filtered_deck  # isort:skip
 from aqt import stats, about, preferences, mediasync  # isort:skip
+from aqt import speedrun_dashboard  # isort:skip
 
 
 class DialogManager:
@@ -133,6 +134,7 @@ class DialogManager:
         "FilteredDeckConfigDialog": [filtered_deck.FilteredDeckConfigDialog, None],
         "DeckStats": [stats.DeckStats, None],
         "NewDeckStats": [stats.NewDeckStats, None],
+        "SpeedrunDashboard": [speedrun_dashboard.SpeedrunDashboard, None],
         "About": [about.show, None],
         "Preferences": [preferences.Preferences, None],
         "sync_log": [mediasync.MediaSyncDialog, None],

@@ -509,8 +509,10 @@ dependencies {
         localProperties.load(project.rootProject.file('local.properties').newDataInputStream())
     }
     if (localProperties['local_backend'] == "true") {
-        implementation(files(rootProject.file("../Anki-Android-Backend/rsdroid/build/outputs/aar/rsdroid-release.aar")))
-        testImplementation(files(rootProject.file("../Anki-Android-Backend/rsdroid-testing/build/libs/rsdroid-testing.jar")))
+        // Anki Speedrun monorepo: the backend checkout lives in
+        // ../android-backend rather than a sibling Anki-Android-Backend.
+        implementation(files(rootProject.file("../android-backend/rsdroid/build/outputs/aar/rsdroid-release.aar")))
+        testImplementation(files(rootProject.file("../android-backend/rsdroid-testing/build/libs/rsdroid-testing.jar")))
     } else {
         implementation libs.ankiBackend.backend
         testImplementation libs.ankiBackend.testing

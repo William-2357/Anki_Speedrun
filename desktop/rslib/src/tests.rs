@@ -193,6 +193,11 @@ impl NoteAdder {
         self
     }
 
+    pub(crate) fn tags(mut self, tags: &[&str]) -> Self {
+        self.note.tags = tags.iter().map(ToString::to_string).collect();
+        self
+    }
+
     pub(crate) fn deck(mut self, deck: DeckId) -> Self {
         self.deck = deck;
         self

@@ -193,6 +193,17 @@ message DeckConfig {
     float historical_retention = 40;
     string param_search = 45;
 
+    // Anki Speedrun: contrast scheduling (SPOV 3). When enabled, the merged
+    // review queue is reordered so cards whose notes share a confusable
+    // cluster tag are shown adjacently, training discrimination between
+    // easily-confused concepts. Pure reordering; no cards are added, dropped
+    // or gated.
+    bool contrast_scheduling = 47;
+    // Tag prefix that identifies a confusable cluster, e.g. "cluster::".
+    // Notes sharing a tag under this prefix form one cluster. Empty means
+    // the default prefix ("cluster::").
+    string contrast_tag_prefix = 48;
+
     bytes other = 255;
   }
 

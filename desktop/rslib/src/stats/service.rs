@@ -30,6 +30,17 @@ impl crate::services::StatsService for Collection {
         Ok(Collection::get_graph_preferences(self))
     }
 
+    fn topic_mastery(
+        &mut self,
+        input: anki_proto::stats::TopicMasteryRequest,
+    ) -> error::Result<anki_proto::stats::TopicMasteryResponse> {
+        self.topic_mastery(
+            &input.search,
+            &input.topic_prefix,
+            input.high_recall_threshold,
+        )
+    }
+
     fn set_graph_preferences(
         &mut self,
         input: anki_proto::stats::GraphPreferences,

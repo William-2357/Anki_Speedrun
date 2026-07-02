@@ -60,8 +60,9 @@ private fun Project.addBackendArtifact(
     catalogAlias: String,
 ) {
     if (useLocalBackend) {
-        // ../Anki-Android-Backend
-        val backendCheckout = File(rootProject.projectDir.parentFile, "Anki-Android-Backend")
+        // Anki Speedrun monorepo: ../android-backend (rsdroid built from the
+        // shared engine in ../desktop)
+        val backendCheckout = File(rootProject.projectDir.parentFile, "android-backend")
         dependencies.add(configuration, files(File(backendCheckout, localPath)))
     } else {
         dependencies.addProvider(configuration, libsLibrary(catalogAlias))

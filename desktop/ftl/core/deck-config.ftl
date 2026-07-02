@@ -628,3 +628,21 @@ deck-config-fsrs-on-all-clients =
     Please ensure all of your Anki clients are Anki(Mobile) 23.10+ or AnkiDroid 2.17+. FSRS will
     not work correctly if one of your clients is older.
 deck-config-optimize-all-tip = You can optimize all presets at once by using the dropdown button next to "Save".
+
+## Anki Speedrun: contrast scheduling (SPOV 3)
+
+deck-config-contrast-title = Contrast Scheduling (Speedrun)
+deck-config-contrast-scheduling = Show confusable cards together
+deck-config-contrast-scheduling-tooltip =
+    Reorders the study queue so cards whose notes share a confusable-cluster tag
+    (for example "cluster::fi::duration") are shown back-to-back, forcing you to
+    discriminate between easily-confused concepts instead of meeting them in
+    isolation. Interleaving of this kind mainly helps discrimination between
+    genuinely confusable material, so it only acts on curated cluster tags, and
+    does nothing when the deck has none. Cards are only reordered within
+    today's queue - never added, dropped, or delayed to another day.
+deck-config-contrast-tag-prefix = Cluster tag prefix
+deck-config-contrast-tag-prefix-tooltip =
+    Tag prefix that marks confusable clusters. Notes sharing a tag under this
+    prefix form one cluster. Leave empty to use "cluster::". Clusters never
+    span two "cfa::topic::*" topic areas.

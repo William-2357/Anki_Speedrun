@@ -611,6 +611,38 @@ impl super::SqliteStorage {
             .collect()
     }
 
+    /// Anki Speedrun: for each searched card, yield the owning note's tags
+    /// and the card's current predicted FSRS retrievability (None when the
+    /// card has no memory state). One SQL pass over the searched set; no
+    /// per-card statements, so it stays fast on 50k-card collections.
+    pub(crate) fn for_each_searched_card_tags_and_retrievability<F>(
+        &self,
+        timing: SchedTimingToday,
+        mut func: F,
+    ) -> Result<()>
+    where
+        F: FnMut(&str, Option<f32>),
+    {
+        let mut stmt = self.db.prepare_cached(
+            "SELECT n.tags,
+                    extract_fsrs_retrievability(c.data,
+                        CASE WHEN c.odue != 0 THEN c.odue ELSE c.due END,
+                        c.ivl, ?1, ?2, ?3)
+             FROM cards c
+             JOIN notes n ON n.id = c.nid
+             WHERE c.id IN (SELECT cid FROM search_cids)",
+        )?;
+        let mut rows = stmt.query(params![
+            timing.days_elapsed,
+            timing.next_day_at.0,
+            timing.now.0
+        ])?;
+        while let Some(row) = rows.next()? {
+            func(row.get_ref(0)?.as_str()?, row.get(1)?);
+        }
+        Ok(())
+    }
+
     /// Cards will arrive in card id order, not search order.
     pub(crate) fn for_each_card_in_search<F>(&self, mut func: F) -> Result<()>
     where

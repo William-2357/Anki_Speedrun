@@ -29,6 +29,44 @@ def test_graphs_empty():
     assert col.stats().report()
 
 
+def test_topic_mastery():
+    "Anki Speedrun: the Rust TopicMastery RPC is reachable from Python."
+    col = getEmptyCol()
+    for front, tags in [
+        ("duration", "cfa::topic::fixed_income cluster::fi::duration"),
+        ("convexity", "cfa::topic::fixed_income"),
+        ("bayes", "cfa::topic::quant"),
+        ("stray", "untagged::reading"),
+    ]:
+        note = col.newNote()
+        note["Front"] = front
+        note.tags = tags.split()
+        col.addNote(note)
+
+    response = col.topic_mastery()
+    assert response.total_cards == 4
+    assert response.cards_without_topic == 1
+    assert response.fsrs_enabled is False
+    assert response.graded_reviews == 0
+    assert [topic.topic for topic in response.topics] == ["fixed_income", "quant"]
+    fixed_income = response.topics[0]
+    assert fixed_income.total_cards == 2
+    # nothing studied yet: the response must say so rather than fake a number
+    assert fixed_income.studied_cards == 0
+    assert fixed_income.average_retrievability == 0.0
+
+    # graded reviews are counted collection-wide
+    card = col.sched.getCard()
+    col.sched.answerCard(card, 3)
+    response = col.topic_mastery()
+    assert response.graded_reviews == 1
+
+    # scoped search + custom prefix
+    scoped = col.topic_mastery(search="tag:cfa::topic::quant")
+    assert scoped.total_cards == 1
+    assert [topic.topic for topic in scoped.topics] == ["quant"]
+
+
 def test_graphs():
     dir = tempfile.gettempdir()
     col = getEmptyCol()

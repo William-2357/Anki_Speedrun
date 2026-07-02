@@ -2,6 +2,7 @@
 // License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
 
 mod burying;
+mod contrast;
 mod gathering;
 pub(crate) mod intersperser;
 pub(crate) mod sized_chain;
@@ -10,6 +11,7 @@ mod sorting;
 use std::collections::HashMap;
 use std::collections::VecDeque;
 
+use contrast::ContrastContext;
 use intersperser::Intersperser;
 use sized_chain::SizedChain;
 
@@ -100,6 +102,8 @@ pub(super) struct QueueSortOptions {
     pub(super) review_order: ReviewCardOrder,
     pub(super) day_learn_mix: ReviewMix,
     pub(super) new_review_mix: ReviewMix,
+    pub(super) contrast_scheduling: bool,
+    pub(super) contrast_tag_prefix: String,
 }
 
 #[derive(Debug)]
@@ -110,6 +114,9 @@ pub(super) struct QueueBuilder {
     pub(super) day_learning: Vec<DueCard>,
     limits: LimitTreeMap,
     load_balancer: Option<LoadBalancer>,
+    /// Set between gathering and building when contrast scheduling is
+    /// enabled and the gathered notes carry cluster tags.
+    contrast: Option<ContrastContext>,
     context: Context,
 }
 
@@ -171,6 +178,7 @@ impl QueueBuilder {
             day_learning: Vec::new(),
             limits,
             load_balancer,
+            contrast: None,
             context: Context {
                 timing,
                 config_map,
@@ -195,6 +203,19 @@ impl QueueBuilder {
         let review_count = self.review.len();
         let new_count = self.new.len();
 
+        // the contrast pass runs on the merged queue (C3), which no longer
+        // knows about notes; snapshot the card -> note mapping first
+        let card_note: HashMap<CardId, NoteId> = if self.contrast.is_some() {
+            self.new
+                .iter()
+                .map(|c| (c.id, c.note_id))
+                .chain(self.review.iter().map(|c| (c.id, c.note_id)))
+                .chain(self.day_learning.iter().map(|c| (c.id, c.note_id)))
+                .collect()
+        } else {
+            HashMap::new()
+        };
+
         // merge interday and new cards into main
         let with_interday_learn = merge_day_learning(
             self.review,
@@ -206,6 +227,10 @@ impl QueueBuilder {
             self.new,
             self.context.sort_options.new_review_mix,
         );
+        let mut main: VecDeque<MainQueueEntry> = main_iter.collect();
+        if let Some(contrast_context) = &self.contrast {
+            main = contrast::apply_contrast(main, &card_note, contrast_context);
+        }
 
         CardQueues {
             counts: Counts {
@@ -213,7 +238,7 @@ impl QueueBuilder {
                 review: review_count,
                 learning: learn_count,
             },
-            main: main_iter.collect(),
+            main,
             intraday_learning,
             learn_ahead_secs,
             current_day: self.context.timing.days_elapsed,
@@ -233,9 +258,11 @@ fn sort_options(deck: &Deck, config_map: &HashMap<DeckConfigId, DeckConfig>) -> 
             review_order: config.inner.review_order(),
             day_learn_mix: config.inner.interday_learning_mix(),
             new_review_mix: config.inner.new_mix(),
+            contrast_scheduling: config.inner.contrast_scheduling,
+            contrast_tag_prefix: config.inner.contrast_tag_prefix.clone(),
         })
         .unwrap_or_else(|| {
-            // filtered decks do not space siblings
+            // filtered decks do not space siblings, and do not contrast
             QueueSortOptions {
                 new_order: NewCardSortOrder::NoSort,
                 ..Default::default()
@@ -286,6 +313,9 @@ impl Collection {
             .update_active_decks(&queues.context.root_deck)?;
 
         queues.gather_cards(self)?;
+        // contrast scheduling (Anki Speedrun): derive confusable clusters
+        // from the gathered notes' tags; a no-op unless enabled on the deck
+        queues.load_contrast_clusters(self)?;
 
         let queues = queues.build(self.learn_ahead_secs() as i64);
 

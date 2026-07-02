@@ -13,17 +13,28 @@ pub struct SyncSubmodule {
     pub offline_build: bool,
 }
 
+impl SyncSubmodule {
+    /// In the Anki Speedrun monorepo, the sources that upstream tracks as
+    /// submodules are vendored directly, and there is no `.gitmodules` in this
+    /// folder (the git root is the monorepo root). Treat that layout like an
+    /// offline build so we never try to run `git submodule update` against a
+    /// repository that has no such submodule.
+    fn skip_sync(&self) -> bool {
+        self.offline_build || !Utf8Path::new(".gitmodules").exists()
+    }
+}
+
 impl BuildAction for SyncSubmodule {
     fn command(&self) -> &str {
-        if self.offline_build {
-            "echo OFFLINE_BUILD is set, skipping git repository update for $path"
+        if self.skip_sync() {
+            "echo skipping submodule sync for vendored/offline $path"
         } else {
             "git -c protocol.file.allow=always submodule update --checkout --init $path"
         }
     }
 
     fn files(&mut self, build: &mut impl build::FilesHandle) {
-        if !self.offline_build {
+        if !self.skip_sync() {
             if let Some(head) = locate_git_head() {
                 build.add_inputs("", head);
             } else {

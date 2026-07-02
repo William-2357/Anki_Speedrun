@@ -3,6 +3,7 @@
 
 mod card;
 mod graphs;
+mod mastery;
 mod service;
 mod today;
 

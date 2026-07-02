@@ -16,6 +16,10 @@ service StatsService {
   rpc Graphs(GraphsRequest) returns (GraphsResponse);
   rpc GetGraphPreferences(generic.Empty) returns (GraphPreferences);
   rpc SetGraphPreferences(GraphPreferences) returns (generic.Empty);
+  // Anki Speedrun: per-topic mastery aggregates over the notes' topic tags,
+  // computed in a single SQL pass. Powers the Memory gauge, the coverage
+  // map, and the dashboard give-up rule.
+  rpc TopicMastery(TopicMasteryRequest) returns (TopicMasteryResponse);
 }
 
 // Implicitly includes any of the above methods that are not listed in the
@@ -73,6 +77,50 @@ message CardStatsResponse {
 message GraphsRequest {
   string search = 1;
   uint32 days = 2;
+}
+
+message TopicMasteryRequest {
+  // Standard Anki search used to select the cards, e.g. "deck:current".
+  // Empty matches the whole collection.
+  string search = 1;
+  // Tag prefix that groups notes into topics, e.g. "cfa::topic::".
+  // Empty uses that default. Matching is case-insensitive; a card counts
+  // towards the first matching topic tag on its note only.
+  string topic_prefix = 2;
+  // Cards at or above this predicted retrievability count as "high recall
+  // probability" (deliberately not "mastered": retrievability is a
+  // scheduling target, not a competence threshold). Values <= 0 use the
+  // default of 0.9.
+  float high_recall_threshold = 3;
+}
+
+message TopicMasteryResponse {
+  message Topic {
+    // Topic name with the prefix stripped, lowercased.
+    string topic = 1;
+    // All matching cards whose note carries this topic tag.
+    uint32 total_cards = 2;
+    // Cards with an FSRS memory state (i.e. actually studied).
+    uint32 studied_cards = 3;
+    // Studied cards whose predicted retrievability >= the threshold.
+    uint32 high_recall_cards = 4;
+    // Mean predicted retrievability over studied cards; 0 when none.
+    float average_retrievability = 5;
+    // Sample standard deviation over studied cards (0 when < 2 samples);
+    // lets the UI show an honest range, not a bare point estimate.
+    float retrievability_stddev = 6;
+  }
+  repeated Topic topics = 1;
+  // Cards matched by the search without any tag under the topic prefix.
+  uint32 cards_without_topic = 2;
+  uint32 total_cards = 3;
+  // Collection-wide count of graded reviews (revlog entries where a grading
+  // button was pressed); feeds the dashboard's give-up rule.
+  uint64 graded_reviews = 4;
+  // When false, the UI must abstain from recall-based gauges instead of
+  // falling back to a proxy (honesty rule).
+  bool fsrs_enabled = 5;
+  float high_recall_threshold = 6;
 }
 
 message GraphsResponse {

@@ -179,6 +179,16 @@ impl SqliteStorage {
             .collect()
     }
 
+    /// Anki Speedrun: how many reviews in the whole collection were actually
+    /// graded with an answer button (manual scheduling operations log
+    /// `ease = 0` and are excluded). Feeds the dashboard's give-up rule.
+    pub(crate) fn graded_review_count(&self) -> Result<u64> {
+        self.db
+            .prepare_cached("SELECT count() FROM revlog WHERE ease > 0")?
+            .query_row([], |row| row.get(0))
+            .map_err(Into::into)
+    }
+
     pub(crate) fn studied_today(&self, day_cutoff: TimestampSecs) -> Result<StudiedToday> {
         let start = day_cutoff.adding_secs(-86_400).as_millis();
         self.db

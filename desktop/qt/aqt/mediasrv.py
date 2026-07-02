@@ -422,6 +422,8 @@ def is_sveltekit_page(path: str) -> bool:
         "import-csv",
         "import-page",
         "image-occlusion",
+        # Anki Speedrun
+        "dashboard",
     ]
 
 
@@ -740,6 +742,7 @@ exposed_backend_list = [
     "graphs",
     "get_graph_preferences",
     "set_graph_preferences",
+    "topic_mastery",
     # TagsService
     "complete_tag",
     # ImageOcclusionService

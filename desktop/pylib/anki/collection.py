@@ -1029,6 +1029,27 @@ class Collection(DeprecatedNamesMixin):
     def studied_today(self) -> str:
         return self._backend.studied_today()
 
+    def topic_mastery(
+        self,
+        search: str = "",
+        topic_prefix: str = "",
+        high_recall_threshold: float = 0.0,
+    ) -> stats_pb2.TopicMasteryResponse:
+        """Anki Speedrun: per-topic mastery aggregates for the searched cards.
+
+        Groups cards by the topic tag on their notes (default prefix
+        `cfa::topic::`) and returns per-topic totals, studied counts,
+        high-recall counts and the mean/spread of predicted retrievability,
+        plus the collection's graded review count. Computed by the Rust
+        backend in a single SQL pass; powers the readiness dashboard's
+        Memory gauge, coverage map and give-up rule.
+        """
+        return self._backend.topic_mastery(
+            search=search,
+            topic_prefix=topic_prefix,
+            high_recall_threshold=high_recall_threshold,
+        )
+
     # Undo
     ##########################################################################
 

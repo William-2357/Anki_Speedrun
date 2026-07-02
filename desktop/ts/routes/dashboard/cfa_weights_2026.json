@@ -1,0 +1,22 @@
+{
+    "examYear": 2026,
+    "source": "CFA Institute, Level I exam topic weight ranges (2025-2026 curriculum)",
+    "note": "Weights are published as ranges; allocation uses the midpoint and carries (max - min) as uncertainty. Versioned by exam year - do not edit in place, add a new file for a new year.",
+    "topics": {
+        "ethics": { "name": "Ethical & Professional Standards", "min": 15, "max": 20, "midpoint": 17.5 },
+        "quantitative_methods": { "name": "Quantitative Methods", "min": 6, "max": 9, "midpoint": 7.5 },
+        "economics": { "name": "Economics", "min": 6, "max": 9, "midpoint": 7.5 },
+        "financial_statement_analysis": {
+            "name": "Financial Statement Analysis",
+            "min": 11,
+            "max": 14,
+            "midpoint": 12.5
+        },
+        "corporate_issuers": { "name": "Corporate Issuers", "min": 6, "max": 9, "midpoint": 7.5 },
+        "equity_investments": { "name": "Equity Investments", "min": 11, "max": 14, "midpoint": 12.5 },
+        "fixed_income": { "name": "Fixed Income", "min": 11, "max": 14, "midpoint": 12.5 },
+        "derivatives": { "name": "Derivatives", "min": 5, "max": 8, "midpoint": 6.5 },
+        "alternative_investments": { "name": "Alternative Investments", "min": 7, "max": 10, "midpoint": 8.5 },
+        "portfolio_management": { "name": "Portfolio Management", "min": 8, "max": 12, "midpoint": 10 }
+    }
+}

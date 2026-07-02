@@ -22,7 +22,16 @@ impl BuildAction for ConfigureBuild {
     fn files(&mut self, build: &mut impl FilesHandle) {
         build.add_inputs("cmd", inputs![":build:configure_bin"]);
         // reconfigure when external inputs change
-        build.add_inputs("", inputs!["$builddir/env", ".version", ".git"]);
+        build.add_inputs("", inputs!["$builddir/env", ".version"]);
+        // In the Anki Speedrun monorepo the git dir lives at the repo root
+        // rather than in this folder; depend on whichever exists so ninja
+        // doesn't error out on a missing `.git` input.
+        for git_dir in [".git", "../.git"] {
+            if std::path::Path::new(git_dir).exists() {
+                build.add_inputs("", inputs![git_dir]);
+                break;
+            }
+        }
         build.add_outputs("", ["build.ninja"])
     }
 
