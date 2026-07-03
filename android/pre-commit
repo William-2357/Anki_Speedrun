@@ -9,14 +9,25 @@ runKtlint () {
     # * echoing if the apply fails
     # * renaming `diff` variable to `diff_path`.
     # * changing the path of the diff file (to ensure in case of failure that we don't overwrite the file)
+    # * scoping to the android/ subtree and invoking ./android/gradlew, because the
+    #   Gradle project lives in android/ while the git root is one level up
+    # * passing the ktlint filter as paths relative to the Gradle root (android/),
+    #   since ktlint-gradle matches each subproject by that relative prefix
     ######## KTLINT-GRADLE HOOK START ########
 
-    CHANGED_FILES="$(git --no-pager diff --name-status --no-color --cached | awk '$1 != "D" && $NF ~ /\.kts?$/ { print $NF }')"
+    # Staged Kotlin files under the Gradle project (android/), relative to the git
+    # root. Used for the working-tree operations below, which run from the git root.
+    CHANGED_FILES="$(git --no-pager diff --name-status --no-color --cached -- android/ | awk '$1 != "D" && $NF ~ /\.kts?$/ { print $NF }')"
 
     if [ -z "$CHANGED_FILES" ]; then
         echo "No Kotlin staged files."
         return 0
     fi;
+
+    # Same files, but relative to the Gradle root (android/). ktlint-gradle's
+    # -PinternalKtlintGitFilter keeps only paths that start with a subproject dir
+    # (e.g. "AnkiDroid/...", "libanki/..."), so the android/ prefix is stripped.
+    KTLINT_FILTER="$(git --no-pager diff --name-status --no-color --cached --relative=android | awk '$1 != "D" && $NF ~ /\.kts?$/ { print $NF }')"
 
     echo "Running ktlint over these files:"
     echo "$CHANGED_FILES"
@@ -28,7 +39,7 @@ runKtlint () {
       git apply -R $diff_path
     fi
 
-    ./gradlew --quiet ktlintFormat -PinternalKtlintGitFilter="$CHANGED_FILES"
+    ./android/gradlew -p ./android --quiet ktlintFormat -PinternalKtlintGitFilter="$KTLINT_FILTER"
     gradle_command_exit_code=$?
 
     echo "Completed ktlint run."
