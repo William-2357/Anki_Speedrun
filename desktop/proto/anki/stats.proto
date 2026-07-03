@@ -96,6 +96,21 @@ message TopicMasteryRequest {
   // scheduling target, not a competence threshold). Values <= 0 use the
   // default of 0.9.
   float high_recall_threshold = 3;
+  // User-editable tag -> topic mapping, applied only to cards without a
+  // topic-prefix tag. Keys are raw tags or tag prefixes ("finance" or
+  // "finance::" both match "finance::bonds" at a "::" boundary); values are
+  // opaque topic ids, or the special value "ignore" to drop the tag's cards
+  // from every topic without counting them as unmapped. Keys and tags are
+  // matched case-insensitively.
+  //
+  // Design note: the map is passed into the RPC (an option DASHBOARD.md
+  // explicitly sanctions) instead of returning per-raw-tag buckets, because
+  // per-raw-tag buckets double-count multi-tagged cards - a card with N
+  // tags would appear in N buckets, so card totals and mean retrievability
+  // could not be recombined honestly in the frontend. Attribution stays
+  // per-card and single-count this way. The engine remains exam-agnostic:
+  // topic ids are never interpreted.
+  map<string, string> tag_topic_map = 4;
 }
 
 message ConceptGraphRequest {
@@ -148,7 +163,9 @@ message TopicMasteryResponse {
     float retrievability_stddev = 6;
   }
   repeated Topic topics = 1;
-  // Cards matched by the search without any tag under the topic prefix.
+  // Cards matched by the search that resolved to no topic: no tag under the
+  // topic prefix and no tag_topic_map match. Kept visible so the dashboard
+  // can surface coverage gaps instead of inventing attribution.
   uint32 cards_without_topic = 2;
   uint32 total_cards = 3;
   // Collection-wide count of graded reviews (revlog entries where a grading
@@ -158,6 +175,19 @@ message TopicMasteryResponse {
   // falling back to a proxy (honesty rule).
   bool fsrs_enabled = 5;
   float high_recall_threshold = 6;
+  // For the cards counted in cards_without_topic: one entry per raw tag
+  // they carry (Topic.topic = the lowercased tag), for the mapping editor.
+  // These are tag-frequency buckets, NOT disjoint card counts: a card with
+  // several unmapped tags appears under each of them, so the totals must
+  // not be summed. Capped to the 200 most frequent tags (most frequent
+  // first, ties alphabetical) to bound the payload.
+  repeated Topic unmapped_tags = 7;
+  // Cards whose notes carry the `aig::ungraded` tag: AI-generated items
+  // that never passed grading. Excluded from every topic bucket and from
+  // cards_without_topic per R24 (they may be studied but never feed
+  // readiness), but still counted in total_cards. The UI must disclose the
+  // exclusion when this is > 0.
+  uint32 ungraded_aig_cards = 8;
 }
 
 message GraphsResponse {

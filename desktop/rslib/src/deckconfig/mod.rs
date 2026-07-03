@@ -7,6 +7,8 @@ pub(crate) mod undo;
 mod update;
 
 pub use anki_proto::deck_config::deck_config::config::AnswerAction;
+pub use anki_proto::deck_config::deck_config::config::FadeOrder;
+pub use anki_proto::deck_config::deck_config::config::FadeSignal;
 pub use anki_proto::deck_config::deck_config::config::LeechAction;
 pub use anki_proto::deck_config::deck_config::config::NewCardGatherPriority;
 pub use anki_proto::deck_config::deck_config::config::NewCardInsertOrder;
@@ -85,7 +87,30 @@ const DEFAULT_DECK_CONFIG_INNER: DeckConfigInner = DeckConfigInner {
     easy_days_percentages: Vec::new(),
     contrast_scheduling: false,
     contrast_tag_prefix: String::new(),
+    // Anki Speedrun R18: only clusters carrying this marker tag (written by
+    // the offline behavioural confusion-mining pass, never hand-curated) get
+    // forced adjacency. Empty = every cluster gated-on (the legacy ungated
+    // Phase 1 behaviour / ablation OFF arm). New presets get
+    // [DEFAULT_CONFUSABLE_TAG] via `Default for DeckConfig` (a String can't
+    // live in this const).
+    contrast_confusable_tag: String::new(),
+    // Anki Speedrun SPOV 2 fade ladder: default OFF, with the evidence-backed
+    // asymmetric hysteresis band (fade UP must be harder than falling DOWN)
+    // and the ~3 spaced-session promotion gate as starting values.
+    fade_enabled: false,
+    fade_signal: FadeSignal::ExamHorizonR as i32,
+    fade_up_r: 0.9,
+    fade_down_r: 0.8,
+    promotion_spaced_sessions: 3,
+    fluency_stability_floor: 0.0,
+    fade_order: FadeOrder::Mastery as i32,
+    self_explain_enabled: false,
+    element_interactivity_gate: true,
 };
+
+/// Anki Speedrun R18: marker tag written by the computed confusability pass;
+/// the default gate for new presets.
+pub const DEFAULT_CONFUSABLE_TAG: &str = "confusable::high";
 
 impl Default for DeckConfig {
     fn default() -> Self {
@@ -98,6 +123,7 @@ impl Default for DeckConfig {
                 learn_steps: vec![1.0, 10.0],
                 relearn_steps: vec![10.0],
                 easy_days_percentages: vec![1.0; 7],
+                contrast_confusable_tag: DEFAULT_CONFUSABLE_TAG.to_string(),
                 ..DEFAULT_DECK_CONFIG_INNER
             },
         }
@@ -306,7 +332,21 @@ pub(crate) fn ensure_deck_config_values_valid(config: &mut DeckConfigInner) {
         default.historical_retention,
         0.7,
         0.97,
-    )
+    );
+    // Anki Speedrun fade ladder: keep the hysteresis band sane. Zero means
+    // "unset" (old configs), so fall back to the defaults, and preserve the
+    // asymmetry invariant fade_up_r >= fade_down_r.
+    ensure_f32_valid(&mut config.fade_up_r, default.fade_up_r, 0.5, 0.99);
+    ensure_f32_valid(&mut config.fade_down_r, default.fade_down_r, 0.5, 0.99);
+    if config.fade_down_r > config.fade_up_r {
+        config.fade_down_r = config.fade_up_r;
+    }
+    ensure_u32_valid(
+        &mut config.promotion_spaced_sessions,
+        default.promotion_spaced_sessions,
+        1,
+        20,
+    );
 }
 
 fn ensure_f32_valid(val: &mut f32, default: f32, min: f32, max: f32) {

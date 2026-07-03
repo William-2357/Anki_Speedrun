@@ -57,6 +57,46 @@ Phase-2 loop**. Also added the **30 official CFA Institute L1 sample MCQs** as *
 for the drafter (© CFA — **git-ignored** local reference at `desktop/tools/speedrun/reference/`, **not
 a template**; generated items stay net-new + leakage-walled). Doc-only (plus the git-ignored asset).
 
+**Update (2026-07-03) — PHASE 2 IMPLEMENTED.** The full `PHASE2_PLAN_V2.md` scope is now code, per
+the [A1]/[A2]/C1/C2 corrections:
+
+- **Engine (M4/M5/M1b):** `rslib/src/scheduler/queue/builder/fade.rs` — pre-gather fade pass
+  (exam-horizon-R via `current_retrievability_seconds`, two-sided hysteresis, spaced-session
+  promotion gate from the revlog, comprehension/fluency preconditions, [R15] mastery-driven fade
+  order, [R16] self-explain sibling selection, [R17] interactivity scoping) with the bury-style skip
+  in `add_new_card`/`add_due_card`; deck-config fields 49–58 (+ `FadeSignal`/`FadeOrder` enums)
+  through schema11 + `QueueSortOptions` + the deck-options UI; the R18 confusability gate + R13
+  fluency block in `contrast.rs`. Re-gating is build-time only. Per **C9**, no
+  `format_congruency_mult` field exists — congruency stays an analysis-time factor (≈0.75
+  mismatched-format credit, matched = 1.0) for the deferred Memory→Performance write-up. 13 new fade
+  tests + 2 new contrast tests; `speedrun:exam_date` unset ⇒ always-worked (no guessed horizon).
+- **Content (M0/M2/M3):** `tools/speedrun/{ladder_notetypes,ladder_schema,build_ladder_deck}.py` —
+  worked/faded(native cloze)/solve-MCQ(A/B/C, tap-reveal feedback, no JS bridge)/compare note
+  types, all feedback-terminated with a build-time [R9] lint; mechanical `rung::`/`cluster::`/
+  `interactivity::`/`aig::` tagging (no schema change); `cfa_ladder.apkg` (59 notes) on the narrow
+  duration/TVM/inventory slice.
+- **AIG (M1):** `tools/speedrun/aig/` — parameterized generators with misconception-grounded
+  error-pattern distractors [R22], machine gates (independent recomputation, solve-check, leakage
+  n-gram wall, critic/consensus hooks with mock/claude-cli/OpenAI-compatible backends), grounding
+  corpus + retrieval eval (tuned BM25 + tuned dense → RRF(k=60) → cross-encoder rerank; on held-out
+  synthetic qrels RRF+rerank P@1 0.727 vs BM25 0.500 / dense 0.455, latency reported, small-N +
+  self-referential-qrels caveats disclosed) [R21/R23]; `retire_items.py` point-biserial
+  auto-retirement [R24] (distractor-level <5% pruning disclosed as unmeasurable without choice
+  telemetry).
+- **Confusability (M1b):** `tools/speedrun/aig/confusability.py` — revlog confusion-mining
+  (surface_similarity × discrimination_need, within-topic), auto-validated on a 70/30 time split
+  (must beat the surface-only baseline, else **abstains**); writes `confusable::high` markers.
+- **Dashboard (M6b):** `tag_topic_map` in the `TopicMastery` RPC (per-card resolution: canonical
+  prefix > exact > `::`-boundary prefix > unmapped; per-raw-tag buckets rejected as double-counting —
+  the map-into-RPC alternative `DASHBOARD.md` sanctions), `speedrun:tagTopicMap` synced config, the
+  Map-tags editor + exam-date field, and the [R24] `aig::ungraded` exclusion (count disclosed).
+- **Verification:** full `./check` green (369 Rust / 93 pytest / vitest / clippy / mypy / ruff /
+  eslint / svelte); 120 tooling unittests; end-to-end pylib check: importing `cfa_ladder.apkg` with
+  fade off leaves the queue vanilla; enabling `fade_enabled` + exam date gates faded+solve to zero
+  while worked+compare flow and limits stay exact.
+- **Deferred, unchanged:** held-out MCQ bank, Performance calibration, the three-arm ablation run,
+  the AnkiDroid `.aar` rebuild/emulator pass (the 25.09.2 rsdroid rebase — Phase 3 [R27]).
+
 ---
 
 ## Headline verdict: the three SPOVs survive, but each is now _bounded_ by a measured moderator

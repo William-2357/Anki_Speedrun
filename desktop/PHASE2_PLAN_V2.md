@@ -196,7 +196,7 @@ The following are the substantive refinements, each grounded in `RESEARCH_ADDEND
 
 - **Fully-automated generate→validate AIG** ([R23]; **no human in the loop** — owner decision
   2026-07-02): a **drafter** model proposes items; an **independent critic** model (ideally a
-  *different* model family) challenges each and enforces the accept cutoff — (a) factual accuracy,
+  _different_ model family) challenges each and enforces the accept cutoff — (a) factual accuracy,
   (b) single-best-answer, (c) ≥3 functioning distractors; a **self-consistency solve-check** pre-filter
   solves the item and rejects any with >1 correct answer (the #1 defect); parameterized items also pass
   **numeric validation** (below). **Acceptance is automatic** — every item clearing all machine gates
@@ -209,13 +209,13 @@ The following are the substantive refinements, each grounded in `RESEARCH_ADDEND
   gauges. [R23] Evidence: Riehm 2026 (GRADE VERY LOW); Frontiers 2026 automation bias._
 - **Seed exemplars (few-shot, NOT a template):** prime the drafter with the **30 official CFA Institute
   "Are you ready for Level I?" sample MCQs** (3 per topic × 10 topics; A/B/C single-best with rationale
-  + distractor explanations) as **few-shot style/format/difficulty exemplars** — they inform the
-  exam-congruent A/B/C shape, the concise application-style stems, and the answer-rationale + distractor
-  pattern (which feeds the misconception step below). **Do NOT template off them:** generate **net-new**
-  items across the whole slice, cover concepts beyond the 30, and enforce the **leakage wall + n-gram
-  check** so no stem is a verbatim/near-verbatim copy. _© CFA Institute (all rights reserved) — kept as
-  a **local, git-ignored** authoring-time reference (`desktop/tools/speedrun/reference/`, never
-  committed/redistributed); generated output must be original._
+  - distractor explanations) as **few-shot style/format/difficulty exemplars** — they inform the
+    exam-congruent A/B/C shape, the concise application-style stems, and the answer-rationale + distractor
+    pattern (which feeds the misconception step below). **Do NOT template off them:** generate **net-new**
+    items across the whole slice, cover concepts beyond the 30, and enforce the **leakage wall + n-gram
+    check** so no stem is a verbatim/near-verbatim copy. _© CFA Institute (all rights reserved) — kept as
+    a **local, git-ignored** authoring-time reference (`desktop/tools/speedrun/reference/`, never
+    committed/redistributed); generated output must be original._
 - **Misconception-grounded distractors** ([R22]): generate distractors **solve-first**, simulating
   the specific student errors in the **known CFA confusable set** (duration trio; FIFO/LIFO/WAC +
   LIFO-reserve direction; forwards/futures/swaps vs options), NOT surface similarity. This ties the
@@ -383,7 +383,7 @@ New/changed fields on `DeckConfigInner` (`proto/anki/deck_config.proto`,
 
 | Field                        | Values                                          | Purpose                                                                                           | Cite  |
 | ---------------------------- | ----------------------------------------------- | ------------------------------------------------------------------------------------------------- | ----- |
-| `fade_enabled`               | bool                                            | ladder on / always-worked / always-cold (**default OFF**)                                                           | v1    |
+| `fade_enabled`               | bool                                            | ladder on / always-worked / always-cold (**default OFF**)                                         | v1    |
 | `fade_signal`                | enum {exam_horizon_R, stability, success_count} | which fade signal                                                                                 | [R10] |
 | `fade_up_R` / `fade_down_R`  | float                                           | hysteresis band bounds (up>down)                                                                  | [R11] |
 | `promotion_spaced_sessions`  | int (default 3)                                 | spaced-session promotion gate                                                                     | [R12] |
@@ -477,20 +477,20 @@ Self-contained dashboard feature — **no scheduler touch, no AI** — that fixe
 
 ## Engine touch points (reference)
 
-| Concern                                    | File / symbol                                                                                                                                                                                                            | Cite        |
-| ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------- |
-| Rung gating (admit/skip)                   | **bury-style skip in `add_new_card`/`add_due_card`** (`builder/gathering.rs`) — the only limit-preserving skip; **not** the post-gather `contrast.rs` seam                                                               | [A1]        |
-| FSRS state at queue time                   | `extract_fsrs_variable(data, 's'/'d'/'dr')` — `storage/sqlite.rs:283`; expose the horizon signal in/before the gather SQL                                                                                                | [R10][A2]   |
-| Predicted-R at exam horizon                | `FSRS::current_retrievability_seconds(state, t·86400, decay)`, `decay = card.decay.unwrap_or(FSRS5_DEFAULT_DECAY)` — `storage/sqlite.rs:360-367`, `scheduler/fsrs/memory_state.rs` (**not** `(1+(19/81)·t/S)^decay`, C1) | [R10]       |
-| Spaced-session gate                        | review-log timestamps + stability jumps → session count — `scheduler/queue/builder/`                                                                                                                                     | [R12]       |
-| Re-gate timing                             | **BUILD-time only**; `AnswerCard` excluded from rebuilds (`maybe_clear_study_queues_after_op`, `scheduler/queue/mod.rs:207`) — unlock on next build                                                                      | [R12]/C2    |
-| Rung/cluster/interactivity/provenance tags | `notes.tags` (`rung::*`, `cluster::*`, `interactivity::*`, `aig::*`); `rslib/src/tags/` (native sync)                                                                                                                    | [R17][R24]  |
-| Faded (cloze), mastery-order fade          | `notetype/cardgen.rs`, `rslib/src/cloze.rs`                                                                                                                                                                              | [R15]       |
-| Solve (custom MCQ) + feedback reveal       | new note type + self-contained HTML/JS (desktop + AnkiDroid)                                                                                                                                                             | [R9]        |
-| Compare card                               | side-by-side note type/template, small confusable set                                                                                                                                                                    | [R20]       |
-| Signed confusability gate (SPOV3)          | new `contrast_confusable_tag` field (→ `QueueSortOptions`); read marker in `load_contrast_clusters`, gate in `apply_contrast` (no `cluster_for_tags`); computed revlog-confusion signal (offline), auto-validated; no curated marker (no human)      | [R18]       |
-| Toggles                                    | `proto/anki/deck_config.proto`, `rslib/src/deckconfig/mod.rs` (see M5 table)                                                                                                                                             | [R11]–[R18] |
-| AI (offline tooling)                       | drafter+critic generation, self-consistency solve-check, numeric validation + multi-model consensus (**no SME / no gold set**); RRF+rerank retrieval on synthetic qrels; BM25 + dense baselines                                                                                             | [R21]–[R24] |
+| Concern                                    | File / symbol                                                                                                                                                                                                                                   | Cite        |
+| ------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------- |
+| Rung gating (admit/skip)                   | **bury-style skip in `add_new_card`/`add_due_card`** (`builder/gathering.rs`) — the only limit-preserving skip; **not** the post-gather `contrast.rs` seam                                                                                      | [A1]        |
+| FSRS state at queue time                   | `extract_fsrs_variable(data, 's'/'d'/'dr')` — `storage/sqlite.rs:283`; expose the horizon signal in/before the gather SQL                                                                                                                       | [R10][A2]   |
+| Predicted-R at exam horizon                | `FSRS::current_retrievability_seconds(state, t·86400, decay)`, `decay = card.decay.unwrap_or(FSRS5_DEFAULT_DECAY)` — `storage/sqlite.rs:360-367`, `scheduler/fsrs/memory_state.rs` (**not** `(1+(19/81)·t/S)^decay`, C1)                        | [R10]       |
+| Spaced-session gate                        | review-log timestamps + stability jumps → session count — `scheduler/queue/builder/`                                                                                                                                                            | [R12]       |
+| Re-gate timing                             | **BUILD-time only**; `AnswerCard` excluded from rebuilds (`maybe_clear_study_queues_after_op`, `scheduler/queue/mod.rs:207`) — unlock on next build                                                                                             | [R12]/C2    |
+| Rung/cluster/interactivity/provenance tags | `notes.tags` (`rung::*`, `cluster::*`, `interactivity::*`, `aig::*`); `rslib/src/tags/` (native sync)                                                                                                                                           | [R17][R24]  |
+| Faded (cloze), mastery-order fade          | `notetype/cardgen.rs`, `rslib/src/cloze.rs`                                                                                                                                                                                                     | [R15]       |
+| Solve (custom MCQ) + feedback reveal       | new note type + self-contained HTML/JS (desktop + AnkiDroid)                                                                                                                                                                                    | [R9]        |
+| Compare card                               | side-by-side note type/template, small confusable set                                                                                                                                                                                           | [R20]       |
+| Signed confusability gate (SPOV3)          | new `contrast_confusable_tag` field (→ `QueueSortOptions`); read marker in `load_contrast_clusters`, gate in `apply_contrast` (no `cluster_for_tags`); computed revlog-confusion signal (offline), auto-validated; no curated marker (no human) | [R18]       |
+| Toggles                                    | `proto/anki/deck_config.proto`, `rslib/src/deckconfig/mod.rs` (see M5 table)                                                                                                                                                                    | [R11]–[R18] |
+| AI (offline tooling)                       | drafter+critic generation, self-consistency solve-check, numeric validation + multi-model consensus (**no SME / no gold set**); RRF+rerank retrieval on synthetic qrels; BM25 + dense baselines                                                 | [R21]–[R24] |
 
 ---
 
@@ -520,7 +520,7 @@ Self-contained dashboard feature — **no scheduler touch, no AI** — that fixe
   ⚠️ **This accepts the automation-bias risk [R23] warns about** — with no human adversarial review,
   undetected factual/answer flaws pass more often. **Compensating controls:** **ungraded generated
   items never feed readiness** and non-discriminating items (point-biserial) are **auto-retired** from
-  live responses ([R24]) — so defects degrade *study material*, not the honesty gauges; distractors are
+  live responses ([R24]) — so defects degrade _study material_, not the honesty gauges; distractors are
   **misconception-grounded and pruned at <5%** ([R22]); retrieval supplies a **named source** and beats
   tuned BM25+dense on **synthetic qrels** ([R21]); train/test kept disjoint; prompt-injection in sources
   handled.

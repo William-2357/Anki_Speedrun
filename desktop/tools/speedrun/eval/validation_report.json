@@ -1,0 +1,2312 @@
+{
+    "meta": {
+        "description": "Per-item machine gate decisions for the fully-automated AIG pipeline. Acceptance is automatic: an item clearing all gates is emitted; no human sign-off anywhere (owner decision 2026-07-02; [R23] automation-bias risk accepted, compensated by aig::ungraded never feeding readiness [R24]).",
+        "backend": "mock",
+        "seed": 20260703,
+        "llm_items_emitted": false,
+        "llm_path_note": "mock backend: canned LLM drafts were run through every gate to exercise the path but are NOT emitted as content; the parameterized generators provide the shipped items"
+    },
+    "summary": {
+        "items_seen": 62,
+        "items_emitted": 59,
+        "items_rejected_by_gates": 0,
+        "items_validated_not_emitted": 3,
+        "per_gate": {
+            "numeric": {
+                "pass": 62,
+                "fail": 0
+            },
+            "solve_check": {
+                "pass": 62,
+                "fail": 0
+            },
+            "rationale": {
+                "pass": 62,
+                "fail": 0
+            },
+            "leakage": {
+                "pass": 62,
+                "fail": 0
+            },
+            "schema": {
+                "pass": 62,
+                "fail": 0
+            },
+            "critic": {
+                "pass": 3,
+                "fail": 0
+            },
+            "consensus": {
+                "pass": 3,
+                "fail": 0
+            }
+        }
+    },
+    "items": [
+        {
+            "id": "fi::duration/worked/param:mod_duration_from_mac_v1/0",
+            "title": "Modified duration from Macaulay - worked 1",
+            "kind": "worked",
+            "cluster": "fi::duration",
+            "generator": "param:mod_duration_from_mac_v1",
+            "gates": [
+                {
+                    "gate": "numeric",
+                    "passed": true,
+                    "reason": ""
+                },
+                {
+                    "gate": "solve_check",
+                    "passed": true,
+                    "reason": "not an mcq; skipped"
+                },
+                {
+                    "gate": "rationale",
+                    "passed": true,
+                    "reason": ""
+                },
+                {
+                    "gate": "leakage",
+                    "passed": true,
+                    "reason": ""
+                },
+                {
+                    "gate": "schema",
+                    "passed": true,
+                    "reason": ""
+                }
+            ],
+            "all_passed": true,
+            "emitted": true
+        },
+        {
+            "id": "fi::duration/worked/param:mod_duration_from_mac_v1/1",
+            "title": "Modified duration from Macaulay - worked 2",
+            "kind": "worked",
+            "cluster": "fi::duration",
+            "generator": "param:mod_duration_from_mac_v1",
+            "gates": [
+                {
+                    "gate": "numeric",
+                    "passed": true,
+                    "reason": ""
+                },
+                {
+                    "gate": "solve_check",
+                    "passed": true,
+                    "reason": "not an mcq; skipped"
+                },
+                {
+                    "gate": "rationale",
+                    "passed": true,
+                    "reason": ""
+                },
+                {
+                    "gate": "leakage",
+                    "passed": true,
+                    "reason": ""
+                },
+                {
+                    "gate": "schema",
+                    "passed": true,
+                    "reason": ""
+                }
+            ],
+            "all_passed": true,
+            "emitted": true
+        },
+        {
+            "id": "fi::duration/cloze/param:mod_duration_from_mac_v1/2",
+            "title": "Modified duration from Macaulay - faded 1",
+            "kind": "cloze",
+            "cluster": "fi::duration",
+            "generator": "param:mod_duration_from_mac_v1",
+            "gates": [
+                {
+                    "gate": "numeric",
+                    "passed": true,
+                    "reason": ""
+                },
+                {
+                    "gate": "solve_check",
+                    "passed": true,
+                    "reason": "not an mcq; skipped"
+                },
+                {
+                    "gate": "rationale",
+                    "passed": true,
+                    "reason": ""
+                },
+                {
+                    "gate": "leakage",
+                    "passed": true,
+                    "reason": ""
+                },
+                {
+                    "gate": "schema",
+                    "passed": true,
+                    "reason": ""
+                }
+            ],
+            "all_passed": true,
+            "emitted": true
+        },
+        {
+            "id": "fi::duration/cloze/param:mod_duration_from_mac_v1/3",
+            "title": "Modified duration from Macaulay - faded 2",
+            "kind": "cloze",
+            "cluster": "fi::duration",
+            "generator": "param:mod_duration_from_mac_v1",
+            "gates": [
+                {
+                    "gate": "numeric",
+                    "passed": true,
+                    "reason": ""
+                },
+                {
+                    "gate": "solve_check",
+                    "passed": true,
+                    "reason": "not an mcq; skipped"
+                },
+                {
+                    "gate": "rationale",
+                    "passed": true,
+                    "reason": ""
+                },
+                {
+                    "gate": "leakage",
+                    "passed": true,
+                    "reason": ""
+                },
+                {
+                    "gate": "schema",
+                    "passed": true,
+                    "reason": ""
+                }
+            ],
+            "all_passed": true,
+            "emitted": true
+        },
+        {
+            "id": "fi::duration/mcq/param:mod_duration_from_mac_v1/4",
+            "title": "Modified duration from Macaulay - MCQ 1",
+            "kind": "mcq",
+            "cluster": "fi::duration",
+            "generator": "param:mod_duration_from_mac_v1",
+            "gates": [
+                {
+                    "gate": "numeric",
+                    "passed": true,
+                    "reason": ""
+                },
+                {
+                    "gate": "solve_check",
+                    "passed": true,
+                    "reason": ""
+                },
+                {
+                    "gate": "rationale",
+                    "passed": true,
+                    "reason": ""
+                },
+                {
+                    "gate": "leakage",
+                    "passed": true,
+                    "reason": ""
+                },
+                {
+                    "gate": "schema",
+                    "passed": true,
+                    "reason": ""
+                }
+            ],
+            "all_passed": true,
+            "emitted": true
+        },
+        {
+            "id": "fi::duration/mcq/param:mod_duration_from_mac_v1/5",
+            "title": "Modified duration from Macaulay - MCQ 2",
+            "kind": "mcq",
+            "cluster": "fi::duration",
+            "generator": "param:mod_duration_from_mac_v1",
+            "gates": [
+                {
+                    "gate": "numeric",
+                    "passed": true,
+                    "reason": ""
+                },
+                {
+                    "gate": "solve_check",
+                    "passed": true,
+                    "reason": ""
+                },
+                {
+                    "gate": "rationale",
+                    "passed": true,
+                    "reason": ""
+                },
+                {
+                    "gate": "leakage",
+                    "passed": true,
+                    "reason": ""
+                },
+                {
+                    "gate": "schema",
+                    "passed": true,
+                    "reason": ""
+                }
+            ],
+            "all_passed": true,
+            "emitted": true
+        },
+        {
+            "id": "fi::duration/mcq/param:mod_duration_from_mac_v1/6",
+            "title": "Modified duration from Macaulay - MCQ 3",
+            "kind": "mcq",
+            "cluster": "fi::duration",
+            "generator": "param:mod_duration_from_mac_v1",
+            "gates": [
+                {
+                    "gate": "numeric",
+                    "passed": true,
+                    "reason": ""
+                },
+                {
+                    "gate": "solve_check",
+                    "passed": true,
+                    "reason": ""
+                },
+                {
+                    "gate": "rationale",
+                    "passed": true,
+                    "reason": ""
+                },
+                {
+                    "gate": "leakage",
+                    "passed": true,
+                    "reason": ""
+                },
+                {
+                    "gate": "schema",
+                    "passed": true,
+                    "reason": ""
+                }
+            ],
+            "all_passed": true,
+            "emitted": true
+        },
+        {
+            "id": "fi::duration/worked/param:duration_price_change_v1/7",
+            "title": "Duration price-change estimate - worked 1",
+            "kind": "worked",
+            "cluster": "fi::duration",
+            "generator": "param:duration_price_change_v1",
+            "gates": [
+                {
+                    "gate": "numeric",
+                    "passed": true,
+                    "reason": ""
+                },
+                {
+                    "gate": "solve_check",
+                    "passed": true,
+                    "reason": "not an mcq; skipped"
+                },
+                {
+                    "gate": "rationale",
+                    "passed": true,
+                    "reason": ""
+                },
+                {
+                    "gate": "leakage",
+                    "passed": true,
+                    "reason": ""
+                },
+                {
+                    "gate": "schema",
+                    "passed": true,
+                    "reason": ""
+                }
+            ],
+            "all_passed": true,
+            "emitted": true
+        },
+        {
+            "id": "fi::duration/worked/param:duration_price_change_v1/8",
+            "title": "Duration price-change estimate - worked 2",
+            "kind": "worked",
+            "cluster": "fi::duration",
+            "generator": "param:duration_price_change_v1",
+            "gates": [
+                {
+                    "gate": "numeric",
+                    "passed": true,
+                    "reason": ""
+                },
+                {
+                    "gate": "solve_check",
+                    "passed": true,
+                    "reason": "not an mcq; skipped"
+                },
+                {
+                    "gate": "rationale",
+                    "passed": true,
+                    "reason": ""
+                },
+                {
+                    "gate": "leakage",
+                    "passed": true,
+                    "reason": ""
+                },
+                {
+                    "gate": "schema",
+                    "passed": true,
+                    "reason": ""
+                }
+            ],
+            "all_passed": true,
+            "emitted": true
+        },
+        {
+            "id": "fi::duration/cloze/param:duration_price_change_v1/9",
+            "title": "Duration price-change estimate - faded 1",
+            "kind": "cloze",
+            "cluster": "fi::duration",
+            "generator": "param:duration_price_change_v1",
+            "gates": [
+                {
+                    "gate": "numeric",
+                    "passed": true,
+                    "reason": ""
+                },
+                {
+                    "gate": "solve_check",
+                    "passed": true,
+                    "reason": "not an mcq; skipped"
+                },
+                {
+                    "gate": "rationale",
+                    "passed": true,
+                    "reason": ""
+                },
+                {
+                    "gate": "leakage",
+                    "passed": true,
+                    "reason": ""
+                },
+                {
+                    "gate": "schema",
+                    "passed": true,
+                    "reason": ""
+                }
+            ],
+            "all_passed": true,
+            "emitted": true
+        },
+        {
+            "id": "fi::duration/cloze/param:duration_price_change_v1/10",
+            "title": "Duration price-change estimate - faded 2",
+            "kind": "cloze",
+            "cluster": "fi::duration",
+            "generator": "param:duration_price_change_v1",
+            "gates": [
+                {
+                    "gate": "numeric",
+                    "passed": true,
+                    "reason": ""
+                },
+                {
+                    "gate": "solve_check",
+                    "passed": true,
+                    "reason": "not an mcq; skipped"
+                },
+                {
+                    "gate": "rationale",
+                    "passed": true,
+                    "reason": ""
+                },
+                {
+                    "gate": "leakage",
+                    "passed": true,
+                    "reason": ""
+                },
+                {
+                    "gate": "schema",
+                    "passed": true,
+                    "reason": ""
+                }
+            ],
+            "all_passed": true,
+            "emitted": true
+        },
+        {
+            "id": "fi::duration/mcq/param:duration_price_change_v1/11",
+            "title": "Duration price-change estimate - MCQ 1",
+            "kind": "mcq",
+            "cluster": "fi::duration",
+            "generator": "param:duration_price_change_v1",
+            "gates": [
+                {
+                    "gate": "numeric",
+                    "passed": true,
+                    "reason": ""
+                },
+                {
+                    "gate": "solve_check",
+                    "passed": true,
+                    "reason": ""
+                },
+                {
+                    "gate": "rationale",
+                    "passed": true,
+                    "reason": ""
+                },
+                {
+                    "gate": "leakage",
+                    "passed": true,
+                    "reason": ""
+                },
+                {
+                    "gate": "schema",
+                    "passed": true,
+                    "reason": ""
+                }
+            ],
+            "all_passed": true,
+            "emitted": true
+        },
+        {
+            "id": "fi::duration/mcq/param:duration_price_change_v1/12",
+            "title": "Duration price-change estimate - MCQ 2",
+            "kind": "mcq",
+            "cluster": "fi::duration",
+            "generator": "param:duration_price_change_v1",
+            "gates": [
+                {
+                    "gate": "numeric",
+                    "passed": true,
+                    "reason": ""
+                },
+                {
+                    "gate": "solve_check",
+                    "passed": true,
+                    "reason": ""
+                },
+                {
+                    "gate": "rationale",
+                    "passed": true,
+                    "reason": ""
+                },
+                {
+                    "gate": "leakage",
+                    "passed": true,
+                    "reason": ""
+                },
+                {
+                    "gate": "schema",
+                    "passed": true,
+                    "reason": ""
+                }
+            ],
+            "all_passed": true,
+            "emitted": true
+        },
+        {
+            "id": "fi::duration/mcq/param:duration_price_change_v1/13",
+            "title": "Duration price-change estimate - MCQ 3",
+            "kind": "mcq",
+            "cluster": "fi::duration",
+            "generator": "param:duration_price_change_v1",
+            "gates": [
+                {
+                    "gate": "numeric",
+                    "passed": true,
+                    "reason": ""
+                },
+                {
+                    "gate": "solve_check",
+                    "passed": true,
+                    "reason": ""
+                },
+                {
+                    "gate": "rationale",
+                    "passed": true,
+                    "reason": ""
+                },
+                {
+                    "gate": "leakage",
+                    "passed": true,
+                    "reason": ""
+                },
+                {
+                    "gate": "schema",
+                    "passed": true,
+                    "reason": ""
+                }
+            ],
+            "all_passed": true,
+            "emitted": true
+        },
+        {
+            "id": "fi::duration/worked/param:macaulay_from_cashflows_v1/14",
+            "title": "Macaulay duration from cash flows - worked 1",
+            "kind": "worked",
+            "cluster": "fi::duration",
+            "generator": "param:macaulay_from_cashflows_v1",
+            "gates": [
+                {
+                    "gate": "numeric",
+                    "passed": true,
+                    "reason": ""
+                },
+                {
+                    "gate": "solve_check",
+                    "passed": true,
+                    "reason": "not an mcq; skipped"
+                },
+                {
+                    "gate": "rationale",
+                    "passed": true,
+                    "reason": ""
+                },
+                {
+                    "gate": "leakage",
+                    "passed": true,
+                    "reason": ""
+                },
+                {
+                    "gate": "schema",
+                    "passed": true,
+                    "reason": ""
+                }
+            ],
+            "all_passed": true,
+            "emitted": true
+        },
+        {
+            "id": "fi::duration/worked/param:macaulay_from_cashflows_v1/15",
+            "title": "Macaulay duration from cash flows - worked 2",
+            "kind": "worked",
+            "cluster": "fi::duration",
+            "generator": "param:macaulay_from_cashflows_v1",
+            "gates": [
+                {
+                    "gate": "numeric",
+                    "passed": true,
+                    "reason": ""
+                },
+                {
+                    "gate": "solve_check",
+                    "passed": true,
+                    "reason": "not an mcq; skipped"
+                },
+                {
+                    "gate": "rationale",
+                    "passed": true,
+                    "reason": ""
+                },
+                {
+                    "gate": "leakage",
+                    "passed": true,
+                    "reason": ""
+                },
+                {
+                    "gate": "schema",
+                    "passed": true,
+                    "reason": ""
+                }
+            ],
+            "all_passed": true,
+            "emitted": true
+        },
+        {
+            "id": "fi::duration/cloze/param:macaulay_from_cashflows_v1/16",
+            "title": "Macaulay duration from cash flows - faded 1",
+            "kind": "cloze",
+            "cluster": "fi::duration",
+            "generator": "param:macaulay_from_cashflows_v1",
+            "gates": [
+                {
+                    "gate": "numeric",
+                    "passed": true,
+                    "reason": ""
+                },
+                {
+                    "gate": "solve_check",
+                    "passed": true,
+                    "reason": "not an mcq; skipped"
+                },
+                {
+                    "gate": "rationale",
+                    "passed": true,
+                    "reason": ""
+                },
+                {
+                    "gate": "leakage",
+                    "passed": true,
+                    "reason": ""
+                },
+                {
+                    "gate": "schema",
+                    "passed": true,
+                    "reason": ""
+                }
+            ],
+            "all_passed": true,
+            "emitted": true
+        },
+        {
+            "id": "fi::duration/cloze/param:macaulay_from_cashflows_v1/17",
+            "title": "Macaulay duration from cash flows - faded 2",
+            "kind": "cloze",
+            "cluster": "fi::duration",
+            "generator": "param:macaulay_from_cashflows_v1",
+            "gates": [
+                {
+                    "gate": "numeric",
+                    "passed": true,
+                    "reason": ""
+                },
+                {
+                    "gate": "solve_check",
+                    "passed": true,
+                    "reason": "not an mcq; skipped"
+                },
+                {
+                    "gate": "rationale",
+                    "passed": true,
+                    "reason": ""
+                },
+                {
+                    "gate": "leakage",
+                    "passed": true,
+                    "reason": ""
+                },
+                {
+                    "gate": "schema",
+                    "passed": true,
+                    "reason": ""
+                }
+            ],
+            "all_passed": true,
+            "emitted": true
+        },
+        {
+            "id": "fi::duration/mcq/param:macaulay_from_cashflows_v1/18",
+            "title": "Macaulay duration from cash flows - MCQ 1",
+            "kind": "mcq",
+            "cluster": "fi::duration",
+            "generator": "param:macaulay_from_cashflows_v1",
+            "gates": [
+                {
+                    "gate": "numeric",
+                    "passed": true,
+                    "reason": ""
+                },
+                {
+                    "gate": "solve_check",
+                    "passed": true,
+                    "reason": ""
+                },
+                {
+                    "gate": "rationale",
+                    "passed": true,
+                    "reason": ""
+                },
+                {
+                    "gate": "leakage",
+                    "passed": true,
+                    "reason": ""
+                },
+                {
+                    "gate": "schema",
+                    "passed": true,
+                    "reason": ""
+                }
+            ],
+            "all_passed": true,
+            "emitted": true
+        },
+        {
+            "id": "fi::duration/mcq/param:macaulay_from_cashflows_v1/19",
+            "title": "Macaulay duration from cash flows - MCQ 2",
+            "kind": "mcq",
+            "cluster": "fi::duration",
+            "generator": "param:macaulay_from_cashflows_v1",
+            "gates": [
+                {
+                    "gate": "numeric",
+                    "passed": true,
+                    "reason": ""
+                },
+                {
+                    "gate": "solve_check",
+                    "passed": true,
+                    "reason": ""
+                },
+                {
+                    "gate": "rationale",
+                    "passed": true,
+                    "reason": ""
+                },
+                {
+                    "gate": "leakage",
+                    "passed": true,
+                    "reason": ""
+                },
+                {
+                    "gate": "schema",
+                    "passed": true,
+                    "reason": ""
+                }
+            ],
+            "all_passed": true,
+            "emitted": true
+        },
+        {
+            "id": "fi::duration/mcq/param:macaulay_from_cashflows_v1/20",
+            "title": "Macaulay duration from cash flows - MCQ 3",
+            "kind": "mcq",
+            "cluster": "fi::duration",
+            "generator": "param:macaulay_from_cashflows_v1",
+            "gates": [
+                {
+                    "gate": "numeric",
+                    "passed": true,
+                    "reason": ""
+                },
+                {
+                    "gate": "solve_check",
+                    "passed": true,
+                    "reason": ""
+                },
+                {
+                    "gate": "rationale",
+                    "passed": true,
+                    "reason": ""
+                },
+                {
+                    "gate": "leakage",
+                    "passed": true,
+                    "reason": ""
+                },
+                {
+                    "gate": "schema",
+                    "passed": true,
+                    "reason": ""
+                }
+            ],
+            "all_passed": true,
+            "emitted": true
+        },
+        {
+            "id": "qm::tvm/worked/param:tvm_fv_lump_v1/21",
+            "title": "FV of a single sum - worked 1",
+            "kind": "worked",
+            "cluster": "qm::tvm",
+            "generator": "param:tvm_fv_lump_v1",
+            "gates": [
+                {
+                    "gate": "numeric",
+                    "passed": true,
+                    "reason": ""
+                },
+                {
+                    "gate": "solve_check",
+                    "passed": true,
+                    "reason": "not an mcq; skipped"
+                },
+                {
+                    "gate": "rationale",
+                    "passed": true,
+                    "reason": ""
+                },
+                {
+                    "gate": "leakage",
+                    "passed": true,
+                    "reason": ""
+                },
+                {
+                    "gate": "schema",
+                    "passed": true,
+                    "reason": ""
+                }
+            ],
+            "all_passed": true,
+            "emitted": true
+        },
+        {
+            "id": "qm::tvm/worked/param:tvm_fv_lump_v1/22",
+            "title": "FV of a single sum - worked 2",
+            "kind": "worked",
+            "cluster": "qm::tvm",
+            "generator": "param:tvm_fv_lump_v1",
+            "gates": [
+                {
+                    "gate": "numeric",
+                    "passed": true,
+                    "reason": ""
+                },
+                {
+                    "gate": "solve_check",
+                    "passed": true,
+                    "reason": "not an mcq; skipped"
+                },
+                {
+                    "gate": "rationale",
+                    "passed": true,
+                    "reason": ""
+                },
+                {
+                    "gate": "leakage",
+                    "passed": true,
+                    "reason": ""
+                },
+                {
+                    "gate": "schema",
+                    "passed": true,
+                    "reason": ""
+                }
+            ],
+            "all_passed": true,
+            "emitted": true
+        },
+        {
+            "id": "qm::tvm/cloze/param:tvm_fv_lump_v1/23",
+            "title": "FV of a single sum - faded 1",
+            "kind": "cloze",
+            "cluster": "qm::tvm",
+            "generator": "param:tvm_fv_lump_v1",
+            "gates": [
+                {
+                    "gate": "numeric",
+                    "passed": true,
+                    "reason": ""
+                },
+                {
+                    "gate": "solve_check",
+                    "passed": true,
+                    "reason": "not an mcq; skipped"
+                },
+                {
+                    "gate": "rationale",
+                    "passed": true,
+                    "reason": ""
+                },
+                {
+                    "gate": "leakage",
+                    "passed": true,
+                    "reason": ""
+                },
+                {
+                    "gate": "schema",
+                    "passed": true,
+                    "reason": ""
+                }
+            ],
+            "all_passed": true,
+            "emitted": true
+        },
+        {
+            "id": "qm::tvm/cloze/param:tvm_fv_lump_v1/24",
+            "title": "FV of a single sum - faded 2",
+            "kind": "cloze",
+            "cluster": "qm::tvm",
+            "generator": "param:tvm_fv_lump_v1",
+            "gates": [
+                {
+                    "gate": "numeric",
+                    "passed": true,
+                    "reason": ""
+                },
+                {
+                    "gate": "solve_check",
+                    "passed": true,
+                    "reason": "not an mcq; skipped"
+                },
+                {
+                    "gate": "rationale",
+                    "passed": true,
+                    "reason": ""
+                },
+                {
+                    "gate": "leakage",
+                    "passed": true,
+                    "reason": ""
+                },
+                {
+                    "gate": "schema",
+                    "passed": true,
+                    "reason": ""
+                }
+            ],
+            "all_passed": true,
+            "emitted": true
+        },
+        {
+            "id": "qm::tvm/mcq/param:tvm_fv_lump_v1/25",
+            "title": "FV of a single sum - MCQ 1",
+            "kind": "mcq",
+            "cluster": "qm::tvm",
+            "generator": "param:tvm_fv_lump_v1",
+            "gates": [
+                {
+                    "gate": "numeric",
+                    "passed": true,
+                    "reason": ""
+                },
+                {
+                    "gate": "solve_check",
+                    "passed": true,
+                    "reason": ""
+                },
+                {
+                    "gate": "rationale",
+                    "passed": true,
+                    "reason": ""
+                },
+                {
+                    "gate": "leakage",
+                    "passed": true,
+                    "reason": ""
+                },
+                {
+                    "gate": "schema",
+                    "passed": true,
+                    "reason": ""
+                }
+            ],
+            "all_passed": true,
+            "emitted": true
+        },
+        {
+            "id": "qm::tvm/mcq/param:tvm_fv_lump_v1/26",
+            "title": "FV of a single sum - MCQ 2",
+            "kind": "mcq",
+            "cluster": "qm::tvm",
+            "generator": "param:tvm_fv_lump_v1",
+            "gates": [
+                {
+                    "gate": "numeric",
+                    "passed": true,
+                    "reason": ""
+                },
+                {
+                    "gate": "solve_check",
+                    "passed": true,
+                    "reason": ""
+                },
+                {
+                    "gate": "rationale",
+                    "passed": true,
+                    "reason": ""
+                },
+                {
+                    "gate": "leakage",
+                    "passed": true,
+                    "reason": ""
+                },
+                {
+                    "gate": "schema",
+                    "passed": true,
+                    "reason": ""
+                }
+            ],
+            "all_passed": true,
+            "emitted": true
+        },
+        {
+            "id": "qm::tvm/mcq/param:tvm_fv_lump_v1/27",
+            "title": "FV of a single sum - MCQ 3",
+            "kind": "mcq",
+            "cluster": "qm::tvm",
+            "generator": "param:tvm_fv_lump_v1",
+            "gates": [
+                {
+                    "gate": "numeric",
+                    "passed": true,
+                    "reason": ""
+                },
+                {
+                    "gate": "solve_check",
+                    "passed": true,
+                    "reason": ""
+                },
+                {
+                    "gate": "rationale",
+                    "passed": true,
+                    "reason": ""
+                },
+                {
+                    "gate": "leakage",
+                    "passed": true,
+                    "reason": ""
+                },
+                {
+                    "gate": "schema",
+                    "passed": true,
+                    "reason": ""
+                }
+            ],
+            "all_passed": true,
+            "emitted": true
+        },
+        {
+            "id": "qm::tvm/worked/param:tvm_annuity_pv_v1/28",
+            "title": "PV of an ordinary annuity - worked 1",
+            "kind": "worked",
+            "cluster": "qm::tvm",
+            "generator": "param:tvm_annuity_pv_v1",
+            "gates": [
+                {
+                    "gate": "numeric",
+                    "passed": true,
+                    "reason": ""
+                },
+                {
+                    "gate": "solve_check",
+                    "passed": true,
+                    "reason": "not an mcq; skipped"
+                },
+                {
+                    "gate": "rationale",
+                    "passed": true,
+                    "reason": ""
+                },
+                {
+                    "gate": "leakage",
+                    "passed": true,
+                    "reason": ""
+                },
+                {
+                    "gate": "schema",
+                    "passed": true,
+                    "reason": ""
+                }
+            ],
+            "all_passed": true,
+            "emitted": true
+        },
+        {
+            "id": "qm::tvm/worked/param:tvm_annuity_pv_v1/29",
+            "title": "PV of an ordinary annuity - worked 2",
+            "kind": "worked",
+            "cluster": "qm::tvm",
+            "generator": "param:tvm_annuity_pv_v1",
+            "gates": [
+                {
+                    "gate": "numeric",
+                    "passed": true,
+                    "reason": ""
+                },
+                {
+                    "gate": "solve_check",
+                    "passed": true,
+                    "reason": "not an mcq; skipped"
+                },
+                {
+                    "gate": "rationale",
+                    "passed": true,
+                    "reason": ""
+                },
+                {
+                    "gate": "leakage",
+                    "passed": true,
+                    "reason": ""
+                },
+                {
+                    "gate": "schema",
+                    "passed": true,
+                    "reason": ""
+                }
+            ],
+            "all_passed": true,
+            "emitted": true
+        },
+        {
+            "id": "qm::tvm/cloze/param:tvm_annuity_pv_v1/30",
+            "title": "PV of an ordinary annuity - faded 1",
+            "kind": "cloze",
+            "cluster": "qm::tvm",
+            "generator": "param:tvm_annuity_pv_v1",
+            "gates": [
+                {
+                    "gate": "numeric",
+                    "passed": true,
+                    "reason": ""
+                },
+                {
+                    "gate": "solve_check",
+                    "passed": true,
+                    "reason": "not an mcq; skipped"
+                },
+                {
+                    "gate": "rationale",
+                    "passed": true,
+                    "reason": ""
+                },
+                {
+                    "gate": "leakage",
+                    "passed": true,
+                    "reason": ""
+                },
+                {
+                    "gate": "schema",
+                    "passed": true,
+                    "reason": ""
+                }
+            ],
+            "all_passed": true,
+            "emitted": true
+        },
+        {
+            "id": "qm::tvm/cloze/param:tvm_annuity_pv_v1/31",
+            "title": "PV of an ordinary annuity - faded 2",
+            "kind": "cloze",
+            "cluster": "qm::tvm",
+            "generator": "param:tvm_annuity_pv_v1",
+            "gates": [
+                {
+                    "gate": "numeric",
+                    "passed": true,
+                    "reason": ""
+                },
+                {
+                    "gate": "solve_check",
+                    "passed": true,
+                    "reason": "not an mcq; skipped"
+                },
+                {
+                    "gate": "rationale",
+                    "passed": true,
+                    "reason": ""
+                },
+                {
+                    "gate": "leakage",
+                    "passed": true,
+                    "reason": ""
+                },
+                {
+                    "gate": "schema",
+                    "passed": true,
+                    "reason": ""
+                }
+            ],
+            "all_passed": true,
+            "emitted": true
+        },
+        {
+            "id": "qm::tvm/mcq/param:tvm_annuity_pv_v1/32",
+            "title": "PV of an ordinary annuity - MCQ 1",
+            "kind": "mcq",
+            "cluster": "qm::tvm",
+            "generator": "param:tvm_annuity_pv_v1",
+            "gates": [
+                {
+                    "gate": "numeric",
+                    "passed": true,
+                    "reason": ""
+                },
+                {
+                    "gate": "solve_check",
+                    "passed": true,
+                    "reason": ""
+                },
+                {
+                    "gate": "rationale",
+                    "passed": true,
+                    "reason": ""
+                },
+                {
+                    "gate": "leakage",
+                    "passed": true,
+                    "reason": ""
+                },
+                {
+                    "gate": "schema",
+                    "passed": true,
+                    "reason": ""
+                }
+            ],
+            "all_passed": true,
+            "emitted": true
+        },
+        {
+            "id": "qm::tvm/mcq/param:tvm_annuity_pv_v1/33",
+            "title": "PV of an ordinary annuity - MCQ 2",
+            "kind": "mcq",
+            "cluster": "qm::tvm",
+            "generator": "param:tvm_annuity_pv_v1",
+            "gates": [
+                {
+                    "gate": "numeric",
+                    "passed": true,
+                    "reason": ""
+                },
+                {
+                    "gate": "solve_check",
+                    "passed": true,
+                    "reason": ""
+                },
+                {
+                    "gate": "rationale",
+                    "passed": true,
+                    "reason": ""
+                },
+                {
+                    "gate": "leakage",
+                    "passed": true,
+                    "reason": ""
+                },
+                {
+                    "gate": "schema",
+                    "passed": true,
+                    "reason": ""
+                }
+            ],
+            "all_passed": true,
+            "emitted": true
+        },
+        {
+            "id": "qm::tvm/mcq/param:tvm_annuity_pv_v1/34",
+            "title": "PV of an ordinary annuity - MCQ 3",
+            "kind": "mcq",
+            "cluster": "qm::tvm",
+            "generator": "param:tvm_annuity_pv_v1",
+            "gates": [
+                {
+                    "gate": "numeric",
+                    "passed": true,
+                    "reason": ""
+                },
+                {
+                    "gate": "solve_check",
+                    "passed": true,
+                    "reason": ""
+                },
+                {
+                    "gate": "rationale",
+                    "passed": true,
+                    "reason": ""
+                },
+                {
+                    "gate": "leakage",
+                    "passed": true,
+                    "reason": ""
+                },
+                {
+                    "gate": "schema",
+                    "passed": true,
+                    "reason": ""
+                }
+            ],
+            "all_passed": true,
+            "emitted": true
+        },
+        {
+            "id": "qm::tvm/worked/param:tvm_annuity_fv_v1/35",
+            "title": "FV of a savings annuity - worked 1",
+            "kind": "worked",
+            "cluster": "qm::tvm",
+            "generator": "param:tvm_annuity_fv_v1",
+            "gates": [
+                {
+                    "gate": "numeric",
+                    "passed": true,
+                    "reason": ""
+                },
+                {
+                    "gate": "solve_check",
+                    "passed": true,
+                    "reason": "not an mcq; skipped"
+                },
+                {
+                    "gate": "rationale",
+                    "passed": true,
+                    "reason": ""
+                },
+                {
+                    "gate": "leakage",
+                    "passed": true,
+                    "reason": ""
+                },
+                {
+                    "gate": "schema",
+                    "passed": true,
+                    "reason": ""
+                }
+            ],
+            "all_passed": true,
+            "emitted": true
+        },
+        {
+            "id": "qm::tvm/worked/param:tvm_annuity_fv_v1/36",
+            "title": "FV of a savings annuity - worked 2",
+            "kind": "worked",
+            "cluster": "qm::tvm",
+            "generator": "param:tvm_annuity_fv_v1",
+            "gates": [
+                {
+                    "gate": "numeric",
+                    "passed": true,
+                    "reason": ""
+                },
+                {
+                    "gate": "solve_check",
+                    "passed": true,
+                    "reason": "not an mcq; skipped"
+                },
+                {
+                    "gate": "rationale",
+                    "passed": true,
+                    "reason": ""
+                },
+                {
+                    "gate": "leakage",
+                    "passed": true,
+                    "reason": ""
+                },
+                {
+                    "gate": "schema",
+                    "passed": true,
+                    "reason": ""
+                }
+            ],
+            "all_passed": true,
+            "emitted": true
+        },
+        {
+            "id": "qm::tvm/cloze/param:tvm_annuity_fv_v1/37",
+            "title": "FV of a savings annuity - faded 1",
+            "kind": "cloze",
+            "cluster": "qm::tvm",
+            "generator": "param:tvm_annuity_fv_v1",
+            "gates": [
+                {
+                    "gate": "numeric",
+                    "passed": true,
+                    "reason": ""
+                },
+                {
+                    "gate": "solve_check",
+                    "passed": true,
+                    "reason": "not an mcq; skipped"
+                },
+                {
+                    "gate": "rationale",
+                    "passed": true,
+                    "reason": ""
+                },
+                {
+                    "gate": "leakage",
+                    "passed": true,
+                    "reason": ""
+                },
+                {
+                    "gate": "schema",
+                    "passed": true,
+                    "reason": ""
+                }
+            ],
+            "all_passed": true,
+            "emitted": true
+        },
+        {
+            "id": "qm::tvm/cloze/param:tvm_annuity_fv_v1/38",
+            "title": "FV of a savings annuity - faded 2",
+            "kind": "cloze",
+            "cluster": "qm::tvm",
+            "generator": "param:tvm_annuity_fv_v1",
+            "gates": [
+                {
+                    "gate": "numeric",
+                    "passed": true,
+                    "reason": ""
+                },
+                {
+                    "gate": "solve_check",
+                    "passed": true,
+                    "reason": "not an mcq; skipped"
+                },
+                {
+                    "gate": "rationale",
+                    "passed": true,
+                    "reason": ""
+                },
+                {
+                    "gate": "leakage",
+                    "passed": true,
+                    "reason": ""
+                },
+                {
+                    "gate": "schema",
+                    "passed": true,
+                    "reason": ""
+                }
+            ],
+            "all_passed": true,
+            "emitted": true
+        },
+        {
+            "id": "qm::tvm/mcq/param:tvm_annuity_fv_v1/39",
+            "title": "FV of a savings annuity - MCQ 1",
+            "kind": "mcq",
+            "cluster": "qm::tvm",
+            "generator": "param:tvm_annuity_fv_v1",
+            "gates": [
+                {
+                    "gate": "numeric",
+                    "passed": true,
+                    "reason": ""
+                },
+                {
+                    "gate": "solve_check",
+                    "passed": true,
+                    "reason": ""
+                },
+                {
+                    "gate": "rationale",
+                    "passed": true,
+                    "reason": ""
+                },
+                {
+                    "gate": "leakage",
+                    "passed": true,
+                    "reason": ""
+                },
+                {
+                    "gate": "schema",
+                    "passed": true,
+                    "reason": ""
+                }
+            ],
+            "all_passed": true,
+            "emitted": true
+        },
+        {
+            "id": "qm::tvm/mcq/param:tvm_annuity_fv_v1/40",
+            "title": "FV of a savings annuity - MCQ 2",
+            "kind": "mcq",
+            "cluster": "qm::tvm",
+            "generator": "param:tvm_annuity_fv_v1",
+            "gates": [
+                {
+                    "gate": "numeric",
+                    "passed": true,
+                    "reason": ""
+                },
+                {
+                    "gate": "solve_check",
+                    "passed": true,
+                    "reason": ""
+                },
+                {
+                    "gate": "rationale",
+                    "passed": true,
+                    "reason": ""
+                },
+                {
+                    "gate": "leakage",
+                    "passed": true,
+                    "reason": ""
+                },
+                {
+                    "gate": "schema",
+                    "passed": true,
+                    "reason": ""
+                }
+            ],
+            "all_passed": true,
+            "emitted": true
+        },
+        {
+            "id": "qm::tvm/mcq/param:tvm_annuity_fv_v1/41",
+            "title": "FV of a savings annuity - MCQ 3",
+            "kind": "mcq",
+            "cluster": "qm::tvm",
+            "generator": "param:tvm_annuity_fv_v1",
+            "gates": [
+                {
+                    "gate": "numeric",
+                    "passed": true,
+                    "reason": ""
+                },
+                {
+                    "gate": "solve_check",
+                    "passed": true,
+                    "reason": ""
+                },
+                {
+                    "gate": "rationale",
+                    "passed": true,
+                    "reason": ""
+                },
+                {
+                    "gate": "leakage",
+                    "passed": true,
+                    "reason": ""
+                },
+                {
+                    "gate": "schema",
+                    "passed": true,
+                    "reason": ""
+                }
+            ],
+            "all_passed": true,
+            "emitted": true
+        },
+        {
+            "id": "fsa::inventory/worked/param:inventory_cogs_v1/42",
+            "title": "FIFO/LIFO cost of goods sold - worked 1",
+            "kind": "worked",
+            "cluster": "fsa::inventory",
+            "generator": "param:inventory_cogs_v1",
+            "gates": [
+                {
+                    "gate": "numeric",
+                    "passed": true,
+                    "reason": ""
+                },
+                {
+                    "gate": "solve_check",
+                    "passed": true,
+                    "reason": "not an mcq; skipped"
+                },
+                {
+                    "gate": "rationale",
+                    "passed": true,
+                    "reason": ""
+                },
+                {
+                    "gate": "leakage",
+                    "passed": true,
+                    "reason": ""
+                },
+                {
+                    "gate": "schema",
+                    "passed": true,
+                    "reason": ""
+                }
+            ],
+            "all_passed": true,
+            "emitted": true
+        },
+        {
+            "id": "fsa::inventory/worked/param:inventory_cogs_v1/43",
+            "title": "FIFO/LIFO cost of goods sold - worked 2",
+            "kind": "worked",
+            "cluster": "fsa::inventory",
+            "generator": "param:inventory_cogs_v1",
+            "gates": [
+                {
+                    "gate": "numeric",
+                    "passed": true,
+                    "reason": ""
+                },
+                {
+                    "gate": "solve_check",
+                    "passed": true,
+                    "reason": "not an mcq; skipped"
+                },
+                {
+                    "gate": "rationale",
+                    "passed": true,
+                    "reason": ""
+                },
+                {
+                    "gate": "leakage",
+                    "passed": true,
+                    "reason": ""
+                },
+                {
+                    "gate": "schema",
+                    "passed": true,
+                    "reason": ""
+                }
+            ],
+            "all_passed": true,
+            "emitted": true
+        },
+        {
+            "id": "fsa::inventory/cloze/param:inventory_cogs_v1/44",
+            "title": "FIFO/LIFO cost of goods sold - faded 1",
+            "kind": "cloze",
+            "cluster": "fsa::inventory",
+            "generator": "param:inventory_cogs_v1",
+            "gates": [
+                {
+                    "gate": "numeric",
+                    "passed": true,
+                    "reason": ""
+                },
+                {
+                    "gate": "solve_check",
+                    "passed": true,
+                    "reason": "not an mcq; skipped"
+                },
+                {
+                    "gate": "rationale",
+                    "passed": true,
+                    "reason": ""
+                },
+                {
+                    "gate": "leakage",
+                    "passed": true,
+                    "reason": ""
+                },
+                {
+                    "gate": "schema",
+                    "passed": true,
+                    "reason": ""
+                }
+            ],
+            "all_passed": true,
+            "emitted": true
+        },
+        {
+            "id": "fsa::inventory/cloze/param:inventory_cogs_v1/45",
+            "title": "FIFO/LIFO cost of goods sold - faded 2",
+            "kind": "cloze",
+            "cluster": "fsa::inventory",
+            "generator": "param:inventory_cogs_v1",
+            "gates": [
+                {
+                    "gate": "numeric",
+                    "passed": true,
+                    "reason": ""
+                },
+                {
+                    "gate": "solve_check",
+                    "passed": true,
+                    "reason": "not an mcq; skipped"
+                },
+                {
+                    "gate": "rationale",
+                    "passed": true,
+                    "reason": ""
+                },
+                {
+                    "gate": "leakage",
+                    "passed": true,
+                    "reason": ""
+                },
+                {
+                    "gate": "schema",
+                    "passed": true,
+                    "reason": ""
+                }
+            ],
+            "all_passed": true,
+            "emitted": true
+        },
+        {
+            "id": "fsa::inventory/mcq/param:inventory_cogs_v1/46",
+            "title": "FIFO/LIFO cost of goods sold - MCQ 1",
+            "kind": "mcq",
+            "cluster": "fsa::inventory",
+            "generator": "param:inventory_cogs_v1",
+            "gates": [
+                {
+                    "gate": "numeric",
+                    "passed": true,
+                    "reason": ""
+                },
+                {
+                    "gate": "solve_check",
+                    "passed": true,
+                    "reason": ""
+                },
+                {
+                    "gate": "rationale",
+                    "passed": true,
+                    "reason": ""
+                },
+                {
+                    "gate": "leakage",
+                    "passed": true,
+                    "reason": ""
+                },
+                {
+                    "gate": "schema",
+                    "passed": true,
+                    "reason": ""
+                }
+            ],
+            "all_passed": true,
+            "emitted": true
+        },
+        {
+            "id": "fsa::inventory/mcq/param:inventory_cogs_v1/47",
+            "title": "FIFO/LIFO cost of goods sold - MCQ 2",
+            "kind": "mcq",
+            "cluster": "fsa::inventory",
+            "generator": "param:inventory_cogs_v1",
+            "gates": [
+                {
+                    "gate": "numeric",
+                    "passed": true,
+                    "reason": ""
+                },
+                {
+                    "gate": "solve_check",
+                    "passed": true,
+                    "reason": ""
+                },
+                {
+                    "gate": "rationale",
+                    "passed": true,
+                    "reason": ""
+                },
+                {
+                    "gate": "leakage",
+                    "passed": true,
+                    "reason": ""
+                },
+                {
+                    "gate": "schema",
+                    "passed": true,
+                    "reason": ""
+                }
+            ],
+            "all_passed": true,
+            "emitted": true
+        },
+        {
+            "id": "fsa::inventory/mcq/param:inventory_cogs_v1/48",
+            "title": "FIFO/LIFO cost of goods sold - MCQ 3",
+            "kind": "mcq",
+            "cluster": "fsa::inventory",
+            "generator": "param:inventory_cogs_v1",
+            "gates": [
+                {
+                    "gate": "numeric",
+                    "passed": true,
+                    "reason": ""
+                },
+                {
+                    "gate": "solve_check",
+                    "passed": true,
+                    "reason": ""
+                },
+                {
+                    "gate": "rationale",
+                    "passed": true,
+                    "reason": ""
+                },
+                {
+                    "gate": "leakage",
+                    "passed": true,
+                    "reason": ""
+                },
+                {
+                    "gate": "schema",
+                    "passed": true,
+                    "reason": ""
+                }
+            ],
+            "all_passed": true,
+            "emitted": true
+        },
+        {
+            "id": "fsa::inventory/worked/param:lifo_reserve_v1/49",
+            "title": "LIFO reserve restatement - worked 1",
+            "kind": "worked",
+            "cluster": "fsa::inventory",
+            "generator": "param:lifo_reserve_v1",
+            "gates": [
+                {
+                    "gate": "numeric",
+                    "passed": true,
+                    "reason": ""
+                },
+                {
+                    "gate": "solve_check",
+                    "passed": true,
+                    "reason": "not an mcq; skipped"
+                },
+                {
+                    "gate": "rationale",
+                    "passed": true,
+                    "reason": ""
+                },
+                {
+                    "gate": "leakage",
+                    "passed": true,
+                    "reason": ""
+                },
+                {
+                    "gate": "schema",
+                    "passed": true,
+                    "reason": ""
+                }
+            ],
+            "all_passed": true,
+            "emitted": true
+        },
+        {
+            "id": "fsa::inventory/worked/param:lifo_reserve_v1/50",
+            "title": "LIFO reserve restatement - worked 2",
+            "kind": "worked",
+            "cluster": "fsa::inventory",
+            "generator": "param:lifo_reserve_v1",
+            "gates": [
+                {
+                    "gate": "numeric",
+                    "passed": true,
+                    "reason": ""
+                },
+                {
+                    "gate": "solve_check",
+                    "passed": true,
+                    "reason": "not an mcq; skipped"
+                },
+                {
+                    "gate": "rationale",
+                    "passed": true,
+                    "reason": ""
+                },
+                {
+                    "gate": "leakage",
+                    "passed": true,
+                    "reason": ""
+                },
+                {
+                    "gate": "schema",
+                    "passed": true,
+                    "reason": ""
+                }
+            ],
+            "all_passed": true,
+            "emitted": true
+        },
+        {
+            "id": "fsa::inventory/cloze/param:lifo_reserve_v1/51",
+            "title": "LIFO reserve restatement - faded 1",
+            "kind": "cloze",
+            "cluster": "fsa::inventory",
+            "generator": "param:lifo_reserve_v1",
+            "gates": [
+                {
+                    "gate": "numeric",
+                    "passed": true,
+                    "reason": ""
+                },
+                {
+                    "gate": "solve_check",
+                    "passed": true,
+                    "reason": "not an mcq; skipped"
+                },
+                {
+                    "gate": "rationale",
+                    "passed": true,
+                    "reason": ""
+                },
+                {
+                    "gate": "leakage",
+                    "passed": true,
+                    "reason": ""
+                },
+                {
+                    "gate": "schema",
+                    "passed": true,
+                    "reason": ""
+                }
+            ],
+            "all_passed": true,
+            "emitted": true
+        },
+        {
+            "id": "fsa::inventory/cloze/param:lifo_reserve_v1/52",
+            "title": "LIFO reserve restatement - faded 2",
+            "kind": "cloze",
+            "cluster": "fsa::inventory",
+            "generator": "param:lifo_reserve_v1",
+            "gates": [
+                {
+                    "gate": "numeric",
+                    "passed": true,
+                    "reason": ""
+                },
+                {
+                    "gate": "solve_check",
+                    "passed": true,
+                    "reason": "not an mcq; skipped"
+                },
+                {
+                    "gate": "rationale",
+                    "passed": true,
+                    "reason": ""
+                },
+                {
+                    "gate": "leakage",
+                    "passed": true,
+                    "reason": ""
+                },
+                {
+                    "gate": "schema",
+                    "passed": true,
+                    "reason": ""
+                }
+            ],
+            "all_passed": true,
+            "emitted": true
+        },
+        {
+            "id": "fsa::inventory/mcq/param:lifo_reserve_v1/53",
+            "title": "LIFO reserve restatement - MCQ 1",
+            "kind": "mcq",
+            "cluster": "fsa::inventory",
+            "generator": "param:lifo_reserve_v1",
+            "gates": [
+                {
+                    "gate": "numeric",
+                    "passed": true,
+                    "reason": ""
+                },
+                {
+                    "gate": "solve_check",
+                    "passed": true,
+                    "reason": ""
+                },
+                {
+                    "gate": "rationale",
+                    "passed": true,
+                    "reason": ""
+                },
+                {
+                    "gate": "leakage",
+                    "passed": true,
+                    "reason": ""
+                },
+                {
+                    "gate": "schema",
+                    "passed": true,
+                    "reason": ""
+                }
+            ],
+            "all_passed": true,
+            "emitted": true
+        },
+        {
+            "id": "fsa::inventory/mcq/param:lifo_reserve_v1/54",
+            "title": "LIFO reserve restatement - MCQ 2",
+            "kind": "mcq",
+            "cluster": "fsa::inventory",
+            "generator": "param:lifo_reserve_v1",
+            "gates": [
+                {
+                    "gate": "numeric",
+                    "passed": true,
+                    "reason": ""
+                },
+                {
+                    "gate": "solve_check",
+                    "passed": true,
+                    "reason": ""
+                },
+                {
+                    "gate": "rationale",
+                    "passed": true,
+                    "reason": ""
+                },
+                {
+                    "gate": "leakage",
+                    "passed": true,
+                    "reason": ""
+                },
+                {
+                    "gate": "schema",
+                    "passed": true,
+                    "reason": ""
+                }
+            ],
+            "all_passed": true,
+            "emitted": true
+        },
+        {
+            "id": "fsa::inventory/mcq/param:lifo_reserve_v1/55",
+            "title": "LIFO reserve restatement - MCQ 3",
+            "kind": "mcq",
+            "cluster": "fsa::inventory",
+            "generator": "param:lifo_reserve_v1",
+            "gates": [
+                {
+                    "gate": "numeric",
+                    "passed": true,
+                    "reason": ""
+                },
+                {
+                    "gate": "solve_check",
+                    "passed": true,
+                    "reason": ""
+                },
+                {
+                    "gate": "rationale",
+                    "passed": true,
+                    "reason": ""
+                },
+                {
+                    "gate": "leakage",
+                    "passed": true,
+                    "reason": ""
+                },
+                {
+                    "gate": "schema",
+                    "passed": true,
+                    "reason": ""
+                }
+            ],
+            "all_passed": true,
+            "emitted": true
+        },
+        {
+            "id": "fi::duration/compare/param:compare_duration_trio_v1/56",
+            "title": "Compare: Macaulay vs modified duration",
+            "kind": "compare",
+            "cluster": "fi::duration",
+            "generator": "param:compare_duration_trio_v1",
+            "gates": [
+                {
+                    "gate": "numeric",
+                    "passed": true,
+                    "reason": "compare item; skipped"
+                },
+                {
+                    "gate": "solve_check",
+                    "passed": true,
+                    "reason": "not an mcq; skipped"
+                },
+                {
+                    "gate": "rationale",
+                    "passed": true,
+                    "reason": ""
+                },
+                {
+                    "gate": "leakage",
+                    "passed": true,
+                    "reason": ""
+                },
+                {
+                    "gate": "schema",
+                    "passed": true,
+                    "reason": ""
+                }
+            ],
+            "all_passed": true,
+            "emitted": true
+        },
+        {
+            "id": "fi::duration/compare/param:compare_duration_trio_v1/57",
+            "title": "Compare: modified vs effective duration",
+            "kind": "compare",
+            "cluster": "fi::duration",
+            "generator": "param:compare_duration_trio_v1",
+            "gates": [
+                {
+                    "gate": "numeric",
+                    "passed": true,
+                    "reason": "compare item; skipped"
+                },
+                {
+                    "gate": "solve_check",
+                    "passed": true,
+                    "reason": "not an mcq; skipped"
+                },
+                {
+                    "gate": "rationale",
+                    "passed": true,
+                    "reason": ""
+                },
+                {
+                    "gate": "leakage",
+                    "passed": true,
+                    "reason": ""
+                },
+                {
+                    "gate": "schema",
+                    "passed": true,
+                    "reason": ""
+                }
+            ],
+            "all_passed": true,
+            "emitted": true
+        },
+        {
+            "id": "fsa::inventory/compare/param:compare_fifo_lifo_v1/58",
+            "title": "Compare: FIFO vs LIFO under rising prices",
+            "kind": "compare",
+            "cluster": "fsa::inventory",
+            "generator": "param:compare_fifo_lifo_v1",
+            "gates": [
+                {
+                    "gate": "numeric",
+                    "passed": true,
+                    "reason": "compare item; skipped"
+                },
+                {
+                    "gate": "solve_check",
+                    "passed": true,
+                    "reason": "not an mcq; skipped"
+                },
+                {
+                    "gate": "rationale",
+                    "passed": true,
+                    "reason": ""
+                },
+                {
+                    "gate": "leakage",
+                    "passed": true,
+                    "reason": ""
+                },
+                {
+                    "gate": "schema",
+                    "passed": true,
+                    "reason": ""
+                }
+            ],
+            "all_passed": true,
+            "emitted": true
+        },
+        {
+            "id": "fi::duration/mcq/llm:mock/59",
+            "title": "Mock: modified duration conversion",
+            "kind": "mcq",
+            "cluster": "fi::duration",
+            "generator": "llm:mock",
+            "gates": [
+                {
+                    "gate": "numeric",
+                    "passed": true,
+                    "reason": "not a parameterized item; skipped"
+                },
+                {
+                    "gate": "solve_check",
+                    "passed": true,
+                    "reason": "3 solver samples agree"
+                },
+                {
+                    "gate": "rationale",
+                    "passed": true,
+                    "reason": ""
+                },
+                {
+                    "gate": "leakage",
+                    "passed": true,
+                    "reason": ""
+                },
+                {
+                    "gate": "critic",
+                    "passed": true,
+                    "reason": ""
+                },
+                {
+                    "gate": "consensus",
+                    "passed": true,
+                    "reason": "solver picks: ['A', 'A', 'A']"
+                },
+                {
+                    "gate": "schema",
+                    "passed": true,
+                    "reason": ""
+                }
+            ],
+            "all_passed": true,
+            "emitted": false,
+            "llm_path_demo": true
+        },
+        {
+            "id": "qm::tvm/mcq/llm:mock/60",
+            "title": "Mock: FV with semiannual compounding",
+            "kind": "mcq",
+            "cluster": "qm::tvm",
+            "generator": "llm:mock",
+            "gates": [
+                {
+                    "gate": "numeric",
+                    "passed": true,
+                    "reason": "not a parameterized item; skipped"
+                },
+                {
+                    "gate": "solve_check",
+                    "passed": true,
+                    "reason": "3 solver samples agree"
+                },
+                {
+                    "gate": "rationale",
+                    "passed": true,
+                    "reason": ""
+                },
+                {
+                    "gate": "leakage",
+                    "passed": true,
+                    "reason": ""
+                },
+                {
+                    "gate": "critic",
+                    "passed": true,
+                    "reason": ""
+                },
+                {
+                    "gate": "consensus",
+                    "passed": true,
+                    "reason": "solver picks: ['A', 'A', 'A']"
+                },
+                {
+                    "gate": "schema",
+                    "passed": true,
+                    "reason": ""
+                }
+            ],
+            "all_passed": true,
+            "emitted": false,
+            "llm_path_demo": true
+        },
+        {
+            "id": "fsa::inventory/mcq/llm:mock/61",
+            "title": "Mock: LIFO reserve restatement",
+            "kind": "mcq",
+            "cluster": "fsa::inventory",
+            "generator": "llm:mock",
+            "gates": [
+                {
+                    "gate": "numeric",
+                    "passed": true,
+                    "reason": "not a parameterized item; skipped"
+                },
+                {
+                    "gate": "solve_check",
+                    "passed": true,
+                    "reason": "3 solver samples agree"
+                },
+                {
+                    "gate": "rationale",
+                    "passed": true,
+                    "reason": ""
+                },
+                {
+                    "gate": "leakage",
+                    "passed": true,
+                    "reason": ""
+                },
+                {
+                    "gate": "critic",
+                    "passed": true,
+                    "reason": ""
+                },
+                {
+                    "gate": "consensus",
+                    "passed": true,
+                    "reason": "solver picks: ['B', 'B', 'B']"
+                },
+                {
+                    "gate": "schema",
+                    "passed": true,
+                    "reason": ""
+                }
+            ],
+            "all_passed": true,
+            "emitted": false,
+            "llm_path_demo": true
+        }
+    ]
+}

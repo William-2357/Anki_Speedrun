@@ -724,6 +724,9 @@ exposed_backend_list = [
     # CollectionService
     "latest_progress",
     "get_custom_colours",
+    # ConfigService
+    "get_config_json",
+    "set_config_json",
     # DeckService
     "get_deck_names",
     # I18nService

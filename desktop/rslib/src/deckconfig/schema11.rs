@@ -103,6 +103,27 @@ pub struct DeckConfSchema11 {
     contrast_scheduling: bool,
     #[serde(default)]
     contrast_tag_prefix: String,
+    // Anki Speedrun: confusability gate + fade ladder (see deck_config.proto)
+    #[serde(default)]
+    contrast_confusable_tag: String,
+    #[serde(default)]
+    fade_enabled: bool,
+    #[serde(default)]
+    fade_signal: i32,
+    #[serde(default)]
+    fade_up_r: f32,
+    #[serde(default)]
+    fade_down_r: f32,
+    #[serde(default)]
+    promotion_spaced_sessions: u32,
+    #[serde(default)]
+    fluency_stability_floor: f32,
+    #[serde(default)]
+    fade_order: i32,
+    #[serde(default)]
+    self_explain_enabled: bool,
+    #[serde(default)]
+    element_interactivity_gate: bool,
 
     #[serde(flatten)]
     other: HashMap<String, Value>,
@@ -321,6 +342,16 @@ impl Default for DeckConfSchema11 {
             easy_days_percentages: vec![1.0; 7],
             contrast_scheduling: false,
             contrast_tag_prefix: "".to_string(),
+            contrast_confusable_tag: "".to_string(),
+            fade_enabled: false,
+            fade_signal: 0,
+            fade_up_r: 0.0,
+            fade_down_r: 0.0,
+            promotion_spaced_sessions: 0,
+            fluency_stability_floor: 0.0,
+            fade_order: 0,
+            self_explain_enabled: false,
+            element_interactivity_gate: false,
         }
     }
 }
@@ -405,6 +436,16 @@ impl From<DeckConfSchema11> for DeckConfig {
                 param_search: c.param_search,
                 contrast_scheduling: c.contrast_scheduling,
                 contrast_tag_prefix: c.contrast_tag_prefix,
+                contrast_confusable_tag: c.contrast_confusable_tag,
+                fade_enabled: c.fade_enabled,
+                fade_signal: c.fade_signal,
+                fade_up_r: c.fade_up_r,
+                fade_down_r: c.fade_down_r,
+                promotion_spaced_sessions: c.promotion_spaced_sessions,
+                fluency_stability_floor: c.fluency_stability_floor,
+                fade_order: c.fade_order,
+                self_explain_enabled: c.self_explain_enabled,
+                element_interactivity_gate: c.element_interactivity_gate,
                 other: other_bytes,
             },
         }
@@ -521,6 +562,16 @@ impl From<DeckConfig> for DeckConfSchema11 {
             easy_days_percentages: i.easy_days_percentages,
             contrast_scheduling: i.contrast_scheduling,
             contrast_tag_prefix: i.contrast_tag_prefix,
+            contrast_confusable_tag: i.contrast_confusable_tag,
+            fade_enabled: i.fade_enabled,
+            fade_signal: i.fade_signal,
+            fade_up_r: i.fade_up_r,
+            fade_down_r: i.fade_down_r,
+            promotion_spaced_sessions: i.promotion_spaced_sessions,
+            fluency_stability_floor: i.fluency_stability_floor,
+            fade_order: i.fade_order,
+            self_explain_enabled: i.self_explain_enabled,
+            element_interactivity_gate: i.element_interactivity_gate,
         }
     }
 }
@@ -558,6 +609,16 @@ static RESERVED_DECKCONF_KEYS: Set<&'static str> = phf_set! {
     "easyDaysPercentages",
     "contrastScheduling",
     "contrastTagPrefix",
+    "contrastConfusableTag",
+    "fadeEnabled",
+    "fadeSignal",
+    "fadeUpR",
+    "fadeDownR",
+    "promotionSpacedSessions",
+    "fluencyStabilityFloor",
+    "fadeOrder",
+    "selfExplainEnabled",
+    "elementInteractivityGate",
 };
 
 static RESERVED_DECKCONF_NEW_KEYS: Set<&'static str> = phf_set! {

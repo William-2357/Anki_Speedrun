@@ -11,6 +11,7 @@ import pytest
 
 from anki import hooks
 from anki.consts import *
+from anki.decks import DeckId
 from anki.lang import without_unicode_isolation
 from anki.scheduler import UnburyDeck
 from anki.utils import int_time
@@ -1183,3 +1184,42 @@ def test_initial_repeat():
 
     ivl = col.db.scalar("select ivl from revlog")
     assert ivl == -5.5 * 60
+
+
+def test_fade_gating():
+    "Anki Speedrun: the Rust fade ladder is reachable from Python."
+    col = getEmptyCol()
+    ladder_tags = [
+        "cfa::topic::fixed_income",
+        "cluster::fi::duration",
+        "interactivity::high",
+    ]
+    fronts = {}
+    for rung in ("worked", "faded", "solve"):
+        note = col.newNote()
+        note["Front"] = f"{rung} card"
+        note.tags = [*ladder_tags, f"rung::{rung}"]
+        col.addNote(note)
+        fronts[rung] = note.id
+
+    def queued_note_ids() -> set:
+        col.sched.reset()
+        return {
+            entry.card.note_id
+            for entry in col.sched.get_queued_cards(fetch_limit=10).cards
+        }
+
+    # ladder inert while the deck-config toggle is off (the default)
+    assert queued_note_ids() == set(fronts.values())
+
+    # enable fading on the deck's preset (schema11 JSON round-trip)
+    conf = col.decks.config_dict_for_deck_id(DeckId(1))
+    conf["fadeEnabled"] = True
+    col.decks.update_config(conf)
+
+    # no exam date -> always-worked: only the worked rung is served
+    assert queued_note_ids() == {fronts["worked"]}
+
+    # with an exam date, the unstudied ladder still starts at worked
+    col.set_config("speedrun:exam_date", "2099-01-01")
+    assert queued_note_ids() == {fronts["worked"]}

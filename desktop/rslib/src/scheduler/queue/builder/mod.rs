@@ -3,6 +3,7 @@
 
 mod burying;
 mod contrast;
+pub(crate) mod fade;
 mod gathering;
 pub(crate) mod intersperser;
 pub(crate) mod sized_chain;
@@ -12,6 +13,7 @@ use std::collections::HashMap;
 use std::collections::VecDeque;
 
 use contrast::ContrastContext;
+use fade::FadeContext;
 use intersperser::Intersperser;
 use sized_chain::SizedChain;
 
@@ -104,6 +106,19 @@ pub(super) struct QueueSortOptions {
     pub(super) new_review_mix: ReviewMix,
     pub(super) contrast_scheduling: bool,
     pub(super) contrast_tag_prefix: String,
+    /// R18: marker tag gating confusable adjacency; empty = ungated (legacy)
+    pub(super) contrast_confusable_tag: String,
+    /// SPOV 2 fade ladder (fade.rs); a proto field alone is invisible to
+    /// build_queues, so every scheduler-read field is mirrored here
+    pub(super) fade_enabled: bool,
+    pub(super) fade_signal: crate::deckconfig::FadeSignal,
+    pub(super) fade_up_r: f32,
+    pub(super) fade_down_r: f32,
+    pub(super) promotion_spaced_sessions: u32,
+    pub(super) fluency_stability_floor: f32,
+    pub(super) fade_order: crate::deckconfig::FadeOrder,
+    pub(super) self_explain_enabled: bool,
+    pub(super) element_interactivity_gate: bool,
 }
 
 #[derive(Debug)]
@@ -117,6 +132,9 @@ pub(super) struct QueueBuilder {
     /// Set between gathering and building when contrast scheduling is
     /// enabled and the gathered notes carry cluster tags.
     contrast: Option<ContrastContext>,
+    /// Populated before gathering when the fade ladder is enabled; cards it
+    /// gates are skipped bury-style (limits untouched) during the gather.
+    fade: FadeContext,
     context: Context,
 }
 
@@ -179,6 +197,7 @@ impl QueueBuilder {
             limits,
             load_balancer,
             contrast: None,
+            fade: FadeContext::default(),
             context: Context {
                 timing,
                 config_map,
@@ -252,17 +271,47 @@ impl QueueBuilder {
 fn sort_options(deck: &Deck, config_map: &HashMap<DeckConfigId, DeckConfig>) -> QueueSortOptions {
     deck.config_id()
         .and_then(|config_id| config_map.get(&config_id))
-        .map(|config| QueueSortOptions {
-            new_order: config.inner.new_card_sort_order(),
-            new_gather_priority: config.inner.new_card_gather_priority(),
-            review_order: config.inner.review_order(),
-            day_learn_mix: config.inner.interday_learning_mix(),
-            new_review_mix: config.inner.new_mix(),
-            contrast_scheduling: config.inner.contrast_scheduling,
-            contrast_tag_prefix: config.inner.contrast_tag_prefix.clone(),
+        .map(|config| {
+            // zero = unset (configs predating the fields): fall back to the
+            // evidence-backed defaults, preserving band asymmetry (up >= down)
+            let fade_up_r = if config.inner.fade_up_r > 0.0 {
+                config.inner.fade_up_r
+            } else {
+                0.9
+            };
+            let fade_down_r = if config.inner.fade_down_r > 0.0 {
+                config.inner.fade_down_r
+            } else {
+                0.8
+            }
+            .min(fade_up_r);
+            QueueSortOptions {
+                new_order: config.inner.new_card_sort_order(),
+                new_gather_priority: config.inner.new_card_gather_priority(),
+                review_order: config.inner.review_order(),
+                day_learn_mix: config.inner.interday_learning_mix(),
+                new_review_mix: config.inner.new_mix(),
+                contrast_scheduling: config.inner.contrast_scheduling,
+                contrast_tag_prefix: config.inner.contrast_tag_prefix.clone(),
+                contrast_confusable_tag: config.inner.contrast_confusable_tag.clone(),
+                fade_enabled: config.inner.fade_enabled,
+                fade_signal: config.inner.fade_signal(),
+                fade_up_r,
+                fade_down_r,
+                promotion_spaced_sessions: if config.inner.promotion_spaced_sessions > 0 {
+                    config.inner.promotion_spaced_sessions
+                } else {
+                    3
+                },
+                fluency_stability_floor: config.inner.fluency_stability_floor.max(0.0),
+                fade_order: config.inner.fade_order(),
+                self_explain_enabled: config.inner.self_explain_enabled,
+                element_interactivity_gate: config.inner.element_interactivity_gate,
+            }
         })
         .unwrap_or_else(|| {
-            // filtered decks do not space siblings, and do not contrast
+            // filtered decks do not space siblings, do not contrast, and do
+            // not fade-gate
             QueueSortOptions {
                 new_order: NewCardSortOrder::NoSort,
                 ..Default::default()
@@ -312,6 +361,10 @@ impl Collection {
         self.storage
             .update_active_decks(&queues.context.root_deck)?;
 
+        // fade gating (Anki Speedrun SPOV 2): computed BEFORE the gather so
+        // gated rungs can be skipped bury-style without consuming deck
+        // limits; a no-op unless fade_enabled is set on the deck
+        queues.load_fade_gate(self)?;
         queues.gather_cards(self)?;
         // contrast scheduling (Anki Speedrun): derive confusable clusters
         // from the gathered notes' tags; a no-op unless enabled on the deck

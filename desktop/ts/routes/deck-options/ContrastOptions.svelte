@@ -36,6 +36,10 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
             title: tr.deckConfigContrastTagPrefix(),
             help: tr.deckConfigContrastTagPrefixTooltip(),
         },
+        contrastConfusableTag: {
+            title: tr.deckConfigContrastConfusableTag(),
+            help: tr.deckConfigContrastConfusableTagTooltip(),
+        },
     };
     const helpSections: HelpItem[] = Object.values(settings);
 
@@ -101,6 +105,38 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
                                 slot="revert"
                                 bind:value={$config.contrastTagPrefix}
                                 defaultValue={defaults.contrastTagPrefix}
+                            />
+                        </ConfigInput>
+                    </Col>
+                </Row>
+            </Item>
+
+            <Item>
+                <Row --cols={13}>
+                    <Col --col-size={7} breakpoint="xs">
+                        <SettingTitle
+                            on:click={() =>
+                                openHelpModal(
+                                    Object.keys(settings).indexOf(
+                                        "contrastConfusableTag",
+                                    ),
+                                )}
+                        >
+                            {settings.contrastConfusableTag.title}
+                        </SettingTitle>
+                    </Col>
+                    <Col --col-size={6} breakpoint="xs">
+                        <ConfigInput>
+                            <input
+                                type="text"
+                                bind:value={$config.contrastConfusableTag}
+                                placeholder="confusable::high"
+                                class="w-100 mb-1"
+                            />
+                            <RevertButton
+                                slot="revert"
+                                bind:value={$config.contrastConfusableTag}
+                                defaultValue={defaults.contrastConfusableTag}
                             />
                         </ConfigInput>
                     </Col>

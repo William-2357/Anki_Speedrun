@@ -134,6 +134,14 @@ impl QueueBuilder {
 
     /// True if limit should be decremented.
     fn add_due_card(&mut self, card: DueCard) -> bool {
+        // fade gating (Anki Speedrun [A1]): a gated rung is withheld exactly
+        // like a buried sibling - before the bury bookkeeping, and without
+        // consuming a limit slot; it reappears on a later build once its
+        // prerequisite passes the spaced-session gate (build-time re-gating,
+        // C2)
+        if self.fade.is_gated(card.id) {
+            return false;
+        }
         let bury_this_card = self
             .get_and_update_bury_mode_for_note(card.into())
             .map(|mode| match card.kind {
@@ -155,6 +163,10 @@ impl QueueBuilder {
 
     // True if limit should be decremented.
     fn add_new_card(&mut self, card: NewCard) -> bool {
+        // fade gating (Anki Speedrun [A1]): see add_due_card
+        if self.fade.is_gated(card.id) {
+            return false;
+        }
         let bury_this_card = self
             .get_and_update_bury_mode_for_note(card.into())
             .map(|mode| mode.bury_new)

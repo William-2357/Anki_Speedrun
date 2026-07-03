@@ -38,6 +38,7 @@ impl crate::services::StatsService for Collection {
             &input.search,
             &input.topic_prefix,
             input.high_recall_threshold,
+            &input.tag_topic_map,
         )
     }
 

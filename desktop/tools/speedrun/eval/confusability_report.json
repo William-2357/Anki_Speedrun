@@ -1,0 +1,136 @@
+{
+    "meta": {
+        "input": "synthetic-self-test",
+        "no_human_labels": true,
+        "session_definition": "UTC day buckets (id_ms // 86,400,000)",
+        "decision": "markers emitted",
+        "reason": "validated: AUC 1.000 > baseline 0.800; 1 pair(s) marked"
+    },
+    "report": {
+        "method": "confusability(a,b) = surface_similarity x discrimination_need; surface = token Jaccard of note fronts (fallback: cluster-name tokens); discrimination_need = smoothed lapse co-occurrence lift over day-sessions, within-topic only [R18]; validated on a 70/30 time split against held-out lapse co-occurrence - fully computed, no human labels (owner decision 2026-07-02)",
+        "n_reviews": 50,
+        "n_train_reviews": 35,
+        "n_holdout_reviews": 15,
+        "n_pairs": 6,
+        "n_holdout_positive_pairs": 1,
+        "surface_bases_used": [
+            "fronts"
+        ],
+        "label_rule": "holdout co-occurrence sessions >= 2 and holdout lift >= 1.5",
+        "marker_rule": "train co-occurrence sessions >= 2 and train lift >= 2.0, only when validation beats the baseline",
+        "auc_full": 1.0,
+        "auc_baseline_surface_only": 0.8,
+        "precision_at_1_full": 1.0,
+        "precision_at_1_baseline": 0.0,
+        "pairs": [
+            {
+                "pair": [
+                    "fi::convexity",
+                    "fi::credit"
+                ],
+                "surface_similarity": 0.2143,
+                "surface_basis": "fronts",
+                "train_lift": 0.6857,
+                "train_co_sessions": 0,
+                "holdout_lift": 0.7333,
+                "holdout_co_sessions": 0,
+                "confusability": 0.1469,
+                "holdout_label": false
+            },
+            {
+                "pair": [
+                    "fi::convexity",
+                    "fi::creditx"
+                ],
+                "surface_similarity": 0.2143,
+                "surface_basis": "fronts",
+                "train_lift": 0.5357,
+                "train_co_sessions": 0,
+                "holdout_lift": 0.8333,
+                "holdout_co_sessions": 0,
+                "confusability": 0.1148,
+                "holdout_label": false
+            },
+            {
+                "pair": [
+                    "fi::convexity",
+                    "fi::duration"
+                ],
+                "surface_similarity": 0.5455,
+                "surface_basis": "fronts",
+                "train_lift": 2.2545,
+                "train_co_sessions": 10,
+                "holdout_lift": 1.8929,
+                "holdout_co_sessions": 5,
+                "confusability": 1.2298,
+                "holdout_label": true
+            },
+            {
+                "pair": [
+                    "fi::credit",
+                    "fi::creditx"
+                ],
+                "surface_similarity": 0.8,
+                "surface_basis": "fronts",
+                "train_lift": 0.65,
+                "train_co_sessions": 0,
+                "holdout_lift": 0.9,
+                "holdout_co_sessions": 0,
+                "confusability": 0.52,
+                "holdout_label": false
+            },
+            {
+                "pair": [
+                    "fi::credit",
+                    "fi::duration"
+                ],
+                "surface_similarity": 0.2,
+                "surface_basis": "fronts",
+                "train_lift": 0.5152,
+                "train_co_sessions": 0,
+                "holdout_lift": 0.619,
+                "holdout_co_sessions": 0,
+                "confusability": 0.103,
+                "holdout_label": false
+            },
+            {
+                "pair": [
+                    "fi::creditx",
+                    "fi::duration"
+                ],
+                "surface_similarity": 0.2,
+                "surface_basis": "fronts",
+                "train_lift": 0.3485,
+                "train_co_sessions": 0,
+                "holdout_lift": 0.7857,
+                "holdout_co_sessions": 0,
+                "confusability": 0.0697,
+                "holdout_label": false
+            }
+        ]
+    },
+    "markers": {
+        "fi::convexity": [
+            "confusable::high"
+        ],
+        "fi::duration": [
+            "confusable::high"
+        ]
+    },
+    "marked_pairs": [
+        {
+            "pair": [
+                "fi::convexity",
+                "fi::duration"
+            ],
+            "surface_similarity": 0.5455,
+            "surface_basis": "fronts",
+            "train_lift": 2.2545,
+            "train_co_sessions": 10,
+            "holdout_lift": 1.8929,
+            "holdout_co_sessions": 5,
+            "confusability": 1.2298,
+            "holdout_label": true
+        }
+    ]
+}

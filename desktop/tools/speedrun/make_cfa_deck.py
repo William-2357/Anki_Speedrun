@@ -61,6 +61,14 @@ def main() -> None:
         conf = col.decks.add_config("CFA Speedrun")
         conf["contrastScheduling"] = True
         conf["contrastTagPrefix"] = "cluster::"
+        # R18: ship ungated (empty marker = legacy behaviour). The sample
+        # deck has no revlog history yet, so the computed confusability pass
+        # has nothing to mine; once it runs it writes confusable::high tags
+        # and this key should be set to "confusable::high".
+        conf["contrastConfusableTag"] = ""
+        # SPOV 2 fade ladder ships default-OFF; the user opts in via deck
+        # options after setting an exam date on the dashboard.
+        conf["fadeEnabled"] = False
         col.decks.update_config(conf)
         deck = col.decks.get(deck_id)
         assert deck is not None

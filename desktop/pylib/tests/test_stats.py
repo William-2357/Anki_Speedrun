@@ -67,6 +67,38 @@ def test_topic_mastery():
     assert [topic.topic for topic in scoped.topics] == ["quant"]
 
 
+def test_topic_mastery_tag_map():
+    "Anki Speedrun: the user tag->topic map and the aig::ungraded exclusion."
+    col = getEmptyCol()
+    for front, tags in [
+        ("bond pricing", "finance::bonds"),
+        ("machine-made", "cfa::topic::quant aig::ungraded"),
+    ]:
+        note = col.newNote()
+        note["Front"] = front
+        note.tags = tags.split()
+        col.addNote(note)
+
+    # without a map (existing callers pass nothing): the flat tag stays
+    # unmapped and is surfaced per raw tag rather than guessed at
+    plain = col.topic_mastery()
+    assert plain.total_cards == 2
+    assert plain.cards_without_topic == 1
+    assert [t.topic for t in plain.unmapped_tags] == ["finance::bonds"]
+    assert plain.ungraded_aig_cards == 1
+
+    # a prefix mapping folds the flat-tagged note into the mapped topic
+    response = col.topic_mastery(tag_topic_map={"finance": "fixed_income"})
+    assert response.cards_without_topic == 0
+    assert not response.unmapped_tags
+    assert [t.topic for t in response.topics] == ["fixed_income"]
+    assert response.topics[0].total_cards == 1
+    # the ungraded AI-generated note stays out of every topic bucket but
+    # remains visible in total_cards and the disclosure count
+    assert response.total_cards == 2
+    assert response.ungraded_aig_cards == 1
+
+
 def test_concept_graph():
     "Anki Speedrun: the Rust ConceptGraph RPC is reachable from Python."
     col = getEmptyCol()

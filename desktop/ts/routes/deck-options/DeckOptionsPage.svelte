@@ -20,6 +20,7 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
     import ContrastOptions from "./ContrastOptions.svelte";
     import DailyLimits from "./DailyLimits.svelte";
     import DisplayOrder from "./DisplayOrder.svelte";
+    import FadeOptions from "./FadeOptions.svelte";
     import FsrsOptionsOuter from "./FsrsOptionsOuter.svelte";
     import HtmlAddon from "./HtmlAddon.svelte";
     import LapseOptions from "./LapseOptions.svelte";
@@ -56,6 +57,7 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
     export const lapseOptions = {};
     export const buryOptions = {};
     export const contrastOptions = {};
+    export const fadeOptions = {};
     export const displayOrder = {};
     export const timerOptions = {};
     export const audioOptions = {};
@@ -107,6 +109,10 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
 
             <Row class="row-columns">
                 <ContrastOptions {state} api={contrastOptions} />
+            </Row>
+
+            <Row class="row-columns">
+                <FadeOptions {state} api={fadeOptions} />
             </Row>
 
             <Row class="row-columns">

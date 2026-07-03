@@ -1,0 +1,13 @@
+{
+    "consumable_as": "tags_extra by the deck builder",
+    "input": "synthetic-self-test",
+    "emitted": true,
+    "markers": {
+        "fi::convexity": [
+            "confusable::high"
+        ],
+        "fi::duration": [
+            "confusable::high"
+        ]
+    }
+}

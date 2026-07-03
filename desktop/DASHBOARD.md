@@ -76,7 +76,7 @@ curated **reading → topic map** already used by the concept graph
 **documented, config-editable table** (published as ranges; midpoints shown) — the engine stays
 topic-agnostic, so the map + weights + transfer factors all live in the frontend.
 
-> **Status note (2026-07-02):** as *shipped* this differs from the text above — there is **no**
+> **Status note (2026-07-02):** as _shipped_ this differs from the text above — there is **no**
 > `concept-graph/topics.ts` reading→topic map, and the `topic_mastery` RPC groups by the
 > `cfa::topic::` prefix **in Rust** (aliasing only suffixes already under it). Decks with flat/other
 > tags therefore fall entirely into `cardsWithoutTopic` and every subject abstains. The
@@ -123,7 +123,7 @@ config **syncs natively**, so the map reaches other devices with no new sync wor
 
 **Backend (realises the original M1 intent).** Return **per-raw-tag** buckets from the mastery path
 (`{ tag, total, studied, high_recall, mean_R, stddev }`) instead of collapsing by `cfa::topic::` in
-Rust, so *all* topic logic lives in the frontend and the engine stays exam-agnostic. `metrics.ts` then
+Rust, so _all_ topic logic lives in the frontend and the engine stays exam-agnostic. `metrics.ts` then
 folds tags → subjects using canonical + aliases + the user map. (Alternatively the map could be passed
 into the RPC; the per-tag-return option is preferred and matches this doc's M1.)
 
@@ -133,12 +133,12 @@ editor: the deck's **unmapped** tags (from the per-tag data), each with a 10-top
 newly-added deck has many unmapped tags.)
 
 **Out of scope (this feature).** Materialising the map as `cfa::topic::` tags on cards — a separate,
-*destructive* option that would also fix the phone reviewer + concept graph. The readiness **dashboard
+_destructive_ option that would also fix the phone reviewer + concept graph. The readiness **dashboard
 is desktop-only** today, so the synced map has no phone consumer yet.
 
 **Not to be confused with Phase 3 M5** ("Generalization / BYO decks"), which is **AI/behavioural
-edge-sourcing for *scheduling*** (clusters/rungs). This is manual, no-AI **topic attribution for the
-*dashboard*** — complementary and independently shippable.
+edge-sourcing for _scheduling_** (clusters/rungs). This is manual, no-AI **topic attribution for the
+_dashboard_** — complementary and independently shippable.
 
 ## How each value is calculated
 
@@ -278,16 +278,16 @@ studied card (otherwise that subject abstains).
 
 ## Engine / UI touch points (reference)
 
-| Concern                         | File / area                                                                                                      |
-| ------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
-| Metrics RPC                     | `proto/anki/stats.proto` (`StatsService`), `rslib/src/stats/` (reuse `mastery.rs` / `searched_cards_graph_data`) |
-| FSRS retrievability / stability | `extract_fsrs_*` — `rslib/src/storage/sqlite.rs`                                                                 |
-| Graded-reviews count            | `revlog` count (SQL) for the give-up rule                                                                        |
-| Reading→topic map, weights, `τ` | frontend constants in `ts/routes/dashboard/topics.ts` (the `concept-graph/topics.ts` map was never built) |
+| Concern                          | File / area                                                                                                                                                                                          |
+| -------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Metrics RPC                      | `proto/anki/stats.proto` (`StatsService`), `rslib/src/stats/` (reuse `mastery.rs` / `searched_cards_graph_data`)                                                                                     |
+| FSRS retrievability / stability  | `extract_fsrs_*` — `rslib/src/storage/sqlite.rs`                                                                                                                                                     |
+| Graded-reviews count             | `revlog` count (SQL) for the give-up rule                                                                                                                                                            |
+| Reading→topic map, weights, `τ`  | frontend constants in `ts/routes/dashboard/topics.ts` (the `concept-graph/topics.ts` map was never built)                                                                                            |
 | **User tag→topic map [PLANNED]** | `speedrun:tagTopicMap` in collection config (`getConfigJson`/`setConfigJson`, `rslib/src/backend/config.rs`); folding in `ts/routes/dashboard/{metrics,topics}.ts`; editor in `DashboardPage.svelte` |
-| Dashboard page                  | new `ts/routes/dashboard/` (pattern: `concept-graph`), API-enabled webview                                       |
-| Launch point                    | **top toolbar** link in `qt/aqt/toolbar.py` (`_centerLinks`, next to Stats); `AnkiWebViewKind.CFA_DASHBOARD`     |
-| Styling / components            | `ts/lib/sass/_vars.scss` tokens; `ts/lib/components/`                                                            |
+| Dashboard page                   | new `ts/routes/dashboard/` (pattern: `concept-graph`), API-enabled webview                                                                                                                           |
+| Launch point                     | **top toolbar** link in `qt/aqt/toolbar.py` (`_centerLinks`, next to Stats); `AnkiWebViewKind.CFA_DASHBOARD`                                                                                         |
+| Styling / components             | `ts/lib/sass/_vars.scss` tokens; `ts/lib/components/`                                                                                                                                                |
 
 ## Risks & decisions
 

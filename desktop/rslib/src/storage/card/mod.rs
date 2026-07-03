@@ -50,6 +50,20 @@ pub(crate) struct CardFixStats {
     pub last_review_time_fixed: usize,
 }
 
+/// Anki Speedrun (fade gating): one ladder-candidate card, as visited by
+/// [SqliteStorage::for_each_active_deck_card_with_tag_substring]. Carries just
+/// enough state to derive the fade signal without loading full cards.
+pub(crate) struct FadeLadderCardRow {
+    pub(crate) card_id: CardId,
+    pub(crate) note_id: NoteId,
+    pub(crate) tags: String,
+    pub(crate) data: CardData,
+    pub(crate) due: i32,
+    pub(crate) interval: u32,
+    pub(crate) queue: CardQueue,
+    pub(crate) template_index: u16,
+}
+
 impl FromSql for CardType {
     fn column_result(value: ValueRef<'_>) -> result::Result<Self, FromSqlError> {
         if let ValueRef::Integer(i) = value {
@@ -340,6 +354,42 @@ impl super::SqliteStorage {
             }
         }
 
+        Ok(())
+    }
+
+    /// Anki Speedrun (fade gating): visit every card in the active decks
+    /// whose note's tag string contains `tag_substring`. Used by the
+    /// pre-gather fade pass, which must see the whole ladder (including
+    /// cards that are not due today) to decide which rungs are unlocked.
+    pub(crate) fn for_each_active_deck_card_with_tag_substring<F>(
+        &self,
+        tag_substring: &str,
+        mut func: F,
+    ) -> Result<()>
+    where
+        F: FnMut(FadeLadderCardRow),
+    {
+        let mut stmt = self.db.prepare_cached(
+            "SELECT c.id, c.nid, n.tags, c.data, c.due, c.ivl, c.queue, c.ord
+             FROM cards c
+             JOIN notes n ON n.id = c.nid
+             WHERE c.did IN (SELECT id FROM active_decks)
+               AND n.tags LIKE ?1",
+        )?;
+        let pattern = format!("%{tag_substring}%");
+        let mut rows = stmt.query(params![pattern])?;
+        while let Some(row) = rows.next()? {
+            func(FadeLadderCardRow {
+                card_id: row.get(0)?,
+                note_id: row.get(1)?,
+                tags: row.get(2)?,
+                data: CardData::from_str(row.get_ref(3)?.as_str().unwrap_or_default()),
+                due: row.get(4).ok().unwrap_or_default(),
+                interval: row.get(5)?,
+                queue: row.get(6)?,
+                template_index: row.get(7)?,
+            });
+        }
         Ok(())
     }
 

@@ -1,0 +1,207 @@
+{
+    "meta": {
+        "qrels": "SYNTHETIC qrels: each item's generator-declared grounding passage is its relevance label. Self-referential qrels are weaker than human relevance judgments; treat the numbers as a consistency check, not an IR benchmark.",
+        "split": "split by cluster (fixed seed): tuning uses the train clusters; eval uses the held-out cluster 'qm::tvm' (provenance wall: no eval qrel passage is tuned against a paraphrase of the same item)",
+        "precision_at_5_note": "with a single relevant passage per query, precision@5 is reported as hit-rate@5 (success@5), the standard practice",
+        "n_train_queries": 40,
+        "n_eval_queries": 22,
+        "n_passages": 26,
+        "bm25_tuning": {
+            "grid": [
+                {
+                    "k1": 0.6,
+                    "b": 0.3,
+                    "train_p1": 0.5,
+                    "train_p5_hit": 1.0
+                },
+                {
+                    "k1": 0.6,
+                    "b": 0.5,
+                    "train_p1": 0.5,
+                    "train_p5_hit": 1.0
+                },
+                {
+                    "k1": 0.6,
+                    "b": 0.75,
+                    "train_p1": 0.5,
+                    "train_p5_hit": 1.0
+                },
+                {
+                    "k1": 0.6,
+                    "b": 0.9,
+                    "train_p1": 0.475,
+                    "train_p5_hit": 1.0
+                },
+                {
+                    "k1": 0.9,
+                    "b": 0.3,
+                    "train_p1": 0.475,
+                    "train_p5_hit": 1.0
+                },
+                {
+                    "k1": 0.9,
+                    "b": 0.5,
+                    "train_p1": 0.475,
+                    "train_p5_hit": 1.0
+                },
+                {
+                    "k1": 0.9,
+                    "b": 0.75,
+                    "train_p1": 0.5,
+                    "train_p5_hit": 1.0
+                },
+                {
+                    "k1": 0.9,
+                    "b": 0.9,
+                    "train_p1": 0.475,
+                    "train_p5_hit": 1.0
+                },
+                {
+                    "k1": 1.2,
+                    "b": 0.3,
+                    "train_p1": 0.35,
+                    "train_p5_hit": 1.0
+                },
+                {
+                    "k1": 1.2,
+                    "b": 0.5,
+                    "train_p1": 0.45,
+                    "train_p5_hit": 1.0
+                },
+                {
+                    "k1": 1.2,
+                    "b": 0.75,
+                    "train_p1": 0.45,
+                    "train_p5_hit": 1.0
+                },
+                {
+                    "k1": 1.2,
+                    "b": 0.9,
+                    "train_p1": 0.45,
+                    "train_p5_hit": 1.0
+                },
+                {
+                    "k1": 1.5,
+                    "b": 0.3,
+                    "train_p1": 0.375,
+                    "train_p5_hit": 1.0
+                },
+                {
+                    "k1": 1.5,
+                    "b": 0.5,
+                    "train_p1": 0.375,
+                    "train_p5_hit": 1.0
+                },
+                {
+                    "k1": 1.5,
+                    "b": 0.75,
+                    "train_p1": 0.45,
+                    "train_p5_hit": 1.0
+                },
+                {
+                    "k1": 1.5,
+                    "b": 0.9,
+                    "train_p1": 0.4,
+                    "train_p5_hit": 1.0
+                },
+                {
+                    "k1": 2.0,
+                    "b": 0.3,
+                    "train_p1": 0.375,
+                    "train_p5_hit": 1.0
+                },
+                {
+                    "k1": 2.0,
+                    "b": 0.5,
+                    "train_p1": 0.375,
+                    "train_p5_hit": 1.0
+                },
+                {
+                    "k1": 2.0,
+                    "b": 0.75,
+                    "train_p1": 0.45,
+                    "train_p5_hit": 1.0
+                },
+                {
+                    "k1": 2.0,
+                    "b": 0.9,
+                    "train_p1": 0.4,
+                    "train_p5_hit": 1.0
+                }
+            ],
+            "chosen": {
+                "k1": 0.6,
+                "b": 0.3
+            }
+        },
+        "dense_tuning": {
+            "grid": [
+                {
+                    "repr": "title_text",
+                    "score": "cosine",
+                    "train_p1": 0.375,
+                    "train_p5_hit": 1.0
+                },
+                {
+                    "repr": "title_text",
+                    "score": "dot",
+                    "train_p1": 0.375,
+                    "train_p5_hit": 1.0
+                },
+                {
+                    "repr": "text",
+                    "score": "cosine",
+                    "train_p1": 0.3,
+                    "train_p5_hit": 1.0
+                },
+                {
+                    "repr": "text",
+                    "score": "dot",
+                    "train_p1": 0.3,
+                    "train_p5_hit": 1.0
+                }
+            ],
+            "chosen": {
+                "repr": "title_text",
+                "score": "cosine"
+            }
+        },
+        "rrf_k": 60,
+        "rerank_top_n": 10
+    },
+    "arms": [
+        {
+            "arm": "bm25_tuned",
+            "available": true,
+            "precision_at_1": 0.5,
+            "precision_at_5": 0.9545454545454546,
+            "median_latency_ms": 0.073,
+            "note": ""
+        },
+        {
+            "arm": "dense_tuned",
+            "available": true,
+            "precision_at_1": 0.45454545454545453,
+            "precision_at_5": 1.0,
+            "median_latency_ms": 12.155,
+            "note": ""
+        },
+        {
+            "arm": "rrf",
+            "available": true,
+            "precision_at_1": 0.5454545454545454,
+            "precision_at_5": 1.0,
+            "median_latency_ms": 12.335,
+            "note": ""
+        },
+        {
+            "arm": "rrf_rerank",
+            "available": true,
+            "precision_at_1": 0.7272727272727273,
+            "precision_at_5": 1.0,
+            "median_latency_ms": 42.638,
+            "note": ""
+        }
+    ],
+    "honest_claim": "RRF+rerank beat BOTH tuned BM25 and tuned dense at the same cutoff on precision@1/@5 over the held-out cluster (N=22 queries - small-N caveat: differences of one or two queries flip these comparisons; the synthetic self-referential qrels further weaken the claim)."
+}

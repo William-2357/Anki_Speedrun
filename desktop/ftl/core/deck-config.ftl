@@ -646,3 +646,77 @@ deck-config-contrast-tag-prefix-tooltip =
     Tag prefix that marks confusable clusters. Notes sharing a tag under this
     prefix form one cluster. Leave empty to use "cluster::". Clusters never
     span two "cfa::topic::*" topic areas.
+deck-config-contrast-confusable-tag = Confusability marker tag
+deck-config-contrast-confusable-tag-tooltip =
+    Only clusters carrying this marker tag (written by the offline
+    confusion-mining pass, e.g. "confusable::high") are shown back-to-back.
+    Clusters without it keep normal spacing: forcing adjacency on material
+    that is merely similar, rather than genuinely confusable, measurably
+    hurts learning. Leave empty to treat every cluster as confusable
+    (the ungated legacy behaviour).
+
+## Anki Speedrun: FSRS-driven fade ladder (SPOV 2)
+
+deck-config-fade-title = Fade Ladder (Speedrun)
+deck-config-fade-enabled = Enable worked → faded → solve ladder
+deck-config-fade-enabled-tooltip =
+    Within a cluster, cards tagged "rung::worked", "rung::faded" and
+    "rung::solve" form a ladder, and each day's queue serves exactly one rung
+    per cluster: full worked examples first, then partially blanked-out
+    steps, then exam-style solve questions, advancing and falling back with
+    your predicted memory. Requires an exam date (set on the dashboard);
+    without one, only worked examples are shown. Withheld cards simply
+    return on a later day - none are lost, and daily limits are unaffected.
+deck-config-fade-signal = Fade signal
+deck-config-fade-signal-tooltip =
+    Which memory signal positions a cluster inside the ladder. "Predicted
+    recall at exam" projects FSRS retrievability forward to your exam date
+    (recommended). The other options are simpler baselines kept for
+    experiments: raw stability relative to the exam horizon, and a plain
+    count of successful spaced sessions.
+deck-config-fade-signal-exam-horizon = Predicted recall at exam (recommended)
+deck-config-fade-signal-stability = Stability vs. exam horizon
+deck-config-fade-signal-success-count = Spaced success count
+deck-config-fade-up-r = Fade up above
+deck-config-fade-up-r-tooltip =
+    When the fade signal rises above this bound, the ladder advances one
+    rung (e.g. from worked examples to blanked-out steps). Must be higher
+    than "Fall back below": advancing should be harder than falling back,
+    because removing support too early hurts novices more than keeping it
+    helps experts.
+deck-config-fade-down-r = Fall back below
+deck-config-fade-down-r-tooltip =
+    When the fade signal drops below this bound, the ladder falls back one
+    rung, restoring worked support. Between the two bounds the current rung
+    is kept (hysteresis), so the ladder doesn't flap.
+deck-config-promotion-spaced-sessions = Spaced sessions to promote
+deck-config-promotion-spaced-sessions-tooltip =
+    A rung unlocks the next one only after it has been answered correctly in
+    at least this many separate days, with the most recent answer correct.
+    One good session is not mastery; spaced re-learning is what predicts
+    retention.
+deck-config-fluency-stability-floor = Fluency stability floor (days)
+deck-config-fluency-stability-floor-tooltip =
+    The solve rung (and confusable back-to-back scheduling) stays locked
+    until every studied supporting card in the cluster has FSRS stability of
+    at least this many days. 0 disables the floor.
+deck-config-fade-order = Faded step order
+deck-config-fade-order-tooltip =
+    The order in which blanked-out steps are introduced within the faded
+    rung. "Mastery-driven" blanks the step you know best first
+    (recommended); backward and forward fading are kept as experimental
+    arms, since the literature disagrees on a fixed direction.
+deck-config-fade-order-mastery = Mastery-driven (recommended)
+deck-config-fade-order-backward = Backward (last step first)
+deck-config-fade-order-forward = Forward (first step first)
+deck-config-self-explain = Show self-explanation prompts
+deck-config-self-explain-tooltip =
+    Adds a "first explain why to yourself" prompt to solve cards that carry
+    a self-explanation variant. Off by default: in the closest comparable
+    study, prompted self-explanation made outcomes slightly worse, so treat
+    this as an experiment, not a boost.
+deck-config-element-interactivity-gate = Ladder only for formula material
+deck-config-element-interactivity-gate-tooltip =
+    Restricts the ladder to clusters tagged "interactivity::high" (dense,
+    multi-step formula material, where worked examples pay off). Simple
+    fact cards stay on plain spaced repetition either way.

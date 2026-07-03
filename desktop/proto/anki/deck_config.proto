@@ -129,6 +129,32 @@ message DeckConfig {
       QUESTION_ACTION_SHOW_ANSWER = 0;
       QUESTION_ACTION_SHOW_REMINDER = 1;
     }
+    // Anki Speedrun: which FSRS-derived signal drives the worked->faded->solve
+    // fade ladder (SPOV 2). All three are normalised to [0,1] so the
+    // fade_up_r/fade_down_r hysteresis band applies uniformly.
+    enum FadeSignal {
+      // Predicted retrievability at the exam horizon, computed with the
+      // card's fitted decay via FSRS::current_retrievability_seconds
+      // (never the legacy hand-rolled power-law).
+      FADE_SIGNAL_EXAM_HORIZON_R = 0;
+      // Stability relative to the exam horizon (S / days_to_exam, clamped).
+      FADE_SIGNAL_STABILITY = 1;
+      // Spaced successful sessions relative to the promotion gate
+      // (the naive "fade every N" v1 arm, kept as an ablation dimension).
+      FADE_SIGNAL_SUCCESS_COUNT = 2;
+    }
+    // Anki Speedrun: the order in which a note's faded (cloze) sibling cards
+    // are introduced. Fade order is contested in the literature, so it is an
+    // ablation dimension rather than hardcoded backward fading.
+    enum FadeOrder {
+      // Serve the step the learner knows best first (highest predicted
+      // recall), unstudied steps last.
+      FADE_ORDER_MASTERY = 0;
+      // Descending template order (classic backward fading).
+      FADE_ORDER_BACKWARD = 1;
+      // Ascending template order (forward fading).
+      FADE_ORDER_FORWARD = 2;
+    }
     repeated float learn_steps = 1;
     repeated float relearn_steps = 2;
 
@@ -203,6 +229,44 @@ message DeckConfig {
     // Notes sharing a tag under this prefix form one cluster. Empty means
     // the default prefix ("cluster::").
     string contrast_tag_prefix = 48;
+    // Anki Speedrun R18: signed confusability gate for contrast adjacency.
+    // Only clusters carrying a tag under this marker (written by the offline
+    // behavioural confusion-mining pass, e.g. "confusable::high") are forced
+    // adjacent; others keep default SRS spacing. Empty string = every cluster
+    // is treated as gated-on (the legacy, ungated Phase 1 behaviour - the
+    // ablation OFF arm).
+    string contrast_confusable_tag = 49;
+    // Anki Speedrun SPOV 2: the FSRS-driven worked->faded->solve ladder.
+    // Default OFF; rung gating only happens when this is set AND the
+    // collection has a "speedrun:exam_date" config key.
+    bool fade_enabled = 50;
+    // Which FSRS-derived signal positions a cluster inside the fade band.
+    FadeSignal fade_signal = 51;
+    // Two-sided hysteresis band on the fade signal: serve the solve rung
+    // above fade_up_r, fall back to the worked rung below fade_down_r, and
+    // keep the current rung in between. Asymmetric by design (up > down):
+    // it must be harder to fade up than to fall back down.
+    float fade_up_r = 52;
+    float fade_down_r = 53;
+    // Promotion gate: a rung unlocks its successor only after this many
+    // spaced successful sessions (distinct days with >= 1 correct answer,
+    // the last recorded answer being correct).
+    uint32 promotion_spaced_sessions = 54;
+    // Comprehension/fluency precondition: the solve rung (and confusable
+    // adjacency) stays locked until every studied prerequisite card in the
+    // cluster has FSRS stability of at least this many days. 0 disables the
+    // floor.
+    float fluency_stability_floor = 55;
+    // Order in which faded cloze siblings are introduced (ablation
+    // dimension; mastery-driven by default).
+    FadeOrder fade_order = 56;
+    // Show the self-explanation prompt variant on rung templates. OFF by
+    // default: self-explanation is a negative moderator in the closest
+    // adjacent study, so it ships as an ablatable flag, not a bake-in.
+    bool self_explain_enabled = 57;
+    // Restrict the fade ladder to clusters tagged interactivity::high.
+    // When false the ladder applies to every cluster with rung tags.
+    bool element_interactivity_gate = 58;
 
     bytes other = 255;
   }

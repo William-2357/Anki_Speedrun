@@ -69,12 +69,26 @@ export interface SubjectRow {
     weightedGap: number;
 }
 
+/** A raw tag carried by cards that resolved to no topic (for the mapping
+ * editor). Counts are tag-frequency buckets, not disjoint card counts: a
+ * card with several unmapped tags appears under each of them. */
+export interface UnmappedTag {
+    tag: string;
+    cards: number;
+}
+
 export interface DashboardModel {
     fsrsEnabled: boolean;
     gradedReviews: number;
     heldOutProbes: number;
     totalCards: number;
     cardsWithoutTopic: number;
+    /** most frequent raw tags on unmapped cards, for the "Map tags" editor */
+    unmappedTags: UnmappedTag[];
+    /** aig::ungraded cards, excluded from every gauge per R24 */
+    ungradedAigCards: number;
+    /** one-line disclosure of the aig exclusion, or null when nothing is excluded */
+    aigExclusionNote: string | null;
     /** weighted share of the exam whose topics have >= 1 studied card, 0-1 */
     coverage: number;
     /** weighted share of the exam whose topics exist in the deck at all, 0-1 */
@@ -128,7 +142,10 @@ export function buildDashboardModel(
     const fsrsEnabled = response.fsrsEnabled;
     const gradedReviews = Number(response.gradedReviews);
 
-    // fold raw tag suffixes (incl. aliases) onto the 10 canonical topics
+    // fold raw tag suffixes (incl. aliases) onto the 10 canonical topics.
+    // Buckets attributed through the user tag->topic map arrive named by
+    // the map's values; the mapping editor only offers the 10 canonical
+    // ids, so those fold cleanly through the same path.
     const byTopic = new Map<
         string,
         { total: number; studied: number; highRecall: number; sum: number; varSum: number }
@@ -204,12 +221,25 @@ export function buildDashboardModel(
         options.testMode,
     );
 
+    const ungradedAigCards = response.ungradedAigCards;
+
     return {
         fsrsEnabled,
         gradedReviews,
         heldOutProbes: HELD_OUT_PROBES_ANSWERED,
         totalCards: response.totalCards,
         cardsWithoutTopic: response.cardsWithoutTopic,
+        unmappedTags: response.unmappedTags.map((tag) => ({
+            tag: tag.topic,
+            cards: tag.totalCards,
+        })),
+        ungradedAigCards,
+        // honesty note (R24): excluded cards must be disclosed, not hidden
+        aigExclusionNote: ungradedAigCards > 0
+            ? `${ungradedAigCards} ungraded generated ${
+                ungradedAigCards === 1 ? "card is" : "cards are"
+            } excluded from all gauges`
+            : null,
         coverage,
         deckCoverage,
         subjects,

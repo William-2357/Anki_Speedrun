@@ -3,6 +3,8 @@
 
 import {
     DeckConfig_Config_AnswerAction,
+    DeckConfig_Config_FadeOrder,
+    DeckConfig_Config_FadeSignal,
     DeckConfig_Config_LeechAction,
     DeckConfig_Config_NewCardGatherPriority,
     DeckConfig_Config_NewCardInsertOrder,
@@ -194,6 +196,40 @@ export function questionActionChoices(): Choice<DeckConfig_Config_QuestionAction
         {
             label: tr.deckConfigQuestionActionShowReminder(),
             value: DeckConfig_Config_QuestionAction.SHOW_REMINDER,
+        },
+    ];
+}
+
+export function fadeSignalChoices(): Choice<DeckConfig_Config_FadeSignal>[] {
+    return [
+        {
+            label: tr.deckConfigFadeSignalExamHorizon(),
+            value: DeckConfig_Config_FadeSignal.EXAM_HORIZON_R,
+        },
+        {
+            label: tr.deckConfigFadeSignalStability(),
+            value: DeckConfig_Config_FadeSignal.STABILITY,
+        },
+        {
+            label: tr.deckConfigFadeSignalSuccessCount(),
+            value: DeckConfig_Config_FadeSignal.SUCCESS_COUNT,
+        },
+    ];
+}
+
+export function fadeOrderChoices(): Choice<DeckConfig_Config_FadeOrder>[] {
+    return [
+        {
+            label: tr.deckConfigFadeOrderMastery(),
+            value: DeckConfig_Config_FadeOrder.MASTERY,
+        },
+        {
+            label: tr.deckConfigFadeOrderBackward(),
+            value: DeckConfig_Config_FadeOrder.BACKWARD,
+        },
+        {
+            label: tr.deckConfigFadeOrderForward(),
+            value: DeckConfig_Config_FadeOrder.FORWARD,
         },
     ];
 }

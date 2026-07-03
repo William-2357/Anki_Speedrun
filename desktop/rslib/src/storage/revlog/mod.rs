@@ -112,6 +112,24 @@ impl SqliteStorage {
         Ok(())
     }
 
+    /// Anki Speedrun (fade gating): the review history for the given cards,
+    /// ordered by card then time. Manual/rescheduled entries are filtered by
+    /// the caller via `has_rating_and_affects_scheduling`.
+    pub(crate) fn get_revlog_entries_for_card_ids(
+        &self,
+        card_ids: &[CardId],
+    ) -> Result<Vec<RevlogEntry>> {
+        let mut ids = String::new();
+        crate::storage::ids_to_string(&mut ids, card_ids);
+        self.db
+            .prepare(&format!(
+                "{} where cid in {ids} order by cid, id",
+                include_str!("get.sql"),
+            ))?
+            .query_and_then([], row_to_revlog_entry)?
+            .collect()
+    }
+
     pub(crate) fn get_revlog_entries_for_card(&self, cid: CardId) -> Result<Vec<RevlogEntry>> {
         self.db
             .prepare_cached(concat!(include_str!("get.sql"), " where cid=?"))?

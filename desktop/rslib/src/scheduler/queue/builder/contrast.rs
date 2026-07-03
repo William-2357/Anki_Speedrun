@@ -28,8 +28,19 @@
 //!   deliberately *no* fallback to grouping by an arbitrary first tag: that
 //!   would block whole readings together, which is measurably worse than doing
 //!   nothing (Carvalho & Goldstone 2014).
+//! * **R18 (Phase 2)** — the signed confusability gate: when the deck config
+//!   names a `contrast_confusable_tag` marker (default `confusable::high`,
+//!   written by the offline behavioural confusion-mining pass), only clusters
+//!   carrying it are forced adjacent; merely-similar clusters keep default SRS
+//!   spacing (wrong-side adjacency is a measured loss, d=0.76). An empty marker
+//!   string preserves the legacy ungated Phase 1 behaviour (the ablation OFF
+//!   arm).
+//! * **R13 (Phase 2)** — clusters that failed the fade ladder's
+//!   comprehension/fluency preconditions are not forced adjacent either;
+//!   discrimination practice waits until both members clear the fluency floor.
 
 use std::collections::HashMap;
+use std::collections::HashSet;
 use std::collections::VecDeque;
 
 use super::MainQueueEntry;
@@ -54,6 +65,9 @@ pub(crate) const TOPIC_TAG_PREFIX: &str = "cfa::topic::";
 pub(crate) struct ContrastContext {
     /// note id -> interned (topic, cluster) index
     note_cluster: HashMap<NoteId, usize>,
+    /// interned indices allowed to force adjacency: confusability-gated-on
+    /// (R18) and not fluency-blocked (R13)
+    gated_on: HashSet<usize>,
 }
 
 impl QueueBuilder {
@@ -88,9 +102,17 @@ impl QueueBuilder {
         } else {
             configured_prefix
         };
+        // R18: the confusability marker; empty = legacy ungated behaviour
+        let confusable_marker = self
+            .context
+            .sort_options
+            .contrast_confusable_tag
+            .trim()
+            .to_ascii_lowercase();
 
         let mut interned: HashMap<(Option<String>, String), usize> = HashMap::new();
         let mut note_cluster: HashMap<NoteId, usize> = HashMap::new();
+        let mut confusable: HashSet<usize> = HashSet::new();
         for note_tags in col.storage.get_note_tags_by_id_list(&note_ids)? {
             let tags: Vec<String> = note_tags
                 .tags
@@ -114,10 +136,38 @@ impl QueueBuilder {
             let next_index = interned.len();
             let index = *interned.entry((topic, cluster)).or_insert(next_index);
             note_cluster.insert(note_tags.id, index);
+            // R18: a cluster is confusability-gated-on when any member note
+            // carries the marker tag (or a child tag under it)
+            if !confusable_marker.is_empty()
+                && tags.iter().any(|tag| {
+                    tag == &confusable_marker
+                        || tag
+                            .strip_prefix(confusable_marker.as_str())
+                            .is_some_and(|rest| rest.starts_with("::"))
+                })
+            {
+                confusable.insert(index);
+            }
         }
 
+        // R18 + R13: adjacency is forced only for clusters that are
+        // confusability-gated-on AND clear the fade ladder's fluency
+        // preconditions; everything else keeps default SRS spacing.
+        let fluency_blocked = self.fade.fluency_blocked_clusters();
+        let gated_on: HashSet<usize> = interned
+            .iter()
+            .filter(|(key, index)| {
+                (confusable_marker.is_empty() || confusable.contains(index))
+                    && !fluency_blocked.contains(*key)
+            })
+            .map(|(_, index)| *index)
+            .collect();
+
         if !note_cluster.is_empty() {
-            self.contrast = Some(ContrastContext { note_cluster });
+            self.contrast = Some(ContrastContext {
+                note_cluster,
+                gated_on,
+            });
         }
         Ok(())
     }
@@ -142,14 +192,15 @@ pub(super) fn apply_contrast(
     };
 
     // Count members present in this queue; only clusters with >= 2 members
-    // can produce contrast, others are background (C13 no-op guard).
+    // can produce contrast, others are background (C13 no-op guard). R18/R13:
+    // clusters outside the gated-on set never force adjacency.
     let mut member_counts: HashMap<usize, usize> = HashMap::new();
     for entry in &entries {
         if let Some(cluster) = cluster_of(entry) {
             *member_counts.entry(cluster).or_default() += 1;
         }
     }
-    member_counts.retain(|_, count| *count >= 2);
+    member_counts.retain(|cluster, count| *count >= 2 && contrast.gated_on.contains(cluster));
     if member_counts.is_empty() {
         return entries.into();
     }
@@ -307,6 +358,15 @@ mod test {
                 config.contrast_scheduling = true;
                 // exercise the default-prefix fallback
                 config.contrast_tag_prefix = String::new();
+                // legacy ungated arm: these tests exercise the reorder
+                // machinery itself; the R18 gate has its own tests below
+                config.contrast_confusable_tag = String::new();
+            });
+        }
+
+        fn set_confusable_marker(&mut self, marker: &str) {
+            self.update_default_deck_config(|config| {
+                config.contrast_confusable_tag = marker.to_string();
             });
         }
 
@@ -431,6 +491,97 @@ mod test {
         // both cluster::x members are singletons within their topic, so the
         // queue is untouched
         assert_eq!(col.queue_notes(), vanilla);
+    }
+
+    /// R18: with a confusability marker configured, a cluster whose notes
+    /// lack the marker keeps default SRS spacing; a marked cluster still
+    /// adjoins. The signed gate separates "confusable" from "merely similar".
+    #[test]
+    fn confusability_gate_blocks_unmarked_clusters() {
+        let mut col = Collection::new();
+        // marked cluster: known confusables (the marker tag is written by
+        // the offline confusion-mining pass)
+        let marked_a = col.add_tagged_note(
+            "duration A",
+            &[
+                "cluster::fi::duration",
+                "cfa::topic::fixed_income",
+                "confusable::high",
+            ],
+            false,
+        );
+        // unmarked cluster: merely similar
+        let unmarked_a = col.add_tagged_note("inventory A", QUANT_TAGS, false);
+        for i in 0..4 {
+            col.add_tagged_note(&format!("background {i}"), &[], i % 2 == 0);
+        }
+        let marked_b = col.add_tagged_note(
+            "duration B",
+            &["cluster::fi::duration", "cfa::topic::fixed_income"],
+            true,
+        );
+        let unmarked_b = col.add_tagged_note("inventory B", QUANT_TAGS, true);
+
+        col.disable_contrast();
+        let vanilla = col.queue_notes();
+
+        col.enable_contrast();
+        col.set_confusable_marker("confusable::high");
+        let contrasted = col.queue_notes();
+
+        // the marked cluster is forced adjacent (one marked member is enough)
+        assert_adjacent_run(&contrasted, &[marked_a.id, marked_b.id]);
+        // the unmarked cluster keeps its vanilla relative order
+        let unmarked = [unmarked_a.id, unmarked_b.id];
+        assert_eq!(
+            positions_of(&vanilla, &unmarked).len(),
+            2,
+            "sanity: both unmarked cards present"
+        );
+        let vanilla_order: Vec<NoteId> = vanilla
+            .iter()
+            .filter(|(_, note)| unmarked.contains(note))
+            .map(|(_, note)| *note)
+            .collect();
+        let contrasted_order: Vec<NoteId> = contrasted
+            .iter()
+            .filter(|(_, note)| unmarked.contains(note))
+            .map(|(_, note)| *note)
+            .collect();
+        assert_eq!(vanilla_order, contrasted_order);
+        // still a pure permutation
+        assert_eq!(sorted_cards(&contrasted), sorted_cards(&vanilla));
+
+        // an empty marker restores the legacy ungated behaviour
+        col.set_confusable_marker("");
+        let ungated = col.queue_notes();
+        assert_adjacent_run(&ungated, &[unmarked_a.id, unmarked_b.id]);
+    }
+
+    /// R18: a child tag under the marker (e.g. a mined score bucket) also
+    /// switches the gate on.
+    #[test]
+    fn confusability_marker_matches_child_tags() {
+        let mut col = Collection::new();
+        let a = col.add_tagged_note(
+            "duration A",
+            &[
+                "cluster::fi::duration",
+                "cfa::topic::fixed_income",
+                "confusable::high::mined",
+            ],
+            false,
+        );
+        col.add_tagged_note("separator", &[], false);
+        let b = col.add_tagged_note(
+            "duration B",
+            &["cluster::fi::duration", "cfa::topic::fixed_income"],
+            false,
+        );
+
+        col.enable_contrast();
+        col.set_confusable_marker("confusable::high");
+        assert_adjacent_run(&col.queue_notes(), &[a.id, b.id]);
     }
 
     /// C10: two templates of the same note never adjoin inside a contrast
