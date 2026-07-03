@@ -6,6 +6,7 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
     import { conceptGraph } from "@generated/backend";
     import { onMount } from "svelte";
 
+    import { getTagTopicMap } from "../dashboard/config";
     import {
         buildGraphModel,
         difficultyColour,
@@ -13,7 +14,8 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
         type GraphNode,
         recallColour,
     } from "./graph";
-    import { runSimulation } from "./simulation";
+    import { topicLabel } from "./grouping";
+    import { computeLayout } from "./simulation";
 
     export let deckId = 0n;
 
@@ -26,13 +28,43 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
     let error: string | null = null;
     let loaded = false;
 
+    /** heading drawn over each dashboard-topic cluster */
+    interface TopicHeading {
+        id: string;
+        name: string;
+        x: number;
+        y: number;
+    }
+    let topicHeadings: TopicHeading[] = [];
+
+    /** centred above each topic cluster once the layout has settled */
+    function computeTopicHeadings(settled: GraphNode[]): TopicHeading[] {
+        const byTopic = new Map<string, GraphNode[]>();
+        for (const node of settled) {
+            if (node.topicId !== null) {
+                const group = byTopic.get(node.topicId);
+                if (group) {
+                    group.push(node);
+                } else {
+                    byTopic.set(node.topicId, [node]);
+                }
+            }
+        }
+        return [...byTopic.entries()].map(([id, members]) => ({
+            id,
+            name: topicLabel(id),
+            x: members.reduce((sum, node) => sum + node.x, 0) / members.length,
+            y: Math.min(...members.map((node) => node.y - node.radius)) - 30,
+        }));
+    }
+
     const width = 1200;
     const height = 800;
 
     let viewGroup: SVGGElement;
     let svgElement: SVGSVGElement;
-    // auto-fitted to the node extents while the simulation settles, frozen
-    // once the user starts zooming/panning
+    // fitted to the node extents once the layout is computed, frozen once
+    // the user starts zooming/panning
     let viewBox = `0 0 ${width} ${height}`;
     let userNavigated = false;
 
@@ -50,6 +82,14 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
             minY = Math.min(minY, node.y - node.radius);
             maxY = Math.max(maxY, node.y + node.radius);
         }
+        for (const heading of topicHeadings) {
+            // approximate extents of the 20px uppercase heading text so
+            // long topic names are not clipped at the view edge
+            const halfWidth = heading.name.length * 7.5;
+            minX = Math.min(minX, heading.x - halfWidth);
+            maxX = Math.max(maxX, heading.x + halfWidth);
+            minY = Math.min(minY, heading.y - 21);
+        }
         const pad = 60;
         viewBox = `${minX - pad} ${minY - pad} ${maxX - minX + pad * 2} ${
             maxY - minY + pad * 2
@@ -58,17 +98,20 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
 
     onMount(async () => {
         try {
-            const response = await conceptGraph({ deckId });
+            const [response, tagTopicMap] = await Promise.all([
+                conceptGraph({ deckId }),
+                getTagTopicMap(),
+            ]);
             fsrsEnabled = response.fsrsEnabled;
-            const model = buildGraphModel(response, width, height);
+            const model = buildGraphModel(response, width, height, tagTopicMap);
+            // settle the layout before the first paint - the map appears
+            // in its final position instead of jostling into place
+            computeLayout(model.nodes, model.links, width, height);
             nodes = model.nodes;
             links = model.links;
+            topicHeadings = computeTopicHeadings(nodes);
             loaded = true;
-            runSimulation(nodes, links, width, height, () => {
-                nodes = nodes;
-                links = links;
-                fitViewBox();
-            });
+            fitViewBox();
             const { select, zoom } = await import("d3");
             const group = select(viewGroup);
             select(svgElement).call(
@@ -84,8 +127,11 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
         }
     });
 
-    function colourOf(node: GraphNode): string {
-        return colourMode === "difficulty"
+    // `mode` is a parameter (not read from component state inside the
+    // function) so the template visibly depends on it and re-colours on
+    // toggle under any reactivity semantics
+    function colourOf(node: GraphNode, mode: ColourMode): string {
+        return mode === "difficulty"
             ? difficultyColour(node)
             : recallColour(node, fsrsEnabled);
     }
@@ -97,7 +143,10 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
         const recall = node.studiedCards
             ? `${Math.round(node.averageRetrievability * 100)}% mean recall over ${node.studiedCards} studied cards`
             : "no FSRS memory state yet";
-        return `${node.tag}\n${node.cardCount} cards\n${difficulty}\n${recall}`;
+        const topic = node.topicId === null
+            ? ""
+            : `\ntopic: ${topicLabel(node.topicId)}`;
+        return `${node.tag}\n${node.cardCount} cards\n${difficulty}\n${recall}${topic}`;
     }
 </script>
 
@@ -107,7 +156,9 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
             <h1>Concept map</h1>
             <p class="subtitle">
                 One node per tag; an edge when two tags share a note. Node size = cards;
-                colour is honest: grey means "no data yet", never a guess.
+                colour is honest: grey means "no data yet", never a guess. Tags
+                attributed to a topic (via <code>cfa::topic::*</code> or the
+                dashboard's tag mapping) cluster under that topic's heading.
             </p>
         </div>
         <div class="controls">
@@ -177,13 +228,18 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
                         stroke-width={Math.min(1 + link.noteCount * 0.6, 6)}
                     />
                 {/each}
+                {#each topicHeadings as heading (heading.id)}
+                    <text class="topic-heading" x={heading.x} y={heading.y}>
+                        {heading.name}
+                    </text>
+                {/each}
                 {#each nodes as node}
                     <g
                         class="node"
                         transform="translate({node.x}, {node.y})"
                         role="img"
                     >
-                        <circle r={node.radius} fill={colourOf(node)}>
+                        <circle r={node.radius} fill={colourOf(node, colourMode)}>
                             <title>{tooltip(node)}</title>
                         </circle>
                         <text dy={node.radius + 14}>{node.label}</text>
@@ -273,6 +329,21 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
             stroke-opacity: 0.7;
         }
 
+        .topic-heading {
+            font-size: 20px;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            text-anchor: middle;
+            fill: var(--fg-subtle);
+            pointer-events: none;
+            user-select: none;
+            paint-order: stroke;
+            stroke: var(--canvas-elevated);
+            stroke-width: 4px;
+            stroke-linejoin: round;
+        }
+
         .node {
             circle {
                 stroke: var(--canvas);
@@ -280,11 +351,16 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
             }
 
             text {
-                font-size: 11px;
+                font-size: 12px;
                 text-anchor: middle;
-                fill: var(--fg-subtle);
+                fill: var(--fg);
                 pointer-events: none;
                 user-select: none;
+                // halo so names stay legible where edges pass underneath
+                paint-order: stroke;
+                stroke: var(--canvas-elevated);
+                stroke-width: 3px;
+                stroke-linejoin: round;
             }
         }
     }

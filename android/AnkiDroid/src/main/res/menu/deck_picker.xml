@@ -23,6 +23,11 @@
         ankidroid:showAsAction="never"
         android:visible="false"
         tools:title="Undo X"/>
+    <!-- Anki Speedrun -->
+    <item
+        android:id="@+id/action_cfa_dashboard"
+        android:title="@string/cfa_dashboard"
+        ankidroid:showAsAction="never"/>
     <item
         android:id="@+id/checks"
         android:title="@string/checks_action"

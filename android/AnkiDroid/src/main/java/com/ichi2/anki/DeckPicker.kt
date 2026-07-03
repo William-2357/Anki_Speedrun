@@ -154,6 +154,7 @@ import com.ichi2.anki.pages.AnkiPackageImporterFragment
 import com.ichi2.anki.pages.ConceptGraph
 import com.ichi2.anki.pages.CongratsPage
 import com.ichi2.anki.pages.CongratsPage.Companion.onDeckCompleted
+import com.ichi2.anki.pages.Dashboard
 import com.ichi2.anki.receiver.SdCardReceiver
 import com.ichi2.anki.reviewreminders.ReviewRemindersDatabase
 import com.ichi2.anki.servicelayer.ScopedStorageService
@@ -1333,6 +1334,11 @@ open class DeckPicker :
             R.id.action_model_browser_open -> {
                 Timber.i("DeckPicker:: Model browser button pressed")
                 viewModel.openManageNoteTypes()
+                return true
+            }
+            R.id.action_cfa_dashboard -> {
+                Timber.i("DeckPicker:: CFA dashboard button pressed")
+                startActivity(Dashboard.getIntent(this))
                 return true
             }
             R.id.action_restore_backup -> {

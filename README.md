@@ -19,13 +19,20 @@ that turns a spaced-repetition app into a **transfer-and-readiness** engine:
 - **Concept map**: a force-directed knowledge graph (`ConceptGraph` RPC) —
   one node per tag, edges where two tags co-occur on a note, coloured by
   behavioural answer difficulty (Again/Hard share) with a toggle for FSRS
-  recall. Desktop: a deck's gear menu, or `/concept-graph` in the dev
-  server. Android: long-press a deck → **Concept map** (the same Svelte
-  page, served from the `.aar` on-device).
+  recall. The layout is settled before first paint (no load-in jitter);
+  tags attributed to a topic (canonical `cfa::topic::*` tags or the
+  dashboard's tag→topic map, same read-time rules as the dashboard)
+  cluster under a topic heading, and the remaining tags group by note
+  co-occurrence, each island on its own packed centre. Desktop: a deck's
+  gear menu, or `/concept-graph` in the dev server. Android: long-press a
+  deck → **Concept map** (the same Svelte page, served from the `.aar`
+  on-device).
 - **An honest readiness dashboard**: three separate gauges — **Memory**,
   **Performance**, **Readiness** — each with a range, its reasons, and a
   written **give-up rule**. Readiness abstains until it has real evidence.
-  No AI anywhere in this phase.
+  No AI anywhere in this phase. Desktop: toolbar → **CFA Dashboard**.
+  Android: deck list overflow menu → **CFA Dashboard** (the same Svelte
+  page, served from the `.aar` on-device).
 - **The fade ladder** (the Phase 2 Rust change, SPOV 2): within a cluster,
   cards tagged `rung::worked` → `rung::faded` → `rung::solve` form a
   worked-example ladder, and the queue builder serves **exactly one rung
@@ -248,7 +255,7 @@ Notes:
 | `desktop/ts/routes/deck-options/{ContrastOptions,FadeOptions}.svelte` | the toggle UIs |
 | `desktop/qt/aqt/speedrun_dashboard.py`, `toolbar.py`, `mediasrv.py` | Dashboard dialog + toolbar link + config RPC exposure |
 | `desktop/tools/speedrun/` | tagged sample deck + generator; **Phase 2**: ladder note types + deck builder, the automated AIG pipeline (`aig/`), grounding corpus, confusability mining, item retirement, 120 tooling tests |
-| `android/`, `android-backend/` | monorepo local-backend wiring; engine version pin |
+| `android/`, `android-backend/` | monorepo local-backend wiring; engine version pin; deck long-press → **Concept map** and deck-list menu → **CFA Dashboard** (WebView hosts + RPC routing in `AnkiDroid/.../pages/`) |
 
 Full details, the "why Rust, not Python" note, and the upstream-merge
 analysis: [`desktop/RUST_CHANGE_NOTE.md`](desktop/RUST_CHANGE_NOTE.md).

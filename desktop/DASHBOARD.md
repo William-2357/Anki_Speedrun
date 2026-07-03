@@ -133,8 +133,9 @@ editor: the deck's **unmapped** tags (from the per-tag data), each with a 10-top
 newly-added deck has many unmapped tags.)
 
 **Out of scope (this feature).** Materialising the map as `cfa::topic::` tags on cards — a separate,
-_destructive_ option that would also fix the phone reviewer + concept graph. The readiness **dashboard
-is desktop-only** today, so the synced map has no phone consumer yet.
+_destructive_ option that would also fix the phone reviewer + concept graph. The dashboard also ships
+on Android (deck list menu → **CFA Dashboard**, the same Svelte page served from the `.aar`), where
+the synced map is applied identically.
 
 **Not to be confused with Phase 3 M5** ("Generalization / BYO decks"), which is **AI/behavioural
 edge-sourcing for _scheduling_** (clusters/rungs). This is manual, no-AI **topic attribution for the
@@ -211,6 +212,9 @@ studied card (otherwise that subject abstains).
   visible in the window itself, one click from anywhere, not tied to a single deck.
 - **Optional: per-deck.** A "Dashboard" entry in the deck gear menu (next to "Concept map") opens the
   same page scoped to that deck, for users juggling several exam decks.
+- **Android.** The deck list's overflow menu has a **"CFA Dashboard"** entry
+  (`android/.../pages/Dashboard.kt`) hosting the identical whole-collection Svelte page from the
+  rsdroid `.aar`; `topicMastery` + the config RPCs are routed in `pages/PostRequestHandler.kt`.
 - **Routes:** `dashboard` (whole collection, `deck_id = 0`) and `dashboard/[deckId]` (scoped); the
   metrics RPC treats `deck_id = 0` as the whole collection.
 - **How (Anki convention):** the toolbar links live in `qt/aqt/toolbar.py` (`_centerLinks` +

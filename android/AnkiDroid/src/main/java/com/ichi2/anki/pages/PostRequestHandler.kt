@@ -30,6 +30,7 @@ import com.ichi2.anki.importCsvRaw
 import com.ichi2.anki.launchCatchingTask
 import com.ichi2.anki.libanki.Collection
 import com.ichi2.anki.libanki.completeTagRaw
+import com.ichi2.anki.libanki.getConfigJsonRaw
 import com.ichi2.anki.libanki.getCsvMetadataRaw
 import com.ichi2.anki.libanki.getDeckConfigsForUpdateRaw
 import com.ichi2.anki.libanki.getDeckNamesRaw
@@ -39,11 +40,13 @@ import com.ichi2.anki.libanki.getNotetypeNamesRaw
 import com.ichi2.anki.libanki.sched.computeFsrsParamsRaw
 import com.ichi2.anki.libanki.sched.computeOptimalRetentionRaw
 import com.ichi2.anki.libanki.sched.simulateFsrsReviewRaw
+import com.ichi2.anki.libanki.setConfigJsonRaw
 import com.ichi2.anki.libanki.stats.cardStatsRaw
 import com.ichi2.anki.libanki.stats.conceptGraphRaw
 import com.ichi2.anki.libanki.stats.getGraphPreferencesRaw
 import com.ichi2.anki.libanki.stats.graphsRaw
 import com.ichi2.anki.libanki.stats.setGraphPreferencesRaw
+import com.ichi2.anki.libanki.stats.topicMasteryRaw
 import com.ichi2.anki.observability.undoableOp
 import com.ichi2.anki.searchInBrowser
 import kotlinx.coroutines.Deferred
@@ -112,6 +115,9 @@ val collectionMethods =
         "cardStats" to { bytes -> cardStatsRaw(bytes) },
         // Anki Speedrun
         "conceptGraph" to { bytes -> conceptGraphRaw(bytes) },
+        "topicMastery" to { bytes -> topicMasteryRaw(bytes) },
+        "getConfigJson" to { bytes -> getConfigJsonRaw(bytes) },
+        "setConfigJson" to { bytes -> setConfigJsonRaw(bytes) },
         "getDeckConfigsForUpdate" to { bytes -> getDeckConfigsForUpdateRaw(bytes) },
         "computeOptimalRetention" to { bytes -> computeOptimalRetentionRaw(bytes) },
         "computeFsrsParams" to { bytes -> computeFsrsParamsRaw(bytes) },
@@ -133,6 +139,7 @@ val collectionMethods =
         "simulateFsrsWorkload" to { bytes -> simulateFsrsWorkloadRaw(bytes) },
         // https://github.com/ankitects/anki/pull/4326 -> saveCustomColours should be no-op in mobile clients
         "saveCustomColours" to { bytes -> backendIdentity(bytes) },
+        "getCustomColours" to { bytes -> getCustomColoursRaw(bytes) },
     )
 
 suspend fun handleCollectionPostRequest(

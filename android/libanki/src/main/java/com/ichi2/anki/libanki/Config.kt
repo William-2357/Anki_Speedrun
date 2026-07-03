@@ -99,3 +99,8 @@ class Config(
         default
     }
 }
+
+// These take and return bytes that the frontend TypeScript code will encode/decode.
+fun Collection.getConfigJsonRaw(input: ByteArray): ByteArray = backend.getConfigJsonRaw(input)
+
+fun Collection.setConfigJsonRaw(input: ByteArray): ByteArray = backend.setConfigJsonRaw(input)

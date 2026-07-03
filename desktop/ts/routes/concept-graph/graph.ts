@@ -12,11 +12,15 @@
 
 import type { ConceptGraphResponse } from "@generated/anki/stats_pb";
 
+import { normalizeTagTopicMap, resolveTopicId } from "./grouping";
+
 export interface GraphNode {
     id: number;
     tag: string;
     /** short display label (last tag segment) */
     label: string;
+    /** canonical topic this tag resolved to (dashboard rules), if any */
+    topicId: string | null;
     cardCount: number;
     studiedCards: number;
     averageRetrievability: number;
@@ -42,7 +46,9 @@ export function buildGraphModel(
     response: ConceptGraphResponse,
     width: number,
     height: number,
+    tagTopicMap: Record<string, string> = {},
 ): { nodes: GraphNode[]; links: GraphLink[] } {
+    const userMap = normalizeTagTopicMap(tagTopicMap);
     const keptIndex = new Map<number, GraphNode>();
     const nodes: GraphNode[] = [];
     response.nodes.forEach((raw, index) => {
@@ -53,6 +59,7 @@ export function buildGraphModel(
             id: index,
             tag: raw.tag,
             label: raw.tag.split("::").pop() ?? raw.tag,
+            topicId: resolveTopicId(raw.tag, userMap),
             cardCount: raw.cardCount,
             studiedCards: raw.studiedCards,
             averageRetrievability: raw.averageRetrievability,

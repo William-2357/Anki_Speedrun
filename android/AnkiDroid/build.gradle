@@ -513,6 +513,10 @@ dependencies {
         // ../android-backend rather than a sibling Anki-Android-Backend.
         implementation(files(rootProject.file("../android-backend/rsdroid/build/outputs/aar/rsdroid-release.aar")))
         testImplementation(files(rootProject.file("../android-backend/rsdroid-testing/build/libs/rsdroid-testing.jar")))
+        // the plain jar above carries no POM, so RustBackendLoader's
+        // commons-exec dependency must be declared by hand (version from
+        // ../android-backend/gradle/libs.versions.toml)
+        testImplementation("org.apache.commons:commons-exec:1.6.0")
     } else {
         implementation libs.ankiBackend.backend
         testImplementation libs.ankiBackend.testing

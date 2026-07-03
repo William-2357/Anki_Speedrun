@@ -124,6 +124,7 @@ fun isSvelteKitPage(path: String): Boolean {
         "image-occlusion",
         // Anki Speedrun
         "concept-graph",
+        "dashboard",
         -> true
         else -> false
     }
