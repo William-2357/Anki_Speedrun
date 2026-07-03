@@ -42,11 +42,15 @@ that turns a spaced-repetition app into a **transfer-and-readiness** engine:
   measurably hurts. Empty marker = the legacy ungated behaviour.
 - **A fully-automated authoring pipeline** (Phase 2, authoring-time only —
   the review loop stays AI-free by construction): parameterized numeric
-  generators with misconception-grounded distractors, machine validation
-  gates (independent recomputation, self-consistency solve-check, critic
-  model hooks, leakage wall), and retrieval-for-grounding that attaches a
-  **named source passage** to every item (BM25 + dense → RRF → rerank,
-  evaluated on disclosed synthetic qrels). Generated items ship tagged
+  generators with misconception-grounded distractors (formulas emitted as
+  **MathJax**, which Anki typesets natively on desktop and AnkiDroid),
+  machine validation gates (independent recomputation, self-consistency
+  solve-check, critic model hooks, leakage wall), and
+  retrieval-for-grounding that attaches a **named source passage** to every
+  item. The guaranteed retrieval arm is stdlib BM25; the dense + reranker
+  arms are **opt-in** (`SPEEDRUN_DENSE=1` — the torch stack is ABI-fragile),
+  with the full-stack eval that did run archived under
+  `desktop/tools/speedrun/eval/archive/`. Generated items ship tagged
   `aig::ungraded`: they may be studied but **never feed readiness**, and
   non-discriminating items are auto-retired from live responses.
 

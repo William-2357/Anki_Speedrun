@@ -262,6 +262,19 @@ class Reranker:
         return [pids[i] for i in order]
 
 
+#: The dense/rerank arms are OPT-IN (``SPEEDRUN_DENSE=1``), never automatic.
+#: Rationale: the torch / sentence-transformers / numpy stack is fragile to
+#: ABI drift (e.g. numpy 2.x against a torch built for numpy 1.x aborts the
+#: interpreter outright rather than raising), and this pipeline is
+#: authoring-time-only tooling whose guaranteed path is stdlib BM25 - the
+#: plan's C7 already descopes the IR project to a minimal defensible slice.
+#: The full-stack eval that DID run on this machine (pinned
+#: sentence-transformers==3.4.1 / transformers==4.49.0 against torch 2.3)
+#: is archived in eval/archive/retrieval_eval_fullstack_20260703.*; rerun
+#: with SPEEDRUN_DENSE=1 in an environment with a compatible stack.
+DENSE_OPT_IN_ENV = "SPEEDRUN_DENSE"
+
+
 def _probe_dense_stack() -> str:
     """Verify torch + sentence-transformers work, in a SUBPROCESS.
 
@@ -295,7 +308,22 @@ def _probe_dense_stack() -> str:
 def try_load_dense(
     passages: list[Passage],
 ) -> tuple[DenseRetriever | None, Reranker | None, str]:
-    """Load the optional dense stack; on failure record why (never fake it)."""
+    """Load the optional dense stack; on failure record why (never fake it).
+
+    Opt-in only: without ``SPEEDRUN_DENSE=1`` the ML stack is never imported
+    (see [DENSE_OPT_IN_ENV]); the arm is recorded as unavailable and the
+    eval falls back to the stdlib BM25 path.
+    """
+    import os
+
+    if os.environ.get(DENSE_OPT_IN_ENV) != "1":
+        return (
+            None,
+            None,
+            f"dense arm is opt-in (set {DENSE_OPT_IN_ENV}=1); the ML stack "
+            "is ABI-fragile on this host, and the guaranteed path is "
+            "stdlib BM25 - see eval/archive/ for the full-stack run",
+        )
     probe_error = _probe_dense_stack()
     if probe_error:
         return None, None, probe_error

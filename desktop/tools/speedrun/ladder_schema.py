@@ -51,12 +51,39 @@ GRADED_TAG = "aig::graded"
 UNGRADED_TAG = "aig::ungraded"
 
 _CLOZE_INDEX_RE = re.compile(r"\{\{c(\d+)::")
+_CLOZE_OPEN_RE = re.compile(r"\{\{c\d+::")
 _TEMPLATE_REF_RE = re.compile(r"\{\{([^{}]+)\}\}")
 
 
 def cloze_indices(text: str) -> list[int]:
     """Distinct cloze indices referenced by native cloze markup, sorted."""
     return sorted({int(number) for number in _CLOZE_INDEX_RE.findall(text)})
+
+
+def cloze_stripped_remainder(text: str) -> str:
+    """The text with each cloze marker removed, scanning the way Anki does.
+
+    Anki's cloze parser closes a ``{{cN::`` span at the *first* following
+    ``}}``, so MathJax/TeX braces that produce a ``}}`` sequence (for
+    example ``x^{y/k}}``) silently truncate the deletion. This helper drops
+    each opener and its first-following closer; whatever brace pairs remain
+    would confuse the real parser and are rejected by ``validate_item``.
+    """
+    out: list[str] = []
+    pos = 0
+    while True:
+        opener = _CLOZE_OPEN_RE.search(text, pos)
+        if not opener:
+            out.append(text[pos:])
+            break
+        out.append(text[pos : opener.start()])
+        closer = text.find("}}", opener.end())
+        if closer == -1:
+            out.append(text[opener.end() :])
+            break
+        out.append(text[opener.end() : closer])
+        pos = closer + 2
+    return "".join(out)
 
 
 def _is_nonempty_str(value: Any) -> bool:
@@ -215,6 +242,13 @@ def _check_cloze(item: Mapping[str, Any], errors: list[str]) -> None:
             "cloze_text: needs at least 2 distinct cloze indices "
             "({{c1::...}}, {{c2::...}}) so fading has an order to work with, "
             f"found {len(valid)}"
+        )
+    if "}}" in cloze_stripped_remainder(cloze_text):
+        errors.append(
+            'cloze_text: contains a "}}" sequence outside the cloze markers '
+            "(e.g. TeX like x^{y/k}} inside a deletion) - Anki closes each "
+            "{{cN:: at the FIRST following }}, so this would silently "
+            "truncate a deletion; use linear math notation in cloze fields"
         )
 
 

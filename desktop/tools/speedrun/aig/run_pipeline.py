@@ -18,9 +18,11 @@ writes:
 - ``eval/confusability_report.json`` + ``eval/confusable_markers.json``
   - the M1b computed-signal self-test (synthetic revlog), unless skipped
 
-With ``--backend mock`` the run is fully offline and deterministic (the
-optional dense retrieval arm is used if sentence-transformers is importable;
-``--no-dense`` forces the stdlib-only path).
+With ``--backend mock`` the run is fully offline and deterministic. The
+dense retrieval arm is OPT-IN via ``SPEEDRUN_DENSE=1`` (the
+torch/sentence-transformers stack is ABI-fragile; the guaranteed path is
+stdlib BM25 - see aig/retrieval.py); the archived full-stack eval lives in
+``eval/archive/``.
 """
 
 from __future__ import annotations
@@ -293,7 +295,9 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument(
         "--no-dense",
         action="store_true",
-        help="force the stdlib-only retrieval path (skip sentence-transformers)",
+        help="force the stdlib-only retrieval path (the default unless "
+        "SPEEDRUN_DENSE=1 is set; the ML stack is opt-in because it is "
+        "ABI-fragile - see aig/retrieval.py)",
     )
     ap.add_argument(
         "--confusability",

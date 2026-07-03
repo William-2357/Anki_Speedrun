@@ -102,6 +102,25 @@ class RrfTests(unittest.TestCase):
         self.assertEqual(R.rrf_fuse([["a", "b", "c"]]), ["a", "b", "c"])
 
 
+class DenseOptInTests(unittest.TestCase):
+    def test_dense_stack_is_opt_in(self) -> None:
+        """Without SPEEDRUN_DENSE=1 the ML stack must not even be probed:
+        a numpy/torch ABI mismatch aborts the interpreter, so the default
+        path has to stay stdlib-only (authoring-time tooling, C7 slice)."""
+        import os
+
+        previous = os.environ.pop(R.DENSE_OPT_IN_ENV, None)
+        try:
+            dense, reranker, reason = R.try_load_dense([])
+            self.assertIsNone(dense)
+            self.assertIsNone(reranker)
+            self.assertIn("opt-in", reason)
+            self.assertIn(R.DENSE_OPT_IN_ENV, reason)
+        finally:
+            if previous is not None:
+                os.environ[R.DENSE_OPT_IN_ENV] = previous
+
+
 class SplitAndEvalTests(unittest.TestCase):
     def test_split_by_cluster_is_disjoint_and_seeded(self) -> None:
         items = G.generate_all()

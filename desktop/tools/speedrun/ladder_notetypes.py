@@ -394,7 +394,15 @@ _SOLVE_FRONT_SCRIPT = """\
                 verdict.textContent = "You picked " + chosen + " - the answer is " + correct + ".";
             }
         }
-        if (feedback) { feedback.removeAttribute("hidden"); }
+        if (feedback) {
+            feedback.removeAttribute("hidden");
+            // MathJax may skip content that was hidden at initial typeset;
+            // re-typeset the revealed block when the API is available
+            // (progressive enhancement - plain text renders regardless).
+            if (window.MathJax && window.MathJax.typesetPromise) {
+                window.MathJax.typesetPromise([feedback]).catch(function () {});
+            }
+        }
     }
     function bind(button) {
         button.addEventListener("click", function () {

@@ -86,6 +86,21 @@ The deck builder derives tags mechanically:
 - `aig::graded` / `aig::ungraded` from `provenance.graded`
 - everything in `tags_extra` verbatim
 
+## Math notation (MathJax)
+
+Text fields (`prompt`, `stem`, `worked_steps`, `cloze_text`, `rationale`,
+`distractor_rationales`, compare bodies) may contain **MathJax** markup —
+`\( … \)` inline, `\[ … \]` display — which Anki renders natively on both
+desktop and AnkiDroid. Two rules:
+
+- **`cloze_text` must never contain a `}}` sequence outside the cloze
+  markers themselves** (Anki closes each `{{cN::` at the _first_ following
+  `}}`, so TeX like `x^{y/k}}` silently truncates the deletion). Use linear
+  notation in cloze fields (`/`, `(1 + y/k)`, `^{...}` only where no brace
+  can touch another closing brace); `validate_item` rejects violations.
+- Choice values stay plain text (`"10.42 years"`), and the `_aig` retrieval
+  query text stays prose so BM25 tokenization is unaffected.
+
 ## Feedback invariant lint ([R9], enforced at build time)
 
 The deck builder refuses to emit a note when:

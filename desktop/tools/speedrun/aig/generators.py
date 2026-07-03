@@ -17,6 +17,12 @@ both computed answers, numeric choice values, the declared grounding passage
 
 Determinism: one ``random.Random`` per (seed, generator, kind) stream; the
 same seed always reproduces byte-identical items.
+
+Learner-facing math (worked_steps, rationales, cloze_text) is written in
+Anki-native MathJax markup. cloze_text uses LINEAR TeX only, so that no "}}"
+sequence appears outside the cloze markers themselves (Anki closes each
+{{cN::...}} at the first following "}}"; see ladder_schema). Prompts, stems,
+titles, choices and the _aig retrieval query text stay plain prose.
 """
 
 from __future__ import annotations
@@ -45,18 +51,20 @@ MISCONCEPTIONS: dict[str, str] = {
     "duration.modified_vs_macaulay": (
         "Swaps Macaulay and modified duration - quotes the weighted-average "
         "time figure where the price-sensitivity figure is required (or the "
-        "reverse), missing the (1 + y/k) conversion."
+        r"reverse), missing the \((1 + y/k)\) conversion."
     ),
     "duration.compounding_confusion": (
-        "Divides by (1 + y) on a semiannual-pay bond instead of (1 + y/2): "
+        r"Divides by \((1 + y)\) on a semiannual-pay bond instead of "
+        r"\((1 + y/2)\): "
         "annual-vs-semiannual compounding confusion in the ModDur divisor."
     ),
     "duration.factor_inversion": (
-        "Multiplies by (1 + y/k) instead of dividing when converting "
+        r"Multiplies by \((1 + y/k)\) instead of dividing when converting "
         "Macaulay to modified duration."
     ),
     "duration.sign_error": (
-        "Drops the minus sign in %dP = -ModDur x dy, reporting a price GAIN "
+        r"Drops the minus sign in \(\%\Delta P = -\text{ModDur} \times "
+        r"\Delta y\), reporting a price GAIN "
         "when yields rise (or a loss when they fall)."
     ),
     "duration.bp_conversion": (
@@ -80,7 +88,8 @@ MISCONCEPTIONS: dict[str, str] = {
         "of growth instead of N)."
     ),
     "tvm.simple_vs_compound": (
-        "Applies simple interest PV(1 + r x n), ignoring interest-on-interest."
+        r"Applies simple interest \(\text{PV}(1 + r \times n)\), "
+        "ignoring interest-on-interest."
     ),
     "tvm.sign_convention": (
         "Sets the cash-flow direction backward (PV/FV sign convention): "
@@ -89,7 +98,7 @@ MISCONCEPTIONS: dict[str, str] = {
     ),
     "tvm.due_vs_ordinary": (
         "Values an ordinary annuity as an annuity due (or the reverse), "
-        "misstating value by one period's interest factor (1 + i)."
+        r"misstating value by one period's interest factor \((1 + i)\)."
     ),
     "tvm.pv_vs_fv": (
         "Values the stream at the wrong date - answers the present-value "
@@ -132,6 +141,12 @@ class Distractor:
 
 def fmt_money(v: float) -> str:
     return f"${v:,.2f}"
+
+
+def fmt_money_tex(v: float) -> str:
+    """Money for use INSIDE a MathJax span: escaped dollar sign, thousands
+    separators brace-grouped so TeX does not add punctuation spacing."""
+    return "\\$" + f"{v:,.2f}".replace(",", "{,}")
 
 
 def fmt_years(v: float) -> str:
@@ -284,18 +299,18 @@ class ModDurationFromMac(ParamGen):
                 mac,
                 "duration.modified_vs_macaulay",
                 "quotes the Macaulay duration unchanged, skipping the "
-                "division by (1 + y/2)",
+                r"division by \((1 + y/2)\)",
             ),
             Distractor(
                 mac / (1.0 + y),
                 "duration.compounding_confusion",
-                "divides by (1 + y) using the full annual yield instead of "
-                "the semiannual (1 + y/2)",
+                r"divides by \((1 + y)\) using the full annual yield "
+                r"instead of the semiannual \((1 + y/2)\)",
             ),
             Distractor(
                 mac * (1.0 + y / 2.0),
                 "duration.factor_inversion",
-                "multiplies by (1 + y/2) instead of dividing",
+                r"multiplies by \((1 + y/2)\) instead of dividing",
             ),
         ]
 
@@ -312,17 +327,20 @@ class ModDurationFromMac(ParamGen):
         )
         steps = [
             "Modified duration rescales Macaulay duration by one period's "
-            "yield: ModDur = MacDur / (1 + y/k).",
-            f"The bond pays semiannually, so k = 2 and the periodic yield is "
-            f"y/k = {y_pct:.2f}% / 2 = {half * 100:.3f}% = {half:.5f}.",
-            f"Divide: ModDur = {p['mac']:.2f} / (1 + {half:.5f}) "
-            f"= {p['mac']:.2f} / {1 + half:.5f} = {answer:.4f}.",
+            r"yield: \[\text{ModDur} = \dfrac{\text{MacDur}}{1 + y/k}\]",
+            rf"The bond pays semiannually, so \(k = 2\) and the periodic "
+            rf"yield is \(y/k = {y_pct:.2f}\% / 2 = {half * 100:.3f}\% "
+            rf"= {half:.5f}\).",
+            rf"Divide: \(\text{{ModDur}} = \dfrac{{{p['mac']:.2f}}}"
+            rf"{{1 + {half:.5f}}} = \dfrac{{{p['mac']:.2f}}}"
+            rf"{{{1 + half:.5f}}} = {answer:.4f}\).",
             f"Rounded: modified duration is {answer:.2f} years, slightly "
             f"below the Macaulay figure as it must be at a positive yield.",
         ]
         rationale = (
-            f"ModDur = MacDur / (1 + y/k) = {p['mac']:.2f} / "
-            f"(1 + {half:.5f}) = {answer:.2f} years. The divisor uses the "
+            rf"\(\text{{ModDur}} = \dfrac{{\text{{MacDur}}}}{{1 + y/k}} = "
+            rf"\dfrac{{{p['mac']:.2f}}}{{1 + {half:.5f}}} = {answer:.2f}\) "
+            "years. The divisor uses the "
             "PERIODIC yield (annual quote / 2 for semiannual pay); dividing "
             "by the full annual yield, skipping the division, or multiplying "
             "instead are the classic traps."
@@ -338,14 +356,14 @@ class ModDurationFromMac(ParamGen):
             "Complete the conversion to modified duration."
         )
         cloze = (
-            "ModDur = MacDur / (1 + y/k) = "
+            r"\(\text{ModDur} = \text{MacDur} / (1 + y/k)\) = "
             f"{p['mac']:.2f} / (1 + {{{{c1::{half:.5f}}}}}) = "
             f"{{{{c2::{answer:.2f}}}}} years"
         )
         rationale = (
-            f"k = 2 for semiannual pay, so the divisor is 1 + {y_pct:.2f}%/2 "
-            f"= {1 + half:.5f}; the result {answer:.2f} sits just below the "
-            "Macaulay duration."
+            rf"\(k = 2\) for semiannual pay, so the divisor is "
+            rf"\(1 + {y_pct:.2f}\%/2 = {1 + half:.5f}\); the result "
+            rf"{answer:.2f} sits just below the Macaulay duration."
         )
         return {"prompt": prompt, "cloze_text": cloze, "rationale": rationale}
 
@@ -358,8 +376,9 @@ class ModDurationFromMac(ParamGen):
             "to:"
         )
         rationale = (
-            f"ModDur = MacDur / (1 + y/k) = {p['mac']:.2f} / "
-            f"(1 + {p['y'] / 2:.5f}) = {answer:.2f} years. Semiannual pay "
+            rf"\(\text{{ModDur}} = \dfrac{{\text{{MacDur}}}}{{1 + y/k}} = "
+            rf"\dfrac{{{p['mac']:.2f}}}{{1 + {p['y'] / 2:.5f}}} = "
+            rf"{answer:.2f}\) years. Semiannual pay "
             "means the divisor uses half the quoted annual yield."
         )
         return {"stem": stem, "rationale": rationale}
@@ -439,17 +458,21 @@ class DurationPriceChange(ParamGen):
         )
         dy = p["bp"] / 10000.0
         steps = [
-            "The first-order estimate uses MODIFIED duration: %dP = -ModDur x dy.",
-            f"Convert the move to decimal: {p['bp']:+d}bp = {dy:+.4f}.",
-            f"Multiply: %dP = -({p['d_mod']:.2f}) x ({dy:+.4f}) "
-            f"= {answer / 100:+.4f} = {answer:+.2f}%.",
+            "The first-order estimate uses MODIFIED duration: "
+            r"\[\%\Delta P = -\text{ModDur} \times \Delta y\]",
+            rf"Convert the move to decimal: \({p['bp']:+d}\,\text{{bp}} "
+            rf"= {dy:+.4f}\).",
+            rf"Multiply: \(\%\Delta P = -({p['d_mod']:.2f}) \times "
+            rf"({dy:+.4f}) = {answer / 100:+.4f} = {answer:+.2f}\%\).",
             "The sign is negative for a yield rise and positive for a fall; "
             "the Macaulay figure stated in the problem is a decoy.",
         ]
         rationale = (
-            f"%dP = -ModDur x dy = -({p['d_mod']:.2f}) x ({dy:+.4f}) = "
-            f"{answer:+.2f}%. Keep the minus sign, use the MODIFIED (not "
-            "Macaulay) duration, and convert basis points as 1bp = 0.0001."
+            rf"\(\%\Delta P = -\text{{ModDur}} \times \Delta y = "
+            rf"-({p['d_mod']:.2f}) \times ({dy:+.4f}) = {answer:+.2f}\%\). "
+            "Keep the minus sign, use the MODIFIED (not "
+            r"Macaulay) duration, and convert basis points as "
+            r"\(1\,\text{bp} = 0.0001\)."
         )
         return {"prompt": prompt, "worked_steps": steps, "rationale": rationale}
 
@@ -461,14 +484,14 @@ class DurationPriceChange(ParamGen):
             "estimate of the percentage price change."
         )
         cloze = (
-            "%dP = -ModDur x dy = "
-            f"-({p['d_mod']:.2f}) x ({{{{c1::{dy:+.4f}}}}}) = "
+            r"\(\%\Delta P = -\text{ModDur} \times \Delta y\) = "
+            f"-({p['d_mod']:.2f}) × ({{{{c1::{dy:+.4f}}}}}) = "
             f"{{{{c2::{answer:+.2f}%}}}}"
         )
         rationale = (
-            f"{p['bp']:+d}bp = {dy:+.4f} in decimal; "
-            f"%dP = -{p['d_mod']:.2f} x {dy:+.4f} = {answer:+.2f}%. "
-            "Price moves opposite to yield."
+            rf"\({p['bp']:+d}\,\text{{bp}} = {dy:+.4f}\) in decimal; "
+            rf"\(\%\Delta P = -{p['d_mod']:.2f} \times {dy:+.4f} "
+            rf"= {answer:+.2f}\%\). Price moves opposite to yield."
         )
         return {"prompt": prompt, "cloze_text": cloze, "rationale": rationale}
 
@@ -482,8 +505,9 @@ class DurationPriceChange(ParamGen):
         )
         dy = p["bp"] / 10000.0
         rationale = (
-            f"%dP = -ModDur x dy = -({p['d_mod']:.2f}) x ({dy:+.4f}) = "
-            f"{answer:+.2f}%. Modified (not Macaulay) duration drives the "
+            rf"\(\%\Delta P = -\text{{ModDur}} \times \Delta y = "
+            rf"-({p['d_mod']:.2f}) \times ({dy:+.4f}) = {answer:+.2f}\%\). "
+            "Modified (not Macaulay) duration drives the "
             "estimate, and the sign is opposite to the yield move."
         )
         return {"stem": stem, "rationale": rationale}
@@ -547,8 +571,8 @@ class MacaulayFromCashflows(ParamGen):
             Distractor(
                 answer / (1.0 + y),
                 "duration.modified_vs_macaulay",
-                "reports the MODIFIED duration (already divided by 1+y) "
-                "where the Macaulay figure is asked",
+                r"reports the MODIFIED duration (already divided by "
+                r"\(1+y\)) where the Macaulay figure is asked",
             ),
             Distractor(
                 no_disc,
@@ -591,17 +615,23 @@ class MacaulayFromCashflows(ParamGen):
             pv = cf / (1 + i) ** t
             pv_total += pv
             weighted += t * pv
-            rows.append(f"t={t}: CF {cf:.2f}, PV {pv:.4f}, t x PV {t * pv:.4f}")
+            rows.append(
+                rf"\(t={t}\): CF {cf:.2f}, PV {pv:.4f}, "
+                rf"\(t \times \text{{PV}}\) {t * pv:.4f}"
+            )
         steps = [
             "Discount each cash flow at the yield and weight its time by "
-            "the PV share: MacDur = sum(t x PV_t) / sum(PV_t).",
+            r"the PV share: \[\text{MacDur} = "
+            r"\dfrac{\sum_t t \times \text{PV}_t}{\sum_t \text{PV}_t}\]",
             *rows,
-            f"Totals: sum PV = {pv_total:.4f} (the price), "
-            f"sum t x PV = {weighted:.4f}.",
-            f"MacDur = {weighted:.4f} / {pv_total:.4f} = {answer:.3f} years.",
+            rf"Totals: \(\sum_t \text{{PV}}_t = {pv_total:.4f}\) (the "
+            rf"price), \(\sum_t t \times \text{{PV}}_t = {weighted:.4f}\).",
+            rf"\(\text{{MacDur}} = \dfrac{{{weighted:.4f}}}"
+            rf"{{{pv_total:.4f}}} = {answer:.3f}\) years.",
         ]
         rationale = (
-            f"MacDur = sum(t x PV_t)/sum(PV_t) = {answer:.3f} years - a "
+            rf"\(\text{{MacDur}} = \dfrac{{\sum_t t \times \text{{PV}}_t}}"
+            rf"{{\sum_t \text{{PV}}_t}} = {answer:.3f}\) years - a "
             "weighted-average TIME, pulled below maturity by the coupons; "
             "skipping the discounting or reporting maturity itself are the "
             "standard errors."
@@ -622,7 +652,8 @@ class MacaulayFromCashflows(ParamGen):
             "duration calculation. Complete it."
         )
         cloze = (
-            "MacDur = sum(t x PV_t) / sum(PV_t), with sum(PV_t) = the "
+            r"\(\text{MacDur} = \sum(t \times \text{PV}_t) / "
+            r"\sum \text{PV}_t\), with \(\sum \text{PV}_t\) = the "
             f"bond's price = {{{{c1::{pv_total:.4f}}}}}, giving MacDur = "
             f"{{{{c2::{answer:.3f}}}}} years (below the {n}-year maturity)."
         )
@@ -643,7 +674,8 @@ class MacaulayFromCashflows(ParamGen):
         )
         rationale = (
             "Discount each cash flow at the yield, weight its time by its "
-            f"PV share, and average: MacDur = {answer:.3f} years. Coupons "
+            rf"PV share, and average: \(\text{{MacDur}} = {answer:.3f}\) "
+            "years. Coupons "
             "pull duration below maturity; the undiscounted average and the "
             "maturity itself are decoys."
         )
@@ -722,17 +754,20 @@ class TvmFvLump(ParamGen):
             f"{p['n']} years?"
         )
         steps = [
-            f"Periodic rate: r/m = {p['r'] * 100:.2f}% / {p['m']} = "
-            f"{per * 100:.4f}% = {per:.6f}.",
-            f"Number of periods: m x n = {p['m']} x {p['n']} = {n_per}.",
-            f"FV = PV x (1 + r/m)^(m x n) = {fmt_money(p['pv'])} x "
-            f"(1 + {per:.6f})^{n_per} = {fmt_money(answer)}.",
+            rf"Periodic rate: \(r/m = {p['r'] * 100:.2f}\% / {p['m']} = "
+            rf"{per * 100:.4f}\% = {per:.6f}\).",
+            rf"Number of periods: \(m \times n = {p['m']} \times {p['n']} "
+            rf"= {n_per}\).",
+            rf"\[\text{{FV}} = \text{{PV}} \times (1 + r/m)^{{m \times n}} "
+            rf"= {fmt_money_tex(p['pv'])} \times (1 + {per:.6f})"
+            rf"^{{{n_per}}} = {fmt_money_tex(answer)}\]",
             "Both the rate and the period count must be per-period; using "
             "the annual rate with annual periods understates the balance.",
         ]
         rationale = (
-            f"FV = {fmt_money(p['pv'])} x (1 + {per:.6f})^{n_per} = "
-            f"{fmt_money(answer)}. Pair the PERIODIC rate r/m with m x n "
+            rf"\(\text{{FV}} = {fmt_money_tex(p['pv'])} \times "
+            rf"(1 + {per:.6f})^{{{n_per}}} = {fmt_money_tex(answer)}\). "
+            rf"Pair the PERIODIC rate \(r/m\) with \(m \times n\) "
             "periods; simple interest and off-by-one period counts are the "
             "standard slips."
         )
@@ -747,7 +782,8 @@ class TvmFvLump(ParamGen):
             "the future-value setup."
         )
         cloze = (
-            f"FV = PV x (1 + r/m)^(m x n) = {fmt_money(p['pv'])} x "
+            r"\(\text{FV} = \text{PV} \times (1 + r/m)^{m \times n}\) = "
+            f"{fmt_money(p['pv'])} × "
             f"(1 + {{{{c1::{per:.6f}}}}})^{{{{c2::{n_per}}}}} = "
             f"{{{{c3::{fmt_money(answer)}}}}}"
         )
@@ -766,10 +802,11 @@ class TvmFvLump(ParamGen):
         )
         per = p["r"] / p["m"]
         rationale = (
-            f"FV = PV x (1 + r/m)^(m x n) = {fmt_money(p['pv'])} x "
-            f"(1 + {per:.6f})^{p['m'] * p['n']} = {fmt_money(answer)}. The "
+            rf"\(\text{{FV}} = \text{{PV}} \times (1 + r/m)^{{m \times n}} "
+            rf"= {fmt_money_tex(p['pv'])} \times (1 + {per:.6f})"
+            rf"^{{{p['m'] * p['n']}}} = {fmt_money_tex(answer)}\). The "
             "periodic rate is the annual rate divided by the compounding "
-            "frequency, applied for m x n periods."
+            r"frequency, applied for \(m \times n\) periods."
         )
         return {"stem": stem, "rationale": rationale}
 
@@ -845,18 +882,23 @@ class TvmAnnuityPv(ParamGen):
             f"{_freq_name(p['m'])}). What is the contract worth today?"
         )
         steps = [
-            f"Periodic rate i = {p['r'] * 100:.2f}%/{p['m']} = {i:.6f}; "
-            f"periods N = {p['m']} x {p['n']} = {n_per}.",
-            "Ordinary annuity (end-of-period payments): PV = PMT x [1 - (1+i)^-N] / i.",
-            f"PV = {fmt_money(p['pmt'])} x [1 - (1 + {i:.6f})^-{n_per}] / "
-            f"{i:.6f} = {fmt_money(answer)}.",
-            "No (1+i) timing bump applies - that factor belongs to an "
+            rf"Periodic rate \(i = {p['r'] * 100:.2f}\%/{p['m']} = "
+            rf"{i:.6f}\); periods \(N = {p['m']} \times {p['n']} = "
+            rf"{n_per}\).",
+            "Ordinary annuity (end-of-period payments): "
+            r"\[\text{PV} = \text{PMT} \times \dfrac{1 - (1+i)^{-N}}{i}\]",
+            rf"\(\text{{PV}} = {fmt_money_tex(p['pmt'])} \times "
+            rf"\dfrac{{1 - (1 + {i:.6f})^{{-{n_per}}}}}{{{i:.6f}}} = "
+            rf"{fmt_money_tex(answer)}\).",
+            r"No \((1+i)\) timing bump applies - that factor belongs to an "
             "annuity due, not an ordinary annuity.",
         ]
         rationale = (
-            f"PV(ordinary) = PMT x [1 - (1+i)^-N]/i = {fmt_money(answer)} "
-            f"with i = {i:.6f}, N = {n_per}. End-of-period timing means NO "
-            "extra (1+i) factor; miscounting N or accumulating to the final "
+            rf"\(\text{{PV(ordinary)}} = \text{{PMT}} \times "
+            rf"\dfrac{{1 - (1+i)^{{-N}}}}{{i}} = {fmt_money_tex(answer)}\) "
+            rf"with \(i = {i:.6f}\), \(N = {n_per}\). End-of-period timing "
+            r"means NO extra \((1+i)\) factor; miscounting N or "
+            "accumulating to the final "
             "date instead are the other classic errors."
         )
         return {"prompt": prompt, "worked_steps": steps, "rationale": rationale}
@@ -871,12 +913,14 @@ class TvmAnnuityPv(ParamGen):
             "the present-value setup."
         )
         cloze = (
-            "PV = PMT x [1 - (1+i)^-N] / i with i = "
+            r"\(\text{PV} = \text{PMT} \times [1 - (1+i)^{-N}] / i\) "
+            "with i = "
             f"{{{{c1::{i:.6f}}}}} and N = {{{{c2::{n_per}}}}}, giving PV = "
             f"{{{{c3::{fmt_money(answer)}}}}}"
         )
         rationale = (
-            f"i = r/m = {i:.6f} and N = m x n = {n_per}; the ordinary-"
+            rf"\(i = r/m = {i:.6f}\) and \(N = m \times n = {n_per}\); "
+            f"the ordinary-"
             f"annuity factor prices the stream at {fmt_money(answer)} one "
             "period before the first payment."
         )
@@ -892,9 +936,11 @@ class TvmAnnuityPv(ParamGen):
         )
         i = p["r"] / p["m"]
         rationale = (
-            f"PV = PMT x [1 - (1+i)^-N]/i with i = {i:.6f} and "
-            f"N = {p['m'] * p['n']}: {fmt_money(answer)}. End-of-period "
-            "payments make this an ORDINARY annuity - no (1+i) bump."
+            rf"\(\text{{PV}} = \text{{PMT}} \times "
+            rf"\dfrac{{1 - (1+i)^{{-N}}}}{{i}}\) with \(i = {i:.6f}\) and "
+            rf"\(N = {p['m'] * p['n']}\): {fmt_money(answer)}. "
+            "End-of-period "
+            r"payments make this an ORDINARY annuity - no \((1+i)\) bump."
         )
         return {"stem": stem, "rationale": rationale}
 
@@ -965,19 +1011,24 @@ class TvmAnnuityFvSavings(ParamGen):
             f"the final deposit, {p['n']} years from now?"
         )
         steps = [
-            f"Periodic rate i = {p['r'] * 100:.2f}%/{p['m']} = {i:.6f}; "
-            f"deposits N = {p['m']} x {p['n']} = {n_per}.",
-            "Ordinary-annuity accumulation: FV = PMT x [(1+i)^N - 1] / i, "
+            rf"Periodic rate \(i = {p['r'] * 100:.2f}\%/{p['m']} = "
+            rf"{i:.6f}\); deposits \(N = {p['m']} \times {p['n']} = "
+            rf"{n_per}\).",
+            "Ordinary-annuity accumulation: "
+            r"\[\text{FV} = \text{PMT} \times \dfrac{(1+i)^N - 1}{i}\] "
             "valued at the date of the LAST deposit.",
-            f"FV = {fmt_money(p['pmt'])} x [(1 + {i:.6f})^{n_per} - 1] / "
-            f"{i:.6f} = {fmt_money(answer)}.",
+            rf"\(\text{{FV}} = {fmt_money_tex(p['pmt'])} \times "
+            rf"\dfrac{{(1 + {i:.6f})^{{{n_per}}} - 1}}{{{i:.6f}}} = "
+            rf"{fmt_money_tex(answer)}\).",
             "The final deposit earns no interest (it just arrived); an "
             "annuity-due setup would wrongly credit every deposit one "
             "extra period.",
         ]
         rationale = (
-            f"FV(ordinary) = PMT x [(1+i)^N - 1]/i = {fmt_money(answer)} "
-            f"with i = {i:.6f}, N = {n_per}. Valuing at the goal date (not "
+            rf"\(\text{{FV(ordinary)}} = \text{{PMT}} \times "
+            rf"\dfrac{{(1+i)^N - 1}}{{i}} = {fmt_money_tex(answer)}\) "
+            rf"with \(i = {i:.6f}\), \(N = {n_per}\). Valuing at the goal "
+            "date (not "
             "today) and end-of-period timing are the two things to hold "
             "straight."
         )
@@ -993,13 +1044,13 @@ class TvmAnnuityFvSavings(ParamGen):
             "the accumulation."
         )
         cloze = (
-            "FV = PMT x [(1+i)^N - 1] / i = "
+            r"\(\text{FV} = \text{PMT} \times [(1+i)^N - 1] / i\) = "
             f"{fmt_money(p['pmt'])} x [(1 + {{{{c1::{i:.6f}}}}})^"
             f"{{{{c2::{n_per}}}}} - 1] / {i:.6f} = "
             f"{{{{c3::{fmt_money(answer)}}}}}"
         )
         rationale = (
-            f"i = {i:.6f}, N = {n_per}: the deposits grow to "
+            rf"\(i = {i:.6f}\), \(N = {n_per}\): the deposits grow to "
             f"{fmt_money(answer)} at the date of the last deposit."
         )
         return {"prompt": prompt, "cloze_text": cloze, "rationale": rationale}
@@ -1014,8 +1065,10 @@ class TvmAnnuityFvSavings(ParamGen):
         )
         i = p["r"] / p["m"]
         rationale = (
-            f"FV = PMT x [(1+i)^N - 1]/i with i = {i:.6f}, "
-            f"N = {p['m'] * p['n']}: {fmt_money(answer)}. The stream is "
+            rf"\(\text{{FV}} = \text{{PMT}} \times "
+            rf"\dfrac{{(1+i)^N - 1}}{{i}}\) with \(i = {i:.6f}\), "
+            rf"\(N = {p['m'] * p['n']}\): {fmt_money(answer)}. "
+            "The stream is "
             "ordinary (end-of-period) and is valued at the goal date."
         )
         return {"stem": stem, "rationale": rationale}
@@ -1146,7 +1199,8 @@ class InventoryCogs(ParamGen):
             take = min(qty, remaining)
             if take:
                 walk.append(
-                    f"take {take} units at {fmt_money(cost)} = {fmt_money(take * cost)}"
+                    rf"take \({take} \times {fmt_money_tex(cost)} = "
+                    rf"{fmt_money_tex(take * cost)}\)"
                 )
             remaining -= take
             if remaining == 0:
@@ -1155,13 +1209,14 @@ class InventoryCogs(ParamGen):
         steps = [
             f"{m} costs sales from the {end_note}.",
             *walk,
-            f"COGS = {fmt_money(answer)}.",
+            rf"\(\text{{COGS}} = {fmt_money_tex(answer)}\).",
             "Cross-check via the identity: goods available - ending "
             "inventory (costed from the opposite end) reproduces the same "
             "figure.",
         ]
         rationale = (
-            f"{m} takes the {end_note}: COGS = {fmt_money(answer)}. "
+            rf"{m} takes the {end_note}: \(\text{{COGS}} = "
+            rf"{fmt_money_tex(answer)}\). "
             "Costing from the wrong end, averaging the layers, or reporting "
             "ending inventory instead are the classic errors."
         )
@@ -1184,7 +1239,7 @@ class InventoryCogs(ParamGen):
             f"available {fmt_money(avail_cost)} = COGS + EI)."
         )
         rationale = (
-            f"COGS = {fmt_money(answer)}; the rest of the "
+            rf"\(\text{{COGS}} = {fmt_money_tex(answer)}\); the rest of the "
             f"{fmt_money(avail_cost)} of goods available "
             f"({fmt_money(ei)}) stays on the balance sheet."
         )
@@ -1200,10 +1255,10 @@ class InventoryCogs(ParamGen):
             "oldest layers first" if p["method"] == "FIFO" else "newest layers first"
         )
         rationale = (
-            f"{p['method']} costs sales from the {end_note}, giving COGS = "
-            f"{fmt_money(answer)}. The other method's figure, the "
-            "weighted-average figure, and the ending-inventory figure are "
-            "the standard traps."
+            rf"{p['method']} costs sales from the {end_note}, giving "
+            rf"\(\text{{COGS}} = {fmt_money_tex(answer)}\). The other "
+            "method's figure, the weighted-average figure, and the "
+            "ending-inventory figure are the standard traps."
         )
         return {"stem": stem, "rationale": rationale}
 
@@ -1311,34 +1366,38 @@ class LifoReserve(ParamGen):
         d_r = p["r_end"] - p["r_begin"]
         if p["variant"] == "ei":
             steps = [
-                f"Ending LIFO inventory from the identity: BI + purchases - "
-                f"COGS = {fmt_money(p['bi_l'])} + {fmt_money(p['purchases'])} "
-                f"- {fmt_money(p['cogs_l'])} = {fmt_money(ei_l)}.",
-                "FIFO inventory = LIFO inventory + LIFO reserve (the "
-                "reserve is ADDED, and it is the END-of-period reserve).",
-                f"FIFO EI = {fmt_money(ei_l)} + {fmt_money(p['r_end'])} = "
-                f"{fmt_money(answer)}.",
+                r"Ending LIFO inventory from the identity: \(\text{EI} = "
+                rf"\text{{BI}} + \text{{purchases}} - \text{{COGS}} = "
+                rf"{fmt_money_tex(p['bi_l'])} + {fmt_money_tex(p['purchases'])} "
+                rf"- {fmt_money_tex(p['cogs_l'])} = {fmt_money_tex(ei_l)}\).",
+                r"\[\text{FIFO inventory} = \text{LIFO inventory} + "
+                r"\text{LIFO reserve}\] (the reserve is ADDED, and it is "
+                "the END-of-period reserve).",
+                rf"\(\text{{FIFO EI}} = {fmt_money_tex(ei_l)} + "
+                rf"{fmt_money_tex(p['r_end'])} = {fmt_money_tex(answer)}\).",
             ]
             rationale = (
-                f"FIFO inventory = LIFO inventory + LIFO reserve = "
-                f"{fmt_money(ei_l)} + {fmt_money(p['r_end'])} = "
-                f"{fmt_money(answer)}. Add (never subtract) the end-of-"
-                "period reserve."
+                r"\(\text{FIFO inventory} = \text{LIFO inventory} + "
+                rf"\text{{LIFO reserve}} = {fmt_money_tex(ei_l)} + "
+                rf"{fmt_money_tex(p['r_end'])} = {fmt_money_tex(answer)}\). "
+                "Add (never subtract) the end-of-period reserve."
             )
         else:
             steps = [
-                f"Change in LIFO reserve = {fmt_money(p['r_end'])} - "
-                f"{fmt_money(p['r_begin'])} = {fmt_money(d_r)}.",
-                "FIFO COGS = LIFO COGS - (increase in LIFO reserve): a "
-                "rising reserve means FIFO expensed LESS.",
-                f"FIFO COGS = {fmt_money(p['cogs_l'])} - {fmt_money(d_r)} = "
-                f"{fmt_money(answer)}.",
+                rf"Change in LIFO reserve: \({fmt_money_tex(p['r_end'])} - "
+                rf"{fmt_money_tex(p['r_begin'])} = {fmt_money_tex(d_r)}\).",
+                r"\[\text{FIFO COGS} = \text{LIFO COGS} - "
+                r"\Delta\text{LIFO reserve}\] - a rising reserve means "
+                "FIFO expensed LESS.",
+                rf"\(\text{{FIFO COGS}} = {fmt_money_tex(p['cogs_l'])} - "
+                rf"{fmt_money_tex(d_r)} = {fmt_money_tex(answer)}\).",
             ]
             rationale = (
-                f"FIFO COGS = LIFO COGS - change in reserve = "
-                f"{fmt_money(p['cogs_l'])} - {fmt_money(d_r)} = "
-                f"{fmt_money(answer)}. Use the CHANGE in the reserve with a "
-                "minus sign for an increase - not the level, not a plus."
+                r"\(\text{FIFO COGS} = \text{LIFO COGS} - "
+                rf"\Delta\text{{reserve}} = {fmt_money_tex(p['cogs_l'])} - "
+                rf"{fmt_money_tex(d_r)} = {fmt_money_tex(answer)}\). Use the "
+                "CHANGE in the reserve with a minus sign for an increase - "
+                "not the level, not a plus."
             )
         return {"prompt": prompt, "worked_steps": steps, "rationale": rationale}
 
@@ -1357,7 +1416,7 @@ class LifoReserve(ParamGen):
             )
             rationale = (
                 "The reserve is ADDED to LIFO inventory; using the "
-                f"end-of-period reserve gives {fmt_money(answer)}."
+                rf"end-of-period reserve gives \({fmt_money_tex(answer)}\)."
             )
         else:
             cloze = (
@@ -1367,7 +1426,7 @@ class LifoReserve(ParamGen):
             )
             rationale = (
                 "The income-statement restatement subtracts the CHANGE in "
-                f"the reserve, giving {fmt_money(answer)}."
+                rf"the reserve, giving \({fmt_money_tex(answer)}\)."
             )
         return {"prompt": prompt, "cloze_text": cloze, "rationale": rationale}
 
@@ -1379,16 +1438,18 @@ class LifoReserve(ParamGen):
         stem = f"A company reporting under LIFO discloses {self._facts(p)}. {ask}"
         if p["variant"] == "ei":
             rationale = (
-                "FIFO inventory = LIFO inventory + END-of-period LIFO "
-                f"reserve = {fmt_money(self._ei_l(p))} + "
-                f"{fmt_money(p['r_end'])} = {fmt_money(answer)}."
+                r"\(\text{FIFO inventory} = \text{LIFO inventory} + "
+                rf"\text{{END-of-period reserve}} = "
+                rf"{fmt_money_tex(self._ei_l(p))} + "
+                rf"{fmt_money_tex(p['r_end'])} = {fmt_money_tex(answer)}\)."
             )
         else:
             d_r = p["r_end"] - p["r_begin"]
             rationale = (
-                "FIFO COGS = LIFO COGS - change in LIFO reserve = "
-                f"{fmt_money(p['cogs_l'])} - {fmt_money(d_r)} = "
-                f"{fmt_money(answer)}."
+                r"\(\text{FIFO COGS} = \text{LIFO COGS} - "
+                rf"\Delta\text{{LIFO reserve}} = "
+                rf"{fmt_money_tex(p['cogs_l'])} - {fmt_money_tex(d_r)} = "
+                rf"{fmt_money_tex(answer)}\)."
             )
         return {"stem": stem, "rationale": rationale}
 
@@ -1418,7 +1479,8 @@ def compare_items() -> list[dict[str, Any]]:
             "right_title": "Modified duration",
             "right_body": (
                 "Price SENSITIVITY: the approximate percentage price fall "
-                "for a 1-unit yield rise. Equals Macaulay / (1 + y/k). "
+                r"for a 1-unit yield rise. Equals \(\text{Macaulay} / "
+                r"(1 + y/k)\). "
                 "Always below Macaulay at positive yields."
             ),
             "discriminator": (
@@ -1428,9 +1490,11 @@ def compare_items() -> list[dict[str, Any]]:
             ),
             "rationale": (
                 "Macaulay is the PV-weighted average time; dividing it by "
-                "(1 + y/k) - one period's yield - rescales it into modified "
+                r"\((1 + y/k)\) - one period's yield - rescales it into "
+                "modified "
                 "duration, the price-sensitivity measure used in "
-                "%dP = -ModDur x dy. Quoting one for the other is the "
+                r"\(\%\Delta P = -\text{ModDur} \times \Delta y\). "
+                "Quoting one for the other is the "
                 "classic duration-family error."
             ),
             "source": {},

@@ -97,6 +97,23 @@ the [A1]/[A2]/C1/C2 corrections:
 - **Deferred, unchanged:** held-out MCQ bank, Performance calibration, the three-arm ablation run,
   the AnkiDroid `.aar` rebuild/emulator pass (the 25.09.2 rsdroid rebase — Phase 3 [R27]).
 
+**Update (2026-07-03, later) — MathJax card math + dense retrieval made opt-in.**
+
+- Generated items now emit formulas as **MathJax** (`\( … \)` / `\[ … \]`), which Anki typesets
+  natively on desktop and AnkiDroid — no more raw ASCII equations on cards. Cloze fields keep
+  **linear** notation under a new schema rule (validated): TeX must never produce a `}}` sequence in
+  `cloze_text`, because Anki closes each `{{cN::` at the first following `}}`. The solve-MCQ
+  tap-reveal re-typesets the revealed feedback block when MathJax is present. `cfa_ladder.apkg`
+  rebuilt; end-to-end render checks added.
+- The dense/rerank retrieval arms are now **opt-in** (`SPEEDRUN_DENSE=1`): the
+  torch/sentence-transformers/numpy stack is ABI-fragile on this host (numpy-2-vs-torch-2.3 aborts
+  the interpreter), repeatedly crashing tooling runs. The guaranteed, always-on arm is stdlib BM25 —
+  consistent with C7's descope of the IR project to a minimal defensible slice. The full-stack eval
+  that did run (pinned sentence-transformers 3.4.1, RRF+rerank P@1 0.727 vs BM25 0.500 / dense
+  0.455) is preserved in `eval/archive/retrieval_eval_fullstack_20260703.*`; the live
+  `eval/retrieval_eval.*` honestly reports the dense arm as unavailable and makes **no** [R21]
+  beats-both claim in that state.
+
 ---
 
 ## Headline verdict: the three SPOVs survive, but each is now _bounded_ by a measured moderator

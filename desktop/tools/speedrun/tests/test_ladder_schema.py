@@ -153,6 +153,33 @@ class ValidateItemTests(unittest.TestCase):
         item["cloze_text"] = "Bad {{c0::zero}} plus {{c1::one}}."
         self.assert_rejected(item, "cloze")
 
+    def test_mathjax_cloze_text_accepted(self) -> None:
+        # linear TeX with no "}}" outside the markers is fine
+        item = base_item("cloze")
+        item["cloze_text"] = (
+            r"\(\text{ModDur} = \text{MacDur} / (1 + y/k)\) = "
+            r"{{c1::9.80}} / (1 + {{c2::0.02650}})."
+        )
+        self.assertEqual(ladder_schema.validate_item(item), [])
+
+    def test_cloze_text_with_stray_brace_pair_rejected(self) -> None:
+        # nested TeX groups like x^{y^{2}} end in "}}", which makes Anki
+        # close the deletion early ({{cN:: ends at the FIRST following "}}")
+        item = base_item("cloze")
+        item["cloze_text"] = r"Growth: {{c1::\(x^{y^{2}}\)}} and {{c2::compounding}}."
+        self.assert_rejected(item, '"}}" sequence')
+
+    def test_cloze_stripped_remainder_scans_like_anki(self) -> None:
+        self.assertEqual(
+            ladder_schema.cloze_stripped_remainder("a {{c1::x}} b {{c2::y}} c"),
+            "a x b y c",
+        )
+        # the first "}}" after an opener closes it, even mid-TeX
+        self.assertEqual(
+            ladder_schema.cloze_stripped_remainder(r"{{c1::x^{n}} tail}}"),
+            r"x^{n tail}}",
+        )
+
     def test_empty_worked_steps_rejected(self) -> None:
         item = base_item("worked")
         item["worked_steps"] = []
