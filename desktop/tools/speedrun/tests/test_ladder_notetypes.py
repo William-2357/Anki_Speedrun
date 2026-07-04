@@ -249,6 +249,41 @@ class CssTests(unittest.TestCase):
             self.assertIn(".night_mode", css, "AnkiDroid night mode")
 
 
+class SourceHtmlTests(unittest.TestCase):
+    """The [R21] citation must read as a labelled source, never as raw
+    machine coordinates ("duration.md, #compounding-conventions-...")."""
+
+    def test_machine_coordinates_render_as_readable_citation(self) -> None:
+        out = ladder_notetypes.source_html(
+            {
+                "doc": "duration.md",
+                "loc": "#compounding-conventions-for-duration",
+                "passage": "Yields are quoted nominally.",
+            }
+        )
+        self.assertIn('<span class="sr-source-label">Source:</span>', out)
+        self.assertIn("Duration &mdash; Compounding conventions for duration", out)
+        self.assertIn("&ldquo;Yields are quoted nominally.&rdquo;", out)
+        # the raw filename / slug forms must not leak onto the card
+        self.assertNotIn("duration.md", out)
+        self.assertNotIn("#compounding", out)
+
+    def test_doc_only_and_underscores(self) -> None:
+        out = ladder_notetypes.source_html(
+            {"doc": "bond_pricing.md", "loc": "", "passage": ""}
+        )
+        self.assertIn("Bond pricing", out)
+        self.assertNotIn("&mdash;", out)
+        self.assertNotIn("sr-source-passage", out)
+
+    def test_reference_is_escaped(self) -> None:
+        out = ladder_notetypes.source_html(
+            {"doc": "a&b.md", "loc": "#x<y", "passage": ""}
+        )
+        self.assertIn("A&amp;b", out)
+        self.assertIn("X&lt;y", out)
+
+
 class FieldHelperTests(unittest.TestCase):
     def test_faded_cloze_fields(self) -> None:
         text, back_extra = ladder_notetypes.faded_cloze_fields(cloze_item())

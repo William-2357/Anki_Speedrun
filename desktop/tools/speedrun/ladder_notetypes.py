@@ -137,6 +137,9 @@ _BASE_CSS = """\
     color: var(--sr-muted);
     margin-top: 0.7em;
 }
+.sr-source-label {
+    font-weight: 700;
+}
 .sr-source-passage {
     font-style: italic;
 }
@@ -570,13 +573,34 @@ def worked_steps_html(steps: Sequence[str]) -> str:
     return f'<ol class="sr-steps-list">{items}</ol>'
 
 
+def _prettify_doc(doc: str) -> str:
+    """Corpus filename -> readable name: "bond_pricing.md" -> "Bond pricing"."""
+    name = doc.rsplit("/", 1)[-1]
+    name = name.removesuffix(".md").replace("_", " ").replace("-", " ").strip()
+    return name[:1].upper() + name[1:]
+
+
+def _prettify_loc(loc: str) -> str:
+    """Heading slug -> readable section: "#quoted-yields" -> "Quoted yields"."""
+    section = loc.lstrip("#").replace("-", " ").strip()
+    return section[:1].upper() + section[1:]
+
+
 def source_html(source: Mapping[str, str]) -> str:
-    """The named source [R21], shown inside the feedback block."""
-    doc = _escape(source.get("doc", ""))
-    loc = _escape(source.get("loc", ""))
+    """The named source [R21], shown inside the feedback block.
+
+    Item records carry machine coordinates (doc = corpus filename, loc =
+    heading slug, e.g. "duration.md" / "#compounding-conventions"); the
+    card shows a labelled, readable citation instead of the raw form.
+    """
+    doc = _escape(_prettify_doc(str(source.get("doc", ""))))
+    loc = _escape(_prettify_loc(str(source.get("loc", ""))))
     passage = _escape(source.get("passage", ""))
-    reference = f"{doc}, {loc}" if loc else doc
-    out = f'<span class="sr-source-ref">{reference}</span>'
+    reference = f"{doc} &mdash; {loc}" if loc else doc
+    out = (
+        '<span class="sr-source-label">Source:</span> '
+        f'<span class="sr-source-ref">{reference}</span>'
+    )
     if passage:
         out += f' <span class="sr-source-passage">&ldquo;{passage}&rdquo;</span>'
     return out

@@ -141,6 +141,46 @@ the synced map is applied identically.
 edge-sourcing for _scheduling_** (clusters/rungs). This is manual, no-AI **topic attribution for the
 _dashboard_** — complementary and independently shippable.
 
+## Runtime-AI assistant layer — [SHIPPED 2026-07-03, desktop only, default OFF]
+
+_Spec: `RUNTIME_AI_PLAN.md`. This section documents what landed on the dashboard page._
+
+The dashboard hosts the three runtime-AI features that sit **outside the review loop**: the
+**session debrief** (A), the **Study Coach** (B) and the **tag→topic suggester** (C). The page talks
+to a desktop-only host bridge (`/_anki/speedrunAssistant`, `qt/aqt/speedrun_assistant.py`, wired in
+`mediasrv.py`) which calls the grounded-or-abstain adapter in `tools/speedrun/assistant/`
+(reusing the `aig/models.py` backends; mock by default). The AI-free dashboard above is byte-for-byte
+unchanged when the layer is off.
+
+- **Toggles (synced collection config, all default OFF):** `speedrun:aiAssist` (master) +
+  `speedrun:debriefEnabled` / `speedrun:coachEnabled` / `speedrun:tagSuggestEnabled`, plus
+  `speedrun:aiBackend` (`"" | mock | claude-cli | openai-compatible`). Typed getters/setters in
+  `ts/routes/dashboard/config.ts`; an "AI assistant settings" disclosure panel on the page edits
+  them. A feature renders only when the bridge exists AND the master switch AND its own flag are on;
+  the bridge re-checks both server-side.
+- **B — Coach:** a collapsed "Study coach" panel. `assistant.ts#coachFacts` serializes the
+  already-computed `DashboardModel` (per-subject Memory/Performance, coverage, weighted gaps,
+  `bestNext`, gauge abstentions verbatim) + `speedrun:exam_date` → `days_to_exam`; the bridge routes
+  it to `assistant/coach.py`. The coach **defers to the gauge**: while Readiness abstains it must not
+  state any pass probability (enforced by a reject hook + number-grounding, not trust). Abstention →
+  the deterministic view stands, with the reason shown.
+- **C — Tag suggester:** an "AI-suggest topics (pre-fill only)" button inside the _Map tags_ editor.
+  Sends the unmapped tags (+ up to 3 sample note fronts each, gathered read-only by the bridge) and
+  the 10 canonical topic ids; `assistant/tag_suggest.py` returns per-tag `{topic|ignore, confidence}`
+  with "unsure"/low-confidence dropped. Suggestions only pre-fill blank dropdowns (never a user
+  choice), show an "AI n%" chip, and **nothing persists until the user clicks Save** — the existing
+  deterministic map semantics and `unmapped_tags` surfacing are untouched.
+- **A — Debrief (also on this page):** a "Session debrief" card narrating the trailing session's
+  error patterns (topics missed, confusable-pair co-occurrence via `aig/confusability.py`,
+  misconception histogram from missed MCQs) with a deterministic table that always renders; the AI
+  narration abstains below 3 mistakes or on any ungrounded reply.
+- **Honesty:** every AI output is labelled AI-generated with a disclosure of where the numbers went;
+  grounded-or-abstain (no number may appear that the app did not compute); read-only w.r.t. grading,
+  scheduling and Readiness by construction.
+- **Android:** the same Svelte page ships in the `.aar`; `fetchAssistantStatus()` fails where the
+  bridge is absent, so **no AI affordance renders on mobile** (graceful degradation, no broken
+  buttons). No Android source changed.
+
 ## How each value is calculated
 
 Notation: for subject `s`, `studied(s)` = its cards that have an FSRS memory state; `R(c)` = a card's

@@ -701,6 +701,17 @@ def save_custom_colours() -> bytes:
     return b""
 
 
+def speedrun_assistant() -> bytes:
+    """Anki Speedrun: the runtime-AI assistant bridge (desktop only).
+
+    JSON in / JSON out. Every action is read-only w.r.t. grading,
+    scheduling and Readiness inputs; see aqt/speedrun_assistant.py.
+    """
+    from aqt.speedrun_assistant import handle_assistant_request
+
+    return handle_assistant_request(request.data)
+
+
 post_handler_list = [
     congrats_info,
     get_deck_configs_for_update,
@@ -717,6 +728,8 @@ post_handler_list = [
     deck_options_require_close,
     deck_options_ready,
     save_custom_colours,
+    # Anki Speedrun: runtime-AI assistant layer (RUNTIME_AI_PLAN.md)
+    speedrun_assistant,
 ]
 
 

@@ -6,13 +6,31 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
     import { topicMastery } from "@generated/backend";
 
     import {
+        coachFacts,
+        fetchAssistantStatus,
+        mergeSuggestions,
+        requestCoach,
+        requestDebrief,
+        requestTagSuggestions,
+    } from "./assistant";
+    import type {
+        AssistantStatus,
+        CoachResult,
+        DebriefResult,
+        TagSuggestion,
+    } from "./assistant";
+    import {
+        AI_BACKEND_CHOICES,
         getExamDate,
         getTagTopicMap,
         IGNORE_TOPIC_VALUE,
         isValidExamDate,
+        saveAiAssistFlag,
+        saveAiBackend,
         saveExamDate,
         saveTagTopicMap,
     } from "./config";
+    import type { AiBackendChoice } from "./config";
     import GaugeCard from "./GaugeCard.svelte";
     import { buildDashboardModel, READINESS_GATES } from "./metrics";
     import type { DashboardModel } from "./metrics";
@@ -23,6 +41,25 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
 
     let model: DashboardModel | null = null;
     let error: string | null = null;
+
+    /** The desktop assistant bridge, or null when absent (Android / AI
+     * unavailable) - with null, no AI affordance renders at all. */
+    let assistant: AssistantStatus | null = null;
+
+    let debriefLoading = false;
+    let debriefResult: DebriefResult | null = null;
+    let debriefError: string | null = null;
+
+    let coachOpen = false;
+    let coachLoading = false;
+    let coachResult: CoachResult | null = null;
+    let coachError: string | null = null;
+
+    let suggestLoading = false;
+    let suggestNote: string | null = null;
+    let suggestDisclosure: string | null = null;
+    /** per-tag confidence of the last accepted suggestions, for display */
+    let suggestionInfo: Record<string, TagSuggestion> = {};
 
     /** the persisted tag->topic map, as loaded from collection config */
     let savedMap: Record<string, string> = {};
@@ -38,13 +75,15 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
 
     async function refresh(): Promise<void> {
         try {
-            const [tagTopicMap, storedExamDate] = await Promise.all([
+            const [tagTopicMap, storedExamDate, status] = await Promise.all([
                 getTagTopicMap(),
                 getExamDate(),
+                fetchAssistantStatus(),
             ]);
             savedMap = tagTopicMap;
             examDate = storedExamDate;
             examDateInput = storedExamDate;
+            assistant = status;
             const response = await topicMastery({
                 search: "",
                 topicPrefix: "",
@@ -59,6 +98,96 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
     }
 
     refresh();
+
+    // A feature is live only when the bridge exists, the assistant package
+    // imported, the master switch is on AND the feature's own flag is on.
+    $: aiOn = assistant !== null && assistant.available && assistant.aiAssist;
+    $: debriefOn = aiOn && assistant!.debriefEnabled;
+    $: coachOn = aiOn && assistant!.coachEnabled;
+    $: suggestOn = aiOn && assistant!.tagSuggestEnabled;
+
+    async function setAiFlag(
+        flag: "aiAssist" | "debriefEnabled" | "coachEnabled" | "tagSuggestEnabled",
+        value: boolean,
+    ): Promise<void> {
+        await saveAiAssistFlag(flag, value);
+        assistant = await fetchAssistantStatus();
+    }
+
+    async function setAiBackend(value: string): Promise<void> {
+        await saveAiBackend(value as AiBackendChoice);
+        assistant = await fetchAssistantStatus();
+    }
+
+    async function generateDebrief(): Promise<void> {
+        debriefLoading = true;
+        debriefError = null;
+        try {
+            debriefResult = await requestDebrief();
+        } catch (exc) {
+            debriefResult = null;
+            debriefError = String(exc);
+        } finally {
+            debriefLoading = false;
+        }
+    }
+
+    async function askCoach(): Promise<void> {
+        if (!model) {
+            return;
+        }
+        coachLoading = true;
+        coachError = null;
+        try {
+            coachResult = await requestCoach(coachFacts(model, examDate));
+        } catch (exc) {
+            coachResult = null;
+            coachError = String(exc);
+        } finally {
+            coachLoading = false;
+        }
+    }
+
+    async function suggestMappings(): Promise<void> {
+        if (!model) {
+            return;
+        }
+        suggestLoading = true;
+        suggestNote = null;
+        suggestDisclosure = null;
+        try {
+            const rows = model.unmappedTags.map((row) => ({
+                tag: row.tag,
+                cards: row.cards,
+            }));
+            const result = await requestTagSuggestions(
+                rows,
+                TOPICS.map((topic) => topic.id),
+            );
+            if (!result.enabled) {
+                suggestNote = result.reason ?? "Tag suggestions are switched off.";
+                return;
+            }
+            suggestionInfo = result.suggestions ?? {};
+            const validValues = new Set([
+                ...TOPICS.map((topic) => topic.id),
+                IGNORE_TOPIC_VALUE,
+            ]);
+            const { merged, applied } = mergeSuggestions(
+                pendingMap,
+                suggestionInfo,
+                validValues,
+            );
+            pendingMap = merged;
+            const considered = result.consideredTags ?? rows.length;
+            suggestNote = `${applied} of ${considered} tags pre-filled; the rest stay blank (unsure or low confidence). Nothing is saved until you click "Save mapping".`;
+            suggestDisclosure = result.disclosure ?? null;
+        } catch (exc) {
+            suggestNote = `Suggestions unavailable (${exc}); the manual editor still works.`;
+        } finally {
+            suggestLoading = false;
+        }
+    }
 
     interface MappingRow {
         tag: string;
@@ -220,6 +349,287 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
             {/if}
         </section>
 
+        {#if assistant !== null}
+            <!-- Desktop-only assistant layer (RUNTIME_AI_PLAN). The whole
+                 block depends on the host bridge, so Android renders none
+                 of it. Every feature is default-OFF and read-only: AI here
+                 narrates and suggests; it never grades, schedules, or
+                 feeds Readiness. -->
+            {#if debriefOn}
+                <section class="ai-card">
+                    <div class="ai-card-header">
+                        <h2>Session debrief</h2>
+                        <span class="ai-badge">AI · read-only</span>
+                        <button
+                            class="small-button"
+                            on:click={generateDebrief}
+                            disabled={debriefLoading}
+                        >
+                            {debriefLoading ? "Working…" : "Debrief my last session"}
+                        </button>
+                    </div>
+                    {#if debriefError}
+                        <p class="ai-status">
+                            Debrief unavailable ({debriefError}); your reviews are
+                            unaffected.
+                        </p>
+                    {:else if debriefResult}
+                        {#if !debriefResult.enabled}
+                            <p class="ai-status">{debriefResult.reason}</p>
+                        {:else if !debriefResult.report}
+                            <p class="ai-status">
+                                No graded reviews in the last session — study some cards
+                                first.
+                            </p>
+                        {:else}
+                            {#if debriefResult.narrative}
+                                <blockquote class="ai-narrative">
+                                    <p>{debriefResult.narrative.narrative}</p>
+                                    <p class="next-step">
+                                        Next step: {debriefResult.narrative.next_step}
+                                    </p>
+                                </blockquote>
+                            {:else}
+                                <p class="ai-status">
+                                    No AI narration ({debriefResult.narrativeStatus}) —
+                                    the deterministic pattern table below stands on its
+                                    own.
+                                </p>
+                            {/if}
+                            <div class="debrief-tables">
+                                <div>
+                                    <h3>
+                                        Session ({debriefResult.report.window.n_reviews}
+                                        reviews, {debriefResult.report.window.n_lapses}
+                                        misses)
+                                    </h3>
+                                    {#if debriefResult.report.topics_missed.length}
+                                        <table>
+                                            <thead>
+                                                <tr>
+                                                    <th>Topic</th>
+                                                    <th>Misses</th>
+                                                    <th>Reviews</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {#each debriefResult.report.topics_missed as row}
+                                                    <tr>
+                                                        <td>
+                                                            <code>{row.topic}</code>
+                                                        </td>
+                                                        <td>{row.lapses}</td>
+                                                        <td>{row.reviews}</td>
+                                                    </tr>
+                                                {/each}
+                                            </tbody>
+                                        </table>
+                                    {:else}
+                                        <p class="ai-status">
+                                            No misses — clean session.
+                                        </p>
+                                    {/if}
+                                </div>
+                                {#if debriefResult.report.confusable_pairs.length}
+                                    <div>
+                                        <h3>Confusable pairs that co-occurred</h3>
+                                        <table>
+                                            <thead>
+                                                <tr>
+                                                    <th>Pair</th>
+                                                    <th>Lift</th>
+                                                    <th>Session misses</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {#each debriefResult.report.confusable_pairs as row}
+                                                    <tr>
+                                                        <td>
+                                                            <code>{row.pair[0]}</code>
+                                                            vs
+                                                            <code>{row.pair[1]}</code>
+                                                        </td>
+                                                        <td>{row.lift}</td>
+                                                        <td>{row.session_lapses}</td>
+                                                    </tr>
+                                                {/each}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                {/if}
+                                {#if debriefResult.report.misconceptions.length}
+                                    <div>
+                                        <h3>Misconceptions behind missed MCQs</h3>
+                                        <table>
+                                            <thead>
+                                                <tr>
+                                                    <th>Misconception</th>
+                                                    <th>Missed items</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {#each debriefResult.report.misconceptions as row}
+                                                    <tr>
+                                                        <td><code>{row.id}</code></td>
+                                                        <td>{row.count}</td>
+                                                    </tr>
+                                                {/each}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                {/if}
+                            </div>
+                            <p class="best-next-line">
+                                <strong>Best next:</strong>
+                                {debriefResult.report.best_next}
+                            </p>
+                            {#if debriefResult.narrative && debriefResult.disclosure}
+                                <p class="ai-disclosure">{debriefResult.disclosure}</p>
+                            {/if}
+                        {/if}
+                    {:else}
+                        <p class="ai-status">
+                            Narrates your last session's error patterns from the review
+                            log — counts only, never grades.
+                        </p>
+                    {/if}
+                </section>
+            {/if}
+
+            {#if coachOn}
+                <details class="ai-card coach" bind:open={coachOpen}>
+                    <summary>
+                        <h2>Study coach</h2>
+                        <span class="ai-badge">AI · read-only</span>
+                    </summary>
+                    <p class="ai-status">
+                        Turns the dashboard's own numbers into a "what should I do
+                        today" plan. It defers to the gauges: while Readiness abstains,
+                        the coach never states a pass probability.
+                    </p>
+                    <button
+                        class="small-button"
+                        on:click={askCoach}
+                        disabled={coachLoading || !model}
+                    >
+                        {coachLoading ? "Working…" : "What should I do today?"}
+                    </button>
+                    {#if coachError}
+                        <p class="ai-status">
+                            Coach unavailable ({coachError}); the gauges above are the
+                            plan.
+                        </p>
+                    {:else if coachResult}
+                        {#if !coachResult.enabled}
+                            <p class="ai-status">{coachResult.reason}</p>
+                        {:else if coachResult.plan}
+                            <blockquote class="ai-narrative">
+                                <p>{coachResult.plan.summary}</p>
+                                {#if coachResult.plan.priorities.length}
+                                    <ol>
+                                        {#each coachResult.plan.priorities as priority}
+                                            <li>
+                                                <strong>{priority.topic}</strong>
+                                                {#if priority.why}— {priority.why}{/if}
+                                            </li>
+                                        {/each}
+                                    </ol>
+                                {/if}
+                                {#if coachResult.plan.note}
+                                    <p class="next-step">{coachResult.plan.note}</p>
+                                {/if}
+                            </blockquote>
+                            {#if coachResult.disclosure}
+                                <p class="ai-disclosure">{coachResult.disclosure}</p>
+                            {/if}
+                        {:else}
+                            <p class="ai-status">
+                                The coach abstained ({coachResult.planStatus}) — the
+                                deterministic view above (weighted gaps, best next:
+                                {model?.bestNext ?? "n/a"}) stands.
+                            </p>
+                        {/if}
+                    {/if}
+                </details>
+            {/if}
+
+            <details class="ai-settings">
+                <summary>AI assistant settings (all default off)</summary>
+                <p class="ai-status">
+                    These features read the numbers this page already computed and
+                    narrate or suggest. They never write: grading, scheduling and the
+                    Readiness gauge stay AI-free by construction. With a non-mock
+                    backend, the facts shown to you are sent to that model.
+                </p>
+                {#if !assistant.available}
+                    <p class="ai-status unavailable">
+                        Assistant runtime unavailable: {assistant.unavailableReason}
+                    </p>
+                {/if}
+                <div class="ai-toggles">
+                    <label>
+                        <input
+                            type="checkbox"
+                            checked={assistant.aiAssist}
+                            on:change={(event) =>
+                                setAiFlag("aiAssist", event.currentTarget.checked)}
+                        />
+                        Enable AI assistant (master switch)
+                    </label>
+                    <label class="indented">
+                        <input
+                            type="checkbox"
+                            checked={assistant.debriefEnabled}
+                            disabled={!assistant.aiAssist}
+                            on:change={(event) =>
+                                setAiFlag(
+                                    "debriefEnabled",
+                                    event.currentTarget.checked,
+                                )}
+                        />
+                        Session debrief
+                    </label>
+                    <label class="indented">
+                        <input
+                            type="checkbox"
+                            checked={assistant.coachEnabled}
+                            disabled={!assistant.aiAssist}
+                            on:change={(event) =>
+                                setAiFlag("coachEnabled", event.currentTarget.checked)}
+                        />
+                        Study coach
+                    </label>
+                    <label class="indented">
+                        <input
+                            type="checkbox"
+                            checked={assistant.tagSuggestEnabled}
+                            disabled={!assistant.aiAssist}
+                            on:change={(event) =>
+                                setAiFlag(
+                                    "tagSuggestEnabled",
+                                    event.currentTarget.checked,
+                                )}
+                        />
+                        Tag→topic suggestions in the mapping editor
+                    </label>
+                    <label class="backend-select">
+                        Backend
+                        <select
+                            value={assistant.backend}
+                            on:change={(event) =>
+                                setAiBackend(event.currentTarget.value)}
+                        >
+                            {#each AI_BACKEND_CHOICES as choice}
+                                <option value={choice}>
+                                    {choice === "" ? "(from environment)" : choice}
+                                </option>
+                            {/each}
+                        </select>
+                    </label>
+                </div>
+            </details>
+        {/if}
+
         <section class="table-section">
             <SubjectTable subjects={model.subjects} />
             {#if model.aigExclusionNote}
@@ -250,6 +660,26 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
                         are per tag: a card with several unmapped tags is listed under each
                         of them.
                     </p>
+                    {#if suggestOn}
+                        <div class="suggest-row">
+                            <button
+                                class="small-button"
+                                on:click={suggestMappings}
+                                disabled={suggestLoading ||
+                                    (model?.unmappedTags.length ?? 0) === 0}
+                            >
+                                {suggestLoading
+                                    ? "Suggesting…"
+                                    : "AI-suggest topics (pre-fill only)"}
+                            </button>
+                            {#if suggestNote}
+                                <span class="ai-status">{suggestNote}</span>
+                            {/if}
+                        </div>
+                        {#if suggestDisclosure}
+                            <p class="ai-disclosure">{suggestDisclosure}</p>
+                        {/if}
+                    {/if}
                     {#if mappingRows.length === 0}
                         <p class="editor-intro">No unmapped tags to show.</p>
                     {:else}
@@ -285,6 +715,17 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
                                                     Ignore
                                                 </option>
                                             </select>
+                                            {#if suggestionInfo[row.tag] && pendingMap[row.tag] === suggestionInfo[row.tag].topic}
+                                                <span
+                                                    class="suggest-confidence"
+                                                    title="AI suggestion — override freely; nothing is saved until you click Save"
+                                                >
+                                                    AI {Math.round(
+                                                        suggestionInfo[row.tag]
+                                                            .confidence * 100,
+                                                    )}%
+                                                </span>
+                                            {/if}
                                         </td>
                                     </tr>
                                 {/each}
@@ -479,6 +920,184 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
         .date-error {
             color: var(--accent-danger, #c33);
         }
+    }
+
+    .ai-card {
+        margin: 0 0 1.25rem;
+        padding: 0.75rem 1rem;
+        border: 1px solid var(--border);
+        border-radius: var(--border-radius-medium, 10px);
+        background: var(--canvas-elevated);
+
+        h2 {
+            font-size: 1.05rem;
+            margin: 0;
+            display: inline;
+        }
+
+        h3 {
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            color: var(--fg-subtle);
+            margin: 0.75rem 0 0.25rem;
+        }
+
+        table {
+            border-collapse: collapse;
+            font-size: 0.85rem;
+
+            th {
+                text-align: left;
+                font-size: 0.7rem;
+                text-transform: uppercase;
+                letter-spacing: 0.04em;
+                color: var(--fg-subtle);
+                padding: 0.15rem 1rem 0.15rem 0;
+            }
+
+            td {
+                padding: 0.15rem 1rem 0.15rem 0;
+            }
+        }
+    }
+
+    .ai-card-header {
+        display: flex;
+        align-items: center;
+        gap: 0.6rem;
+        flex-wrap: wrap;
+    }
+
+    .ai-badge {
+        font-size: 0.65rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        padding: 0.1rem 0.45rem;
+        border-radius: 999px;
+        border: 1px solid var(--accent-card, #3b82f6);
+        color: var(--accent-card, #3b82f6);
+        white-space: nowrap;
+    }
+
+    .coach summary {
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 0.6rem;
+
+        h2 {
+            display: inline;
+        }
+    }
+
+    .ai-status {
+        font-size: 0.8rem;
+        color: var(--fg-subtle);
+        margin: 0.5rem 0 0;
+
+        &.unavailable {
+            color: var(--accent-danger, #c33);
+        }
+    }
+
+    .ai-narrative {
+        margin: 0.75rem 0 0;
+        padding: 0.5rem 0.9rem;
+        border-left: 3px solid var(--accent-card, #3b82f6);
+        background: var(--canvas-inset);
+        border-radius: 0 var(--border-radius, 5px) var(--border-radius, 5px) 0;
+        font-size: 0.9rem;
+
+        p {
+            margin: 0.25rem 0;
+        }
+
+        ol {
+            margin: 0.4rem 0 0.25rem;
+            padding-left: 1.25rem;
+        }
+
+        .next-step {
+            color: var(--fg-subtle);
+            font-size: 0.85rem;
+        }
+    }
+
+    .debrief-tables {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0 2rem;
+    }
+
+    .best-next-line {
+        font-size: 0.85rem;
+        margin: 0.75rem 0 0;
+    }
+
+    .ai-disclosure {
+        font-size: 0.7rem;
+        color: var(--fg-subtle);
+        font-style: italic;
+        margin: 0.5rem 0 0;
+    }
+
+    .ai-settings {
+        margin: 0 0 1.25rem;
+        padding: 0.6rem 1rem;
+        border: 1px dashed var(--border);
+        border-radius: var(--border-radius-medium, 10px);
+        font-size: 0.85rem;
+
+        summary {
+            cursor: pointer;
+            color: var(--fg-subtle);
+        }
+    }
+
+    .ai-toggles {
+        display: flex;
+        flex-direction: column;
+        gap: 0.35rem;
+        margin-top: 0.6rem;
+
+        label {
+            display: flex;
+            align-items: center;
+            gap: 0.45rem;
+
+            &.indented {
+                margin-left: 1.5rem;
+            }
+
+            &.backend-select {
+                margin-top: 0.35rem;
+                gap: 0.6rem;
+            }
+        }
+
+        select {
+            border: 1px solid var(--border);
+            background: var(--canvas);
+            color: var(--fg);
+            border-radius: var(--border-radius, 5px);
+            padding: 0.15rem 0.3rem;
+        }
+    }
+
+    .suggest-row {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        flex-wrap: wrap;
+        margin-bottom: 0.6rem;
+    }
+
+    .suggest-confidence {
+        font-size: 0.7rem;
+        color: var(--accent-card, #3b82f6);
+        margin-left: 0.4rem;
+        white-space: nowrap;
     }
 
     .map-editor {

@@ -143,9 +143,8 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
         const recall = node.studiedCards
             ? `${Math.round(node.averageRetrievability * 100)}% mean recall over ${node.studiedCards} studied cards`
             : "no FSRS memory state yet";
-        const topic = node.topicId === null
-            ? ""
-            : `\ntopic: ${topicLabel(node.topicId)}`;
+        const topic =
+            node.topicId === null ? "" : `\ntopic: ${topicLabel(node.topicId)}`;
         return `${node.tag}\n${node.cardCount} cards\n${difficulty}\n${recall}${topic}`;
     }
 </script>
@@ -157,8 +156,8 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
             <p class="subtitle">
                 One node per tag; an edge when two tags share a note. Node size = cards;
                 colour is honest: grey means "no data yet", never a guess. Tags
-                attributed to a topic (via <code>cfa::topic::*</code> or the
-                dashboard's tag mapping) cluster under that topic's heading.
+                attributed to a topic (via <code>cfa::topic::*</code>
+                 or the dashboard's tag mapping) cluster under that topic's heading.
             </p>
         </div>
         <div class="controls">
@@ -182,25 +181,25 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
         {#if colourMode === "difficulty"}
             <span>
                 <i class="swatch" style:background="#22c55e"></i>
-                 answered well
+                answered well
             </span>
             <span>
                 <i class="swatch" style:background="#ef4444"></i>
-                 often Again/Hard
+                often Again/Hard
             </span>
         {:else}
             <span>
                 <i class="swatch" style:background="#ef4444"></i>
-                 low predicted recall
+                low predicted recall
             </span>
             <span>
                 <i class="swatch" style:background="#22c55e"></i>
-                 high predicted recall
+                high predicted recall
             </span>
         {/if}
         <span>
             <i class="swatch" style:background="#9ca3af"></i>
-             no data yet
+            no data yet
         </span>
         <span class="hint">
             scroll to zoom · drag to pan · hover a node for details

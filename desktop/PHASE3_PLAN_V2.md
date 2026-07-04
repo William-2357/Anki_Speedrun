@@ -185,6 +185,31 @@ proposed edges (human + behavioral) before use. **[R8]** generated/untagged edge
 credit but ZERO performance-transfer credit until validated on delayed held-out probes. Maintain
 held-out hygiene at scale.
 
+**Onboarding UX — the "Prepare this deck for Speedrun" action** _(moved here from `RUNTIME_AI_PLAN.md`
+on 2026-07-03; was that plan's "Feature D")._ The user-facing, **desktop-only** wrapper around the
+edge-sourcing above: an import-time **add-on action** (nothing auto-runs on import) that proposes a
+BYO deck's scheduling structure — **topic** (`cfa::topic::`), **cluster** (`cluster::`), **rung**, and
+**interactivity** tags, **confusability** edges, and, where useful, **generated missing rungs**
+(worked/faded/solve) grounded in the deck's own content — then **previews it for approval** before any
+tag write, and the write is **undoable**.
+
+- **Reuse the existing pipeline wholesale:** `models.make_llm_path` (drafter + critic + solver
+  consensus) → `aig/gates.py` (numeric / solve-check / rationale / leakage) → `aig/retrieval.py`
+  grounding → `speedrun-item-v1` records (`ITEM_SCHEMA.md`) → `build_ladder_deck.py`. Do **not** fork
+  the schema or the gates.
+- **Confusability edges** via `aig/confusability.py` on the deck's revlog — behavioral, within-topic,
+  auto-validated on a 70/30 time split, **abstaining** when it can't beat the surface baseline
+  ([R18]); never raw embedding similarity.
+- **Honesty ([R8]/[R24]):** proposed tags are **human-confirmed**; the apply step is an **undoable
+  pylib note update** (pattern: `confusability.apply_markers`); generated items are tagged
+  `aig::ungraded` → excluded from Readiness by `mastery.rs`, earning memory-retention credit but
+  **zero performance-transfer credit until validated** on delayed held-out probes (never flip
+  `aig::graded` here).
+- **Toggle:** `speedrun:byoOnboardingEnabled` (synced collection config, default OFF).
+- **Platform:** desktop only (pylib + add-on action). **Milestones:** scope the proposal set → note
+  reader / candidate extraction → topic/cluster/rung/interactivity proposer (abstaining) →
+  confusability edges → missing-rung generation → previewed, undoable apply → honesty wiring + tests.
+
 ### M6 — Analyze & write up — **[REVISE]**
 
 Does graph scheduling beat vanilla Anki on **delayed** Performance/Readiness at equal study time?
