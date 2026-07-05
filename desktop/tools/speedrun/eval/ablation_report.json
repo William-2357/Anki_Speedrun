@@ -1,0 +1,1235 @@
+{
+    "schema": "speedrun-ablation-v1",
+    "generated_by": "tools/speedrun/ablation.py",
+    "simulation_disclosure": {
+        "is_simulation": true,
+        "headline": "SIMULATION ONLY - every number below comes from a synthetic learner model, not from human study data.",
+        "details": [
+            "Learner model: single hand-specified exponential-forgetting model (n=1 learner model); see the module docstring of ablation.py for the exact equations.",
+            "Descriptive, not inferential: no hypothesis tests; mean +/- SD across seeded replications of the same model.",
+            "Content is derived from the real 72-card CFA sample deck's topic/cluster structure, scaled by synthetic paraphrase variants, plus synthetic homonym clusters and ladder items."
+        ]
+    },
+    "config": {
+        "seed": 20260704,
+        "days": 90,
+        "budget_per_day": 40,
+        "replications": 20,
+        "arms": [
+            "vanilla",
+            "contrast_on",
+            "fade_on",
+            "full_on",
+            "cross_topic_leakage",
+            "allocation_on",
+            "full_minus_contrast",
+            "full_minus_fade",
+            "full_minus_allocation"
+        ],
+        "blueprint_midpoints": {
+            "ethics": 17.5,
+            "quantitative_methods": 7.5,
+            "economics": 7.5,
+            "financial_statement_analysis": 12.5,
+            "corporate_issuers": 7.5,
+            "equity_investments": 12.5,
+            "fixed_income": 12.5,
+            "derivatives": 6.5,
+            "alternative_investments": 8.5,
+            "portfolio_management": 10.0
+        },
+        "total_blueprint_weight": 102.5,
+        "mps_band": [
+            0.68,
+            0.75
+        ],
+        "mps_center": 0.715,
+        "strict_gate": {
+            "min_graded_reviews": 300,
+            "min_weighted_coverage": 0.7,
+            "min_delayed_probes": 50,
+            "max_half_width": 0.2,
+            "min_half_width": 0.1,
+            "confidence_cap": 0.85,
+            "probe_recency_window_days": 45
+        },
+        "lenient_gate": {
+            "min_graded_reviews": 15,
+            "min_weighted_coverage": 0.01
+        },
+        "model_constants": {
+            "S_INIT": 5.0,
+            "GROWTH": 3.0,
+            "FAIL_SHRINK": 0.7,
+            "DUE_MULT": 0.3,
+            "NEW_PER_DAY": 12,
+            "C_MAX": 0.35,
+            "STUDY_CONFUSION_WEIGHT": 0.3,
+            "ADJ_BONUS": 0.25,
+            "DISC_RETAIN": 0.97,
+            "GUESS_MCQ": 0.333333,
+            "GATE_R": 0.6,
+            "PREMATURE_MULT": 0.25,
+            "PREMATURE_ENCODE_S": 1.0,
+            "ITEM_VARIANTS": 5,
+            "PROBE_DELAY_DAYS": 7,
+            "PROBE_WAVE_INTERVAL": 14,
+            "FINAL_PROBE_DRAWS": 3,
+            "READINESS_WINDOW_DAYS": 45,
+            "CONTRAST_CHUNK": 4,
+            "PERFORMANCE_TARGET": 0.8
+        }
+    },
+    "item_bank": {
+        "total_items": 418,
+        "clustered_items": 270,
+        "true_clusters": 20,
+        "shadow_homonym_clusters": 4,
+        "ladder_concepts": 6,
+        "probe_units": 36,
+        "source": "cfa_sample_cards.py x variants + synthetic shadows/ladders"
+    },
+    "primary_comparison": {
+        "preregistered": true,
+        "statement": "Stated ahead of the run: the primary comparison is full_on vs vanilla on delayed-Performance (held-out probe accuracy >= 7 simulated days after last study). Every other number in this report is exploratory.",
+        "metric": "delayed_performance",
+        "full_on": {
+            "mean": 0.839352,
+            "sd": 0.035833
+        },
+        "vanilla": {
+            "mean": 0.725926,
+            "sd": 0.053267
+        },
+        "delta": {
+            "mean": 0.113426,
+            "sd": 0.061557,
+            "per_replication": [
+                0.157407,
+                0.111111,
+                0.138889,
+                0.083333,
+                0.083333,
+                0.018519,
+                0.194444,
+                0.157407,
+                0.037037,
+                0.231481,
+                0.009259,
+                0.046296,
+                0.148148,
+                0.12963,
+                0.037037,
+                0.166667,
+                0.083333,
+                0.12037,
+                0.157407,
+                0.157407
+            ]
+        },
+        "note": "Descriptive, not inferential: one simulated learner model (n=1), paired by shared per-replication content order; no hypothesis test is performed or implied."
+    },
+    "exploratory_note": "Everything outside primary_comparison is exploratory and carries the same simulation caveats.",
+    "arms": {
+        "vanilla": {
+            "role": "named",
+            "description": "Plain due/FIFO order; no speedrun features.",
+            "features": {
+                "contrast": "off",
+                "fadeEnabled": false,
+                "readinessAllocation": false
+            },
+            "presentations_per_replication": 3600,
+            "memory": {
+                "mean": 0.859268,
+                "sd": 0.025139
+            },
+            "memory_weighted": {
+                "mean": 0.858731,
+                "sd": 0.024777
+            },
+            "delayed_performance": {
+                "mean": 0.725926,
+                "sd": 0.053267
+            },
+            "confusion_error_rate": {
+                "mean": 0.111574,
+                "sd": 0.028416
+            },
+            "readiness_brier": {
+                "mean": 0.369054,
+                "sd": 0.335594
+            },
+            "readiness_prediction": {
+                "mean": 0.20199,
+                "sd": 0.115372
+            },
+            "exam_score": {
+                "mean": 0.71401,
+                "sd": 0.023409
+            },
+            "exam_pass_rate": 0.55,
+            "mean_discrimination": {
+                "mean": 0.225188,
+                "sd": 0.027461
+            },
+            "adjacency": {
+                "true_pairs": {
+                    "mean": 83.8,
+                    "sd": 12.31003
+                },
+                "wasted_pairs": {
+                    "mean": 22.85,
+                    "sd": 5.724141
+                }
+            },
+            "abstention": {
+                "lenient_emit_days": {
+                    "mean": 89.0,
+                    "sd": 0.0
+                },
+                "strict_emit_days": {
+                    "mean": 61.0,
+                    "sd": 0.0
+                },
+                "overclaim_days": {
+                    "mean": 28.0,
+                    "sd": 0.0
+                },
+                "overclaim_fraction": {
+                    "mean": 0.311111,
+                    "sd": 0.0
+                },
+                "overclaim_brier": {
+                    "mean": 0.483961,
+                    "sd": 0.444247
+                },
+                "strict_first_emit_day": {
+                    "mean": 29.0,
+                    "sd": 0.0
+                },
+                "strict_emitting_replications": 20
+            }
+        },
+        "contrast_on": {
+            "role": "named",
+            "description": "Same selection as vanilla; same-cluster cards (within topic only) chunked adjacently, runs of <= 4 (contrastScheduling).",
+            "features": {
+                "contrast": "within_topic",
+                "fadeEnabled": false,
+                "readinessAllocation": false
+            },
+            "presentations_per_replication": 3600,
+            "memory": {
+                "mean": 0.872748,
+                "sd": 0.022437
+            },
+            "memory_weighted": {
+                "mean": 0.872495,
+                "sd": 0.022493
+            },
+            "delayed_performance": {
+                "mean": 0.785648,
+                "sd": 0.051709
+            },
+            "confusion_error_rate": {
+                "mean": 0.046759,
+                "sd": 0.018143
+            },
+            "readiness_brier": {
+                "mean": 0.243511,
+                "sd": 0.231321
+            },
+            "readiness_prediction": {
+                "mean": 0.566731,
+                "sd": 0.242333
+            },
+            "exam_score": {
+                "mean": 0.804162,
+                "sd": 0.024354
+            },
+            "exam_pass_rate": 1.0,
+            "mean_discrimination": {
+                "mean": 0.713928,
+                "sd": 0.017731
+            },
+            "adjacency": {
+                "true_pairs": {
+                    "mean": 921.2,
+                    "sd": 51.344656
+                },
+                "wasted_pairs": {
+                    "mean": 11.35,
+                    "sd": 3.248886
+                }
+            },
+            "abstention": {
+                "lenient_emit_days": {
+                    "mean": 89.0,
+                    "sd": 0.0
+                },
+                "strict_emit_days": {
+                    "mean": 61.0,
+                    "sd": 0.0
+                },
+                "overclaim_days": {
+                    "mean": 28.0,
+                    "sd": 0.0
+                },
+                "overclaim_fraction": {
+                    "mean": 0.311111,
+                    "sd": 0.0
+                },
+                "overclaim_brier": {
+                    "mean": 0.875539,
+                    "sd": 0.010901
+                },
+                "strict_first_emit_day": {
+                    "mean": 29.0,
+                    "sd": 0.0
+                },
+                "strict_emitting_replications": 20
+            }
+        },
+        "fade_on": {
+            "role": "named",
+            "description": "Worked -> faded -> solve gating: later rungs locked until the prerequisite rung's recall clears the gate (fadeEnabled).",
+            "features": {
+                "contrast": "off",
+                "fadeEnabled": true,
+                "readinessAllocation": false
+            },
+            "presentations_per_replication": 3600,
+            "memory": {
+                "mean": 0.881818,
+                "sd": 0.004902
+            },
+            "memory_weighted": {
+                "mean": 0.881843,
+                "sd": 0.0049
+            },
+            "delayed_performance": {
+                "mean": 0.733796,
+                "sd": 0.039384
+            },
+            "confusion_error_rate": {
+                "mean": 0.109722,
+                "sd": 0.027578
+            },
+            "readiness_brier": {
+                "mean": 0.395613,
+                "sd": 0.222077
+            },
+            "readiness_prediction": {
+                "mean": 0.394475,
+                "sd": 0.174573
+            },
+            "exam_score": {
+                "mean": 0.736094,
+                "sd": 0.006996
+            },
+            "exam_pass_rate": 1.0,
+            "mean_discrimination": {
+                "mean": 0.226146,
+                "sd": 0.028926
+            },
+            "adjacency": {
+                "true_pairs": {
+                    "mean": 87.05,
+                    "sd": 8.738752
+                },
+                "wasted_pairs": {
+                    "mean": 26.0,
+                    "sd": 6.505059
+                }
+            },
+            "abstention": {
+                "lenient_emit_days": {
+                    "mean": 89.0,
+                    "sd": 0.0
+                },
+                "strict_emit_days": {
+                    "mean": 61.0,
+                    "sd": 0.0
+                },
+                "overclaim_days": {
+                    "mean": 28.0,
+                    "sd": 0.0
+                },
+                "overclaim_fraction": {
+                    "mean": 0.311111,
+                    "sd": 0.0
+                },
+                "overclaim_brier": {
+                    "mean": 0.856295,
+                    "sd": 0.007012
+                },
+                "strict_first_emit_day": {
+                    "mean": 29.0,
+                    "sd": 0.0
+                },
+                "strict_emitting_replications": 20
+            }
+        },
+        "full_on": {
+            "role": "named",
+            "description": "Contrast + fade + readiness allocation (topics ordered by blueprint-weight x recall gap, mirroring allocation.rs).",
+            "features": {
+                "contrast": "within_topic",
+                "fadeEnabled": true,
+                "readinessAllocation": true
+            },
+            "presentations_per_replication": 3600,
+            "memory": {
+                "mean": 0.89625,
+                "sd": 0.003344
+            },
+            "memory_weighted": {
+                "mean": 0.896073,
+                "sd": 0.003711
+            },
+            "delayed_performance": {
+                "mean": 0.839352,
+                "sd": 0.035833
+            },
+            "confusion_error_rate": {
+                "mean": 0.043056,
+                "sd": 0.013189
+            },
+            "readiness_brier": {
+                "mean": 0.123124,
+                "sd": 0.197858
+            },
+            "readiness_prediction": {
+                "mean": 0.71727,
+                "sd": 0.213215
+            },
+            "exam_score": {
+                "mean": 0.832103,
+                "sd": 0.004803
+            },
+            "exam_pass_rate": 1.0,
+            "mean_discrimination": {
+                "mean": 0.72233,
+                "sd": 0.016831
+            },
+            "adjacency": {
+                "true_pairs": {
+                    "mean": 1367.3,
+                    "sd": 26.917222
+                },
+                "wasted_pairs": {
+                    "mean": 6.0,
+                    "sd": 2.53398
+                }
+            },
+            "abstention": {
+                "lenient_emit_days": {
+                    "mean": 89.0,
+                    "sd": 0.0
+                },
+                "strict_emit_days": {
+                    "mean": 61.0,
+                    "sd": 0.0
+                },
+                "overclaim_days": {
+                    "mean": 28.0,
+                    "sd": 0.0
+                },
+                "overclaim_fraction": {
+                    "mean": 0.311111,
+                    "sd": 0.0
+                },
+                "overclaim_brier": {
+                    "mean": 0.852701,
+                    "sd": 0.006865
+                },
+                "strict_first_emit_day": {
+                    "mean": 29.0,
+                    "sd": 0.0
+                },
+                "strict_emitting_replications": 20
+            }
+        },
+        "cross_topic_leakage": {
+            "role": "named",
+            "description": "[R8] ablation arm: adjacency credit applied across topic boundaries too (family-name cluster key, topics interleaved inside runs); the model grants no cross-topic benefit, so those adjacency slots are wasted.",
+            "features": {
+                "contrast": "cross_topic",
+                "fadeEnabled": false,
+                "readinessAllocation": false
+            },
+            "presentations_per_replication": 3600,
+            "memory": {
+                "mean": 0.874442,
+                "sd": 0.020068
+            },
+            "memory_weighted": {
+                "mean": 0.8744,
+                "sd": 0.019833
+            },
+            "delayed_performance": {
+                "mean": 0.779167,
+                "sd": 0.047715
+            },
+            "confusion_error_rate": {
+                "mean": 0.056944,
+                "sd": 0.020436
+            },
+            "readiness_brier": {
+                "mean": 0.192398,
+                "sd": 0.224849
+            },
+            "readiness_prediction": {
+                "mean": 0.626205,
+                "sd": 0.235472
+            },
+            "exam_score": {
+                "mean": 0.796711,
+                "sd": 0.020504
+            },
+            "exam_pass_rate": 1.0,
+            "mean_discrimination": {
+                "mean": 0.649581,
+                "sd": 0.018445
+            },
+            "adjacency": {
+                "true_pairs": {
+                    "mean": 771.0,
+                    "sd": 37.542958
+                },
+                "wasted_pairs": {
+                    "mean": 303.35,
+                    "sd": 26.7095
+                }
+            },
+            "abstention": {
+                "lenient_emit_days": {
+                    "mean": 89.0,
+                    "sd": 0.0
+                },
+                "strict_emit_days": {
+                    "mean": 61.0,
+                    "sd": 0.0
+                },
+                "overclaim_days": {
+                    "mean": 28.0,
+                    "sd": 0.0
+                },
+                "overclaim_fraction": {
+                    "mean": 0.311111,
+                    "sd": 0.0
+                },
+                "overclaim_brier": {
+                    "mean": 0.875135,
+                    "sd": 0.010434
+                },
+                "strict_first_emit_day": {
+                    "mean": 29.0,
+                    "sd": 0.0
+                },
+                "strict_emitting_replications": 20
+            }
+        },
+        "allocation_on": {
+            "role": "internal",
+            "description": "Allocation only (for the per-SPOV table).",
+            "features": {
+                "contrast": "off",
+                "fadeEnabled": false,
+                "readinessAllocation": true
+            },
+            "presentations_per_replication": 3600,
+            "memory": {
+                "mean": 0.879294,
+                "sd": 0.006785
+            },
+            "memory_weighted": {
+                "mean": 0.879583,
+                "sd": 0.006373
+            },
+            "delayed_performance": {
+                "mean": 0.749537,
+                "sd": 0.036109
+            },
+            "confusion_error_rate": {
+                "mean": 0.089352,
+                "sd": 0.022536
+            },
+            "readiness_brier": {
+                "mean": 0.318674,
+                "sd": 0.223565
+            },
+            "readiness_prediction": {
+                "mean": 0.476389,
+                "sd": 0.216442
+            },
+            "exam_score": {
+                "mean": 0.767811,
+                "sd": 0.005671
+            },
+            "exam_pass_rate": 1.0,
+            "mean_discrimination": {
+                "mean": 0.457457,
+                "sd": 0.028849
+            },
+            "adjacency": {
+                "true_pairs": {
+                    "mean": 558.45,
+                    "sd": 30.860424
+                },
+                "wasted_pairs": {
+                    "mean": 8.25,
+                    "sd": 3.258592
+                }
+            },
+            "abstention": {
+                "lenient_emit_days": {
+                    "mean": 89.0,
+                    "sd": 0.0
+                },
+                "strict_emit_days": {
+                    "mean": 61.0,
+                    "sd": 0.0
+                },
+                "overclaim_days": {
+                    "mean": 28.0,
+                    "sd": 0.0
+                },
+                "overclaim_fraction": {
+                    "mean": 0.311111,
+                    "sd": 0.0
+                },
+                "overclaim_brier": {
+                    "mean": 0.874386,
+                    "sd": 0.00849
+                },
+                "strict_first_emit_day": {
+                    "mean": 29.0,
+                    "sd": 0.0
+                },
+                "strict_emitting_replications": 20
+            }
+        },
+        "full_minus_contrast": {
+            "role": "internal",
+            "description": "full_on without contrast (per-SPOV table).",
+            "features": {
+                "contrast": "off",
+                "fadeEnabled": true,
+                "readinessAllocation": true
+            },
+            "presentations_per_replication": 3600,
+            "memory": {
+                "mean": 0.889094,
+                "sd": 0.004641
+            },
+            "memory_weighted": {
+                "mean": 0.889166,
+                "sd": 0.004843
+            },
+            "delayed_performance": {
+                "mean": 0.790741,
+                "sd": 0.046675
+            },
+            "confusion_error_rate": {
+                "mean": 0.086574,
+                "sd": 0.029013
+            },
+            "readiness_brier": {
+                "mean": 0.230097,
+                "sd": 0.201489
+            },
+            "readiness_prediction": {
+                "mean": 0.563597,
+                "sd": 0.204294
+            },
+            "exam_score": {
+                "mean": 0.774905,
+                "sd": 0.006001
+            },
+            "exam_pass_rate": 1.0,
+            "mean_discrimination": {
+                "mean": 0.429204,
+                "sd": 0.026135
+            },
+            "adjacency": {
+                "true_pairs": {
+                    "mean": 554.15,
+                    "sd": 26.43816
+                },
+                "wasted_pairs": {
+                    "mean": 9.6,
+                    "sd": 3.218368
+                }
+            },
+            "abstention": {
+                "lenient_emit_days": {
+                    "mean": 89.0,
+                    "sd": 0.0
+                },
+                "strict_emit_days": {
+                    "mean": 61.0,
+                    "sd": 0.0
+                },
+                "overclaim_days": {
+                    "mean": 28.0,
+                    "sd": 0.0
+                },
+                "overclaim_fraction": {
+                    "mean": 0.311111,
+                    "sd": 0.0
+                },
+                "overclaim_brier": {
+                    "mean": 0.8589,
+                    "sd": 0.00576
+                },
+                "strict_first_emit_day": {
+                    "mean": 29.0,
+                    "sd": 0.0
+                },
+                "strict_emitting_replications": 20
+            }
+        },
+        "full_minus_fade": {
+            "role": "internal",
+            "description": "full_on without fade (per-SPOV table).",
+            "features": {
+                "contrast": "within_topic",
+                "fadeEnabled": false,
+                "readinessAllocation": true
+            },
+            "presentations_per_replication": 3600,
+            "memory": {
+                "mean": 0.883765,
+                "sd": 0.008183
+            },
+            "memory_weighted": {
+                "mean": 0.884514,
+                "sd": 0.007843
+            },
+            "delayed_performance": {
+                "mean": 0.827315,
+                "sd": 0.035197
+            },
+            "confusion_error_rate": {
+                "mean": 0.032407,
+                "sd": 0.02004
+            },
+            "readiness_brier": {
+                "mean": 0.160495,
+                "sd": 0.203208
+            },
+            "readiness_prediction": {
+                "mean": 0.65946,
+                "sd": 0.216499
+            },
+            "exam_score": {
+                "mean": 0.817387,
+                "sd": 0.010113
+            },
+            "exam_pass_rate": 1.0,
+            "mean_discrimination": {
+                "mean": 0.720622,
+                "sd": 0.01314
+            },
+            "adjacency": {
+                "true_pairs": {
+                    "mean": 1347.15,
+                    "sd": 31.8653
+                },
+                "wasted_pairs": {
+                    "mean": 5.05,
+                    "sd": 2.645254
+                }
+            },
+            "abstention": {
+                "lenient_emit_days": {
+                    "mean": 89.0,
+                    "sd": 0.0
+                },
+                "strict_emit_days": {
+                    "mean": 61.0,
+                    "sd": 0.0
+                },
+                "overclaim_days": {
+                    "mean": 28.0,
+                    "sd": 0.0
+                },
+                "overclaim_fraction": {
+                    "mean": 0.311111,
+                    "sd": 0.0
+                },
+                "overclaim_brier": {
+                    "mean": 0.872188,
+                    "sd": 0.00741
+                },
+                "strict_first_emit_day": {
+                    "mean": 29.0,
+                    "sd": 0.0
+                },
+                "strict_emitting_replications": 20
+            }
+        },
+        "full_minus_allocation": {
+            "role": "internal",
+            "description": "full_on without allocation (per-SPOV table).",
+            "features": {
+                "contrast": "within_topic",
+                "fadeEnabled": true,
+                "readinessAllocation": false
+            },
+            "presentations_per_replication": 3600,
+            "memory": {
+                "mean": 0.895472,
+                "sd": 0.003849
+            },
+            "memory_weighted": {
+                "mean": 0.895089,
+                "sd": 0.003858
+            },
+            "delayed_performance": {
+                "mean": 0.824074,
+                "sd": 0.040192
+            },
+            "confusion_error_rate": {
+                "mean": 0.043519,
+                "sd": 0.022501
+            },
+            "readiness_brier": {
+                "mean": 0.043195,
+                "sd": 0.047723
+            },
+            "readiness_prediction": {
+                "mean": 0.808514,
+                "sd": 0.082896
+            },
+            "exam_score": {
+                "mean": 0.831417,
+                "sd": 0.004534
+            },
+            "exam_pass_rate": 1.0,
+            "mean_discrimination": {
+                "mean": 0.721784,
+                "sd": 0.013853
+            },
+            "adjacency": {
+                "true_pairs": {
+                    "mean": 1033.4,
+                    "sd": 31.233248
+                },
+                "wasted_pairs": {
+                    "mean": 12.8,
+                    "sd": 2.984169
+                }
+            },
+            "abstention": {
+                "lenient_emit_days": {
+                    "mean": 89.0,
+                    "sd": 0.0
+                },
+                "strict_emit_days": {
+                    "mean": 61.0,
+                    "sd": 0.0
+                },
+                "overclaim_days": {
+                    "mean": 28.0,
+                    "sd": 0.0
+                },
+                "overclaim_fraction": {
+                    "mean": 0.311111,
+                    "sd": 0.0
+                },
+                "overclaim_brier": {
+                    "mean": 0.85243,
+                    "sd": 0.005906
+                },
+                "strict_first_emit_day": {
+                    "mean": 29.0,
+                    "sd": 0.0
+                },
+                "strict_emitting_replications": 20
+            }
+        }
+    },
+    "spov_contributions": [
+        {
+            "feature": "contrast",
+            "vs_vanilla": {
+                "arm": "contrast_on",
+                "memory": {
+                    "mean": 0.01348,
+                    "sd": 0.011555,
+                    "per_replication": [
+                        -0.010913,
+                        -8.2e-05,
+                        0.018705,
+                        0.005817,
+                        0.009595,
+                        0.020046,
+                        0.02422,
+                        0.019565,
+                        0.007361,
+                        -0.00337,
+                        0.005764,
+                        0.022851,
+                        0.005743,
+                        0.039285,
+                        0.015687,
+                        0.016486,
+                        0.013375,
+                        0.024231,
+                        0.010437,
+                        0.024794
+                    ]
+                },
+                "delayed_performance": {
+                    "mean": 0.059722,
+                    "sd": 0.066191,
+                    "per_replication": [
+                        0.092593,
+                        0.046296,
+                        0.064815,
+                        0.046296,
+                        0.046296,
+                        -0.064815,
+                        0.12963,
+                        0.12963,
+                        0.018519,
+                        0.055556,
+                        -0.009259,
+                        0.009259,
+                        0.12037,
+                        0.074074,
+                        -0.101852,
+                        0.12963,
+                        0.055556,
+                        0.101852,
+                        0.157407,
+                        0.092593
+                    ]
+                }
+            },
+            "within_full_on": {
+                "arm": "full_minus_contrast",
+                "memory": {
+                    "mean": 0.007155,
+                    "sd": 0.006344,
+                    "per_replication": [
+                        0.005262,
+                        0.004349,
+                        0.008489,
+                        -0.001422,
+                        0.00347,
+                        0.001386,
+                        0.006783,
+                        0.021175,
+                        0.011152,
+                        0.011722,
+                        0.011515,
+                        0.017341,
+                        0.004565,
+                        0.006622,
+                        0.015532,
+                        -0.003301,
+                        0.004265,
+                        0.002555,
+                        0.000568,
+                        0.011078
+                    ]
+                },
+                "delayed_performance": {
+                    "mean": 0.048611,
+                    "sd": 0.049625,
+                    "per_replication": [
+                        0.064815,
+                        0.0,
+                        0.055556,
+                        0.12037,
+                        0.0,
+                        0.009259,
+                        0.046296,
+                        0.046296,
+                        0.046296,
+                        0.064815,
+                        -0.074074,
+                        0.027778,
+                        0.0,
+                        0.027778,
+                        0.092593,
+                        0.083333,
+                        0.064815,
+                        0.055556,
+                        0.083333,
+                        0.157407
+                    ]
+                }
+            }
+        },
+        {
+            "feature": "fade",
+            "vs_vanilla": {
+                "arm": "fade_on",
+                "memory": {
+                    "mean": 0.022551,
+                    "sd": 0.025979,
+                    "per_replication": [
+                        0.010288,
+                        0.002621,
+                        0.019866,
+                        -0.012828,
+                        0.013982,
+                        0.085781,
+                        0.005354,
+                        0.023626,
+                        0.00603,
+                        0.050539,
+                        0.009612,
+                        0.013241,
+                        -0.003657,
+                        0.087137,
+                        0.024448,
+                        0.015129,
+                        0.040833,
+                        0.020547,
+                        0.013694,
+                        0.024767
+                    ]
+                },
+                "delayed_performance": {
+                    "mean": 0.00787,
+                    "sd": 0.071171,
+                    "per_replication": [
+                        0.064815,
+                        0.111111,
+                        0.138889,
+                        -0.027778,
+                        -0.074074,
+                        -0.009259,
+                        0.027778,
+                        -0.037037,
+                        -0.064815,
+                        0.092593,
+                        -0.074074,
+                        -0.018519,
+                        -0.064815,
+                        0.046296,
+                        -0.138889,
+                        0.055556,
+                        0.009259,
+                        0.064815,
+                        0.027778,
+                        0.027778
+                    ]
+                }
+            },
+            "within_full_on": {
+                "arm": "full_minus_fade",
+                "memory": {
+                    "mean": 0.012485,
+                    "sd": 0.008066,
+                    "per_replication": [
+                        0.010664,
+                        0.010817,
+                        0.010958,
+                        0.000662,
+                        0.010486,
+                        0.02779,
+                        0.009405,
+                        0.010662,
+                        -0.002004,
+                        0.026585,
+                        0.006769,
+                        0.010713,
+                        0.001422,
+                        0.019902,
+                        0.016972,
+                        0.00527,
+                        0.015664,
+                        0.02089,
+                        0.017722,
+                        0.018354
+                    ]
+                },
+                "delayed_performance": {
+                    "mean": 0.012037,
+                    "sd": 0.037653,
+                    "per_replication": [
+                        -0.018519,
+                        -0.037037,
+                        -0.037037,
+                        0.046296,
+                        0.0,
+                        -0.046296,
+                        0.037037,
+                        -0.037037,
+                        0.018519,
+                        0.083333,
+                        0.018519,
+                        -0.009259,
+                        0.018519,
+                        -0.009259,
+                        0.027778,
+                        0.027778,
+                        0.018519,
+                        0.027778,
+                        0.018519,
+                        0.092593
+                    ]
+                }
+            }
+        },
+        {
+            "feature": "allocation",
+            "vs_vanilla": {
+                "arm": "allocation_on",
+                "memory": {
+                    "mean": 0.020026,
+                    "sd": 0.021773,
+                    "per_replication": [
+                        0.005055,
+                        -0.008205,
+                        0.012925,
+                        -0.002806,
+                        0.006385,
+                        0.08151,
+                        0.016214,
+                        0.031122,
+                        0.018337,
+                        0.043044,
+                        0.008441,
+                        0.010288,
+                        0.005295,
+                        0.065164,
+                        0.016901,
+                        0.023969,
+                        0.023142,
+                        0.025091,
+                        0.007759,
+                        0.010891
+                    ]
+                },
+                "delayed_performance": {
+                    "mean": 0.023611,
+                    "sd": 0.070675,
+                    "per_replication": [
+                        -0.009259,
+                        0.055556,
+                        0.074074,
+                        -0.018519,
+                        -0.046296,
+                        0.0,
+                        0.064815,
+                        0.083333,
+                        -0.037037,
+                        0.12963,
+                        -0.037037,
+                        -0.083333,
+                        0.055556,
+                        0.027778,
+                        -0.138889,
+                        0.148148,
+                        0.074074,
+                        0.064815,
+                        0.046296,
+                        0.018519
+                    ]
+                }
+            },
+            "within_full_on": {
+                "arm": "full_minus_allocation",
+                "memory": {
+                    "mean": 0.000778,
+                    "sd": 0.005767,
+                    "per_replication": [
+                        -0.000917,
+                        0.005788,
+                        -0.001797,
+                        -0.007954,
+                        0.001474,
+                        -0.004476,
+                        9.7e-05,
+                        0.00142,
+                        -0.000157,
+                        0.011734,
+                        0.000399,
+                        0.017235,
+                        -0.003912,
+                        -0.003393,
+                        -0.003236,
+                        -0.002995,
+                        0.001809,
+                        0.000616,
+                        -0.001761,
+                        0.00558
+                    ]
+                },
+                "delayed_performance": {
+                    "mean": 0.015278,
+                    "sd": 0.058813,
+                    "per_replication": [
+                        0.083333,
+                        -0.074074,
+                        -0.009259,
+                        0.027778,
+                        -0.046296,
+                        -0.046296,
+                        0.037037,
+                        0.083333,
+                        0.037037,
+                        0.055556,
+                        0.037037,
+                        0.064815,
+                        0.083333,
+                        -0.064815,
+                        0.046296,
+                        0.083333,
+                        -0.064815,
+                        -0.083333,
+                        0.0,
+                        0.055556
+                    ]
+                }
+            }
+        }
+    ],
+    "abstention_analysis": {
+        "description": "Not a scheduling arm: for each arm's trajectory, what the retired lenient gate (>=15 reviews, >=1% coverage) would have emitted vs the strict [R1] gate (>=300 reviews, >=70% weighted coverage, >=50 delayed probes, half-width <= 0.20). overclaim_fraction = share of simulated days where lenient emitted a number while strict abstained; overclaim_brier = Brier of exactly those lenient emissions against the simulated exam outcome (the honesty cost of over-claiming).",
+        "headline_arm": "full_on",
+        "headline": {
+            "lenient_emit_days": {
+                "mean": 89.0,
+                "sd": 0.0
+            },
+            "strict_emit_days": {
+                "mean": 61.0,
+                "sd": 0.0
+            },
+            "overclaim_days": {
+                "mean": 28.0,
+                "sd": 0.0
+            },
+            "overclaim_fraction": {
+                "mean": 0.311111,
+                "sd": 0.0
+            },
+            "overclaim_brier": {
+                "mean": 0.852701,
+                "sd": 0.006865
+            },
+            "strict_first_emit_day": {
+                "mean": 29.0,
+                "sd": 0.0
+            },
+            "strict_emitting_replications": 20
+        }
+    },
+    "limitations": [
+        "SIMULATION, not human data: all effects are properties of the documented learner model and its constants.",
+        "n=1 learner model: a single set of forgetting/interference equations; real learners vary in ways this cannot capture.",
+        "Descriptive, not inferential: replications share the model, so SDs describe seed noise, not population uncertainty; no significance claims are made.",
+        "The exam ground truth is the model's own expected score against a fixed MPS center (0.715); CFA never publishes the MPS.",
+        "Probe evidence uses a 45-day recency window (simulation-only choice, disclosed in config); the shipped gate counts all answered probes because its bank is answered once, near the exam.",
+        "Probe items are simulated paraphrases of studied material; real held-out probes (the 30x2 set) are a separate milestone (M3)."
+    ]
+}

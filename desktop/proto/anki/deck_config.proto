@@ -267,6 +267,13 @@ message DeckConfig {
     // Restrict the fade ladder to clusters tagged interactivity::high.
     // When false the ladder applies to every cluster with rung tags.
     bool element_interactivity_gate = 58;
+    // Anki Speedrun Phase 3 M2 (demoted SPOV 4): readiness-optimization
+    // allocation. When enabled, the merged queue is stably re-ordered so
+    // cards from topics with the largest exam-weight x recall-gap come
+    // first (within-topic credit only, blueprint weights as fixed priors).
+    // Pure permutation; default OFF; the ablation compares it against the
+    // vanilla uniform desired-retention allocation.
+    bool readiness_allocation = 59;
 
     bytes other = 255;
   }

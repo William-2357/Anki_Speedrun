@@ -1,11 +1,11 @@
 // Copyright: Ankitects Pty Ltd and contributors
 // License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
 
-import { TopicMasteryResponse } from "@generated/anki/stats_pb";
+import { GetReadinessResponse, GetReadinessResponse_Kind, TopicMasteryResponse } from "@generated/anki/stats_pb";
 import { expect, test } from "vitest";
 
 import { isValidExamDate } from "./config";
-import { buildDashboardModel } from "./metrics";
+import { buildDashboardModel, readinessGaugeFromRpc } from "./metrics";
 
 const emptyResponse = {
     topics: [],
@@ -16,6 +16,7 @@ const emptyResponse = {
     highRecallThreshold: 0.9,
     unmappedTags: [],
     ungradedAigCards: 0,
+    heldOutProbeCards: 0,
 };
 
 test("user-map buckets fold onto canonical topics alongside aliases", () => {
@@ -113,6 +114,105 @@ test("no aig note when nothing is excluded", () => {
     expect(single.aigExclusionNote).toBe(
         "1 ungraded generated card is excluded from all gauges",
     );
+});
+
+// ---- Readiness: a thin projection of the backend response ----
+
+test("an abstaining backend response shows reasons, never numbers", () => {
+    const gauge = readinessGaugeFromRpc(
+        new GetReadinessResponse({
+            kind: GetReadinessResponse_Kind.ABSTAIN,
+            missing: ["Only 0 delayed held-out probe outcomes; need at least 50."],
+        }),
+    );
+    expect(gauge.kind).toBe("abstain");
+    expect(gauge.value).toBeUndefined();
+    expect(gauge.range).toBeUndefined();
+    expect(gauge.missing).toHaveLength(1);
+});
+
+test("a value response maps the band, call confidence and calibration badge", () => {
+    const gauge = readinessGaugeFromRpc(
+        new GetReadinessResponse({
+            kind: GetReadinessResponse_Kind.VALUE,
+            pPassLow: 0.81,
+            pPassHigh: 0.95,
+            pPassCenter: 0.9,
+            call: "pass",
+            callConfidence: 0.85,
+            reasons: ["Method: Beta-Binomial …"],
+            calibration: {
+                fittedAt: "2026-07-04",
+                brier: 0.18,
+                logLoss: 0.5,
+                n: 20,
+                temperature: 1.1,
+            },
+        }),
+    );
+    expect(gauge.kind).toBe("value");
+    expect(gauge.value).toBeCloseTo(0.9);
+    expect(gauge.range).toEqual({ low: 0.81, high: 0.95 });
+    // the certainty cap makes "high" unreachable by design
+    expect(gauge.confidence).toBe("medium");
+    expect(gauge.badge).toContain("2026-07-04");
+    expect(gauge.reasons).toHaveLength(1);
+});
+
+test("test-mode responses stay loudly labelled and keep the gate list", () => {
+    const gauge = readinessGaugeFromRpc(
+        new GetReadinessResponse({
+            kind: GetReadinessResponse_Kind.TEST,
+            pPassLow: 0.02,
+            pPassHigh: 0.98,
+            pPassCenter: 0.5,
+            callConfidence: 0,
+            missing: ["Only 12 graded study reviews; need at least 300."],
+            reasons: ["TEST MODE: …"],
+        }),
+    );
+    expect(gauge.kind).toBe("test");
+    expect(gauge.badge).toContain("TEST DATA");
+    expect(gauge.missing).toHaveLength(1);
+    expect(gauge.confidence).toBe("low");
+});
+
+test("an unreachable readiness backend abstains instead of computing locally", () => {
+    const model = buildDashboardModel(new TopicMasteryResponse(emptyResponse), {
+        testMode: false,
+    });
+    expect(model.readinessDetail).toBeNull();
+    expect(model.readiness.kind).toBe("abstain");
+    expect(model.readiness.missing[0]).toContain("did not respond");
+    expect(model.heldOutProbes).toBe(0);
+});
+
+test("the model carries the backend evidence through unchanged", () => {
+    const readiness = new GetReadinessResponse({
+        kind: GetReadinessResponse_Kind.ABSTAIN,
+        missing: ["…"],
+        evidence: {
+            probeCorrect: 3,
+            probeAnsweredDelayed: 4,
+            probeAnsweredUndelayed: 1,
+            probeUnanswered: 45,
+            gradedReviews: 12n,
+            coverage: 0.2,
+            topicsStudied: 2,
+            topicsTotal: 10,
+            meanProbeLagDays: 9.5,
+            probeNeverStudied: 1,
+            calibrationOutcomes: 0,
+            fsrsEnabled: true,
+        },
+    });
+    const model = buildDashboardModel(
+        new TopicMasteryResponse({ ...emptyResponse, heldOutProbeCards: 70 }),
+        { testMode: false, readiness },
+    );
+    expect(model.heldOutProbes).toBe(4);
+    expect(model.heldOutProbeCards).toBe(70);
+    expect(model.readinessDetail?.evidence?.probeUnanswered).toBe(45);
 });
 
 test("exam dates must be real YYYY-MM-DD dates", () => {

@@ -106,6 +106,9 @@ const DEFAULT_DECK_CONFIG_INNER: DeckConfigInner = DeckConfigInner {
     fade_order: FadeOrder::Mastery as i32,
     self_explain_enabled: false,
     element_interactivity_gate: true,
+    // Anki Speedrun Phase 3 M2: readiness-optimization allocation, default
+    // OFF (the ablation's vanilla arm is the default experience).
+    readiness_allocation: false,
 };
 
 /// Anki Speedrun R18: marker tag written by the computed confusability pass;

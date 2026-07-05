@@ -1,9 +1,11 @@
-# Model Descriptions — Memory · Performance · Readiness (Phase 1)
+# Model Descriptions — Memory · Performance · Readiness (Phase 3)
 
 Three gauges, three different questions, shown separately with ranges and
-never blended. Implementation: `rslib/src/stats/mastery.rs` (data) +
-`ts/routes/dashboard/metrics.ts` (gauge computation; all constants below
-live there and in `cfa_weights_2026.json`).
+never blended. Implementation: `rslib/src/stats/mastery.rs` (Memory data),
+`rslib/src/readiness/` (the Readiness estimate + give-up gate, Phase 3),
+`ts/routes/dashboard/metrics.ts` (Memory/Performance gauge computation and
+the thin Readiness display layer; frontend constants live there and in
+`cfa_weights_2026.json`).
 
 ## Memory — "can the student recall this fact right now?"
 
@@ -35,45 +37,77 @@ live there and in `cfa_weights_2026.json`).
 - **Range.** Memory's band propagated through `τ`, then widened by ±0.15
   because `τ` itself is an assumption. Confidence is **low** by
   construction in Phase 1.
-- **Why a proxy.** Phase 1 has no held-out exam-style question bank, so
-  transfer cannot be measured yet. Showing `Memory × τ` under an explicit
-  "uncalibrated estimate" badge measures-and-shows the Memory→Performance
-  gap instead of hiding it. Phase 2 (30 cards × 2 delayed paraphrased MCQs,
-  challenge 7d) replaces `τ` with fitted, held-out-validated values.
+- **Why a proxy.** Real transfer is measured by the Phase 3 probe harness
+  (30+ concepts × 2 delayed paraphrased MCQs, challenge 7d) as the
+  **memory-vs-performance gap** report; until enough delayed probe
+  outcomes exist, the gauge shows `Memory × τ` under an explicit
+  "uncalibrated estimate" badge — measuring-and-showing the gap instead of
+  hiding it. `τ` never feeds Readiness.
 - **Give-up.** Abstains whenever Memory abstains.
 
 ## Readiness — "what is the probability of passing today?"
 
-- **Scale.** CFA Level I is pass/fail, so Readiness is a **pass
-  probability** — no invented numeric score, ever.
-- **Method (documented now, abstaining by default).**
-  1. Weighted performance `P̄ = Σ w(s)·Performance(s) / Σ w(s)` over topics
-     with data, using the **midpoint** of each topic's published 2026 weight
-     range (`cfa_weights_2026.json`, versioned by exam year; the range width
-     is carried as uncertainty).
-  2. `P(pass) = logistic(k · (P̄ − MPS))` with slope `k = 14`. CFA never
-     publishes the minimum passing standard, so MPS is carried as the band
-     `[0.60, 0.70]`, never a point.
-  3. Band: pessimistic corner = (P̄ with uncovered exam weight counted as
-     zero, MPS = 0.70); optimistic corner = (P̄ + proxy widening,
-     MPS = 0.60).
-- **The give-up rule (written down, enforced in `metrics.ts`).** Readiness
-  shows **no probability** unless all of:
-  - ≥ **300 graded reviews** (revlog entries with an answer button),
+Rewritten in Phase 3: the math and the give-up gate moved into the Rust
+backend (`rslib/src/readiness/`, `GetReadiness` RPC), so no display layer
+can bypass the gate. `metrics.ts` renders the response and computes
+nothing.
+
+- **Scale.** CFA Level I is pass/fail, so Readiness is a **pass-probability
+  BAND** on [0,1] — never a bare point, and never a number on an invented
+  scale (the 1600-style scaled score is deliberately not emitted: CFA never
+  publishes the MPS's location on it, so any such figure would be made up).
+- **Outcomes, not proxies.** The estimate is built from **delayed held-out
+  probe outcomes** — first answers to hand-authored application MCQs
+  (`probe::pool::performance`) taken **≥ 7 days** after their cluster was
+  last studied (never-studied clusters count as delayed; immediate answers
+  are logged but excluded, because immediate accuracy overstates transfer).
+  FSRS recall is never converted into outcomes: deriving `(x, n)` from the
+  model under test would be fabrication.
+- **Method of record (C5/C6-corrected: simple and defensible at n=1).**
+  1. Posterior over the true probe-success rate: `Beta(x+0.5, n−x+0.5)`
+     (Jeffreys prior; Brown, Cai & DasGupta 2001).
+  2. MPS map: `P(pass) = P(score ≥ MPS)` under a `Binomial(180, p)` exam
+     model. The MPS is carried as a **configurable mock-proxy band**
+     (default `[0.68, 0.75]`, key `speedrun:passBand`), never a point.
+  3. Band: centre = posterior predictive (Beta-Binomial tail at the band
+     midpoint); low/high = the Jeffreys 90% quantiles pushed through the
+     pessimistic `(q05, MPS_high)` / optimistic `(q95, MPS_low)` corners.
+  4. **Certainty caps ([R25]).** Half-width floored at 0.10, the band
+     clamped into [0.02, 0.98], and the call confidence capped at 0.85 —
+     mocks predict the real exam only moderately (r ≈ 0.7), so no amount
+     of probe data may read as near-certainty.
+  5. **Second honest number ([R5]).** The confidence of the pass/fail
+     CALL: `max(P(pass), 1−P(pass))`, capped as above; the call **abstains
+     ("too close to call")** whenever the band straddles 50%. (Rudner-style
+     IRT classification accuracy is cited as future work — item parameters
+     are unidentifiable for a single sparse learner.)
+- **The give-up rule (written down, enforced in the Rust backend).**
+  Readiness shows **no probability** unless all of:
+  - ≥ **300 graded study reviews** (probe answers don't count as study),
   - ≥ **70% weighted topic coverage** (topics with ≥ 1 studied card),
-  - ≥ **50 held-out performance probes answered**, and
-  - the resulting band's half-width ≤ **0.20**.
-    When abstaining it names each missing input (e.g. "0 held-out probes; the
-    probe bank ships in a later phase", "Not studied yet: Derivatives, …").
-    Phase 1 ships no probe bank, so Readiness **always abstains in real use**
-    — that is the honest state, not a bug.
-- **Test mode.** `dashboard?readinessTest=1` relaxes the gates so the
-  pipeline can be exercised end-to-end, but every number is banner-labelled
-  "TEST DATA — not a real prediction". The default that ships and demos is
-  the abstaining gauge.
-- **Best next study.** `argmax_s w(s) · (0.80 − Performance(s))` — the
-  largest weighted gap, shown even while abstaining, so the gauge is useful
-  without pretending to know the score.
+  - ≥ **50 delayed held-out probe outcomes**, and
+  - the resulting band's half-width ≤ **0.20** — near the pass boundary
+    this may never clear; the unpublished MPS is irreducible uncertainty,
+    and permanent abstention there is the honest answer.
+    When abstaining it names each missing input, and the full honesty
+    contract still renders: the evidence (x/n, lags, coverage), the
+    calibration history, and the best next topic.
+- **Calibration.** The offline probe harness scores the disjoint
+  calibration pool (`probe::pool::calibration`) against a documented proxy
+  prediction, reports Brier/log-loss, fits a temperature scalar, and
+  writes the record to `speedrun:readinessCalibration`; the gauge surfaces
+  it as "calibration history". Readiness is never calibrated against its
+  own inputs (the pools are concept-disjoint), and the Beta-Binomial point
+  of record is never rescaled — it is calibrated against outcomes by
+  construction.
+- **Test mode.** `dashboard?readinessTest=1` asks the backend to relax the
+  gates (`GetReadinessRequest.test_mode`); the response is `kind=TEST` and
+  every number is banner-labelled "TEST DATA — not a real prediction". The
+  default that ships and demos is the abstaining gauge.
+- **Best next study.** `argmax_s w(s) · (0.80 − Memory(s))` over blueprint
+  weights — computed backend-side without the τ guess, shown even while
+  abstaining. Near the boundary, **Ethics** takes a documented tie-break
+  (largest weight + CFA's ethics adjustment for borderline candidates).
 
 ## Data honesty
 
@@ -82,6 +116,13 @@ live there and in `cfa_weights_2026.json`).
   decided on real data, in one place, and displayed with its reasons.
 - Cards without a `cfa::topic::*` tag are counted and shown as
   "not counted towards any topic" rather than silently dropped.
-- All CFA-specific mappings (topic list, aliases, weights, τ, MPS band)
-  live in the frontend as reviewable data files; the Rust engine stays
-  exam-agnostic.
+- Held-out hygiene: probe-bank cards (`probe::held_out`) are excluded from
+  Memory and coverage (the measurement instrument never feeds the gauges
+  it tests), and `aig::ungraded` generated cards never feed any gauge;
+  both exclusions are disclosed with counts.
+- CFA-specific display mappings (topic list, aliases, τ) live in the
+  frontend as reviewable data files. The Phase 3 exception is deliberate:
+  the CFA blueprint weights and the probe/gate logic live in
+  `rslib/src/readiness/` — the backend owns the gate precisely so the
+  display cannot weaken it, and the blueprint is versioned data
+  (`blueprint.rs`, mirrored by `cfa_weights_2026.json`).

@@ -24,6 +24,13 @@ service StatsService {
   // edge per pair of tags that co-occur on a note, plus per-tag recall and
   // answer-difficulty aggregates for colouring.
   rpc ConceptGraph(ConceptGraphRequest) returns (ConceptGraphResponse);
+  // Anki Speedrun (Phase 3): the banded, two-number, abstaining Readiness
+  // estimate. Beta-Binomial (Jeffreys prior) over DELAYED held-out probe
+  // outcomes mapped through the MPS band - never a bare point, never derived
+  // from FSRS recall. The give-up gate is enforced HERE, in the backend, so
+  // no display layer can bypass it; the labelled test mode is an explicit
+  // request flag whose output is marked test data.
+  rpc GetReadiness(GetReadinessRequest) returns (GetReadinessResponse);
 }
 
 // Implicitly includes any of the above methods that are not listed in the
@@ -188,6 +195,112 @@ message TopicMasteryResponse {
   // readiness), but still counted in total_cards. The UI must disclose the
   // exclusion when this is > 0.
   uint32 ungraded_aig_cards = 8;
+  // Cards whose notes carry the `probe::held_out` tag: the held-out
+  // delayed-probe bank (Phase 3 M3). Excluded from every topic bucket so
+  // the measurement instrument can never feed the Memory gauge or the
+  // coverage it is supposed to test (held-out hygiene), but still counted
+  // in total_cards and disclosed here.
+  uint32 held_out_probe_cards = 9;
+}
+
+message GetReadinessRequest {
+  // Relax the abstention gates for pipeline testing. Output is marked
+  // kind=TEST and must be loudly labelled by every display layer; it is
+  // never a real prediction (?readinessTest=1 on the dashboard).
+  bool test_mode = 1;
+  // User tag -> topic map, same semantics as
+  // TopicMasteryRequest.tag_topic_map; used for the coverage gate and the
+  // best-next-topic hint so they agree with the dashboard's attribution.
+  map<string, string> tag_topic_map = 2;
+}
+
+message GetReadinessResponse {
+  enum Kind {
+    // Insufficient data: render the missing list, never a number.
+    ABSTAIN = 0;
+    // Gates passed: render the band (still never a bare point).
+    VALUE = 1;
+    // Gates relaxed by test_mode: render only with a loud test-data label.
+    TEST = 2;
+  }
+  // The evidence behind the call (honesty contract item 1). Always
+  // populated, even when abstaining.
+  message Evidence {
+    // Performance-probe pool outcomes that met the >= 7 day delay rule.
+    uint32 probe_correct = 1;
+    uint32 probe_answered_delayed = 2;
+    // Probes answered too soon after their cluster was last studied; they
+    // are logged but excluded from the estimate (immediate accuracy
+    // overstates transfer, R7).
+    uint32 probe_answered_undelayed = 3;
+    // Probes in the performance pool not answered yet.
+    uint32 probe_unanswered = 4;
+    // Graded reviews on ordinary study cards (probe answers excluded).
+    uint64 graded_reviews = 5;
+    // Weighted share of the exam blueprint whose topics have >= 1 studied
+    // card, 0-1.
+    float coverage = 6;
+    uint32 topics_studied = 7;
+    uint32 topics_total = 8;
+    // Mean study -> probe lag in days over counted (delayed) outcomes;
+    // 0 when none. Never-studied clusters count as delayed (they cannot be
+    // recency-inflated) and are excluded from this mean.
+    float mean_probe_lag_days = 9;
+    // Probes counted as delayed because their cluster was never studied.
+    uint32 probe_never_studied = 10;
+    // Calibration-mock pool outcomes available to the offline harness.
+    uint32 calibration_outcomes = 11;
+    bool fsrs_enabled = 12;
+  }
+  // The last offline calibration run (honesty contract item 3), read from
+  // the `speedrun:readinessCalibration` config the M3 harness writes.
+  message Calibration {
+    // ISO date (YYYY-MM-DD).
+    string fitted_at = 1;
+    float brier = 2;
+    float log_loss = 3;
+    uint32 n = 4;
+    // Temperature fitted for the *proxy* model's display; the Beta-Binomial
+    // point-of-record is calibrated against outcomes by construction and
+    // never rescaled.
+    float temperature = 5;
+  }
+  Kind kind = 1;
+  // P(pass) band on [0, 1] (R2/C4: never a 1600-scale figure, never a bare
+  // point). Zeroed when abstaining.
+  float p_pass_low = 2;
+  float p_pass_high = 3;
+  // Beta-Binomial posterior mean mapped through the centre of the MPS band;
+  // the point of record INSIDE the band, only ever shown alongside it.
+  float p_pass_center = 4;
+  // Second honest number (R5): confidence of the pass/fail CALL -
+  // max(P(pass), 1-P(pass)) under the posterior, capped by the mock<->exam
+  // ceiling (R25). 0 when the call abstains.
+  float call_confidence = 5;
+  // "pass" | "fail" | "" (the call abstains when the band straddles 50%:
+  // "too close to call").
+  string call = 6;
+  Evidence evidence = 7;
+  // Which gates failed, as displayable sentences (R1). Empty when passing;
+  // in test mode the failures are still listed so the label stays honest.
+  repeated string missing = 8;
+  // How the number was produced (honesty contract; always rendered).
+  repeated string reasons = 9;
+  // Unset when the harness has never run.
+  optional Calibration calibration = 10;
+  // Single best next topic (largest weighted gap; Ethics tie-break near the
+  // pass boundary, T8). Empty when nothing is studied at all.
+  string best_next_topic = 11;
+  // The method/gate parameters actually used, for display (the gate is
+  // configurable via `speedrun:passBand`; these echo the effective values).
+  float mps_low = 12;
+  float mps_high = 13;
+  uint32 min_graded_reviews = 14;
+  float min_coverage = 15;
+  uint32 min_delayed_probes = 16;
+  float max_half_width = 17;
+  float min_half_width = 18;
+  float confidence_cap = 19;
 }
 
 message GraphsResponse {

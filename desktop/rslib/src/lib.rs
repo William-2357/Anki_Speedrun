@@ -32,6 +32,7 @@ pub mod ops;
 mod preferences;
 pub mod prelude;
 mod progress;
+pub mod readiness;
 pub mod revlog;
 pub mod scheduler;
 pub mod search;

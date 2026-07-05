@@ -4,7 +4,7 @@
 mod card;
 mod concept_graph;
 mod graphs;
-mod mastery;
+pub(crate) mod mastery;
 mod service;
 mod today;
 

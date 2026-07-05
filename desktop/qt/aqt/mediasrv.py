@@ -761,6 +761,7 @@ exposed_backend_list = [
     "set_graph_preferences",
     "topic_mastery",
     "concept_graph",
+    "get_readiness",
     # TagsService
     "complete_tag",
     # ImageOcclusionService

@@ -132,6 +132,67 @@ def test_concept_graph():
     assert graded and all(n.again_hard_answers == 1 for n in graded)
 
 
+def test_get_readiness():
+    "Anki Speedrun Phase 3: the Rust GetReadiness RPC is reachable from Python."
+    col = getEmptyCol()
+    note = col.newNote()
+    note["Front"] = "duration"
+    note.tags = ["cfa::topic::fixed_income"]
+    col.addNote(note)
+
+    # abstains by default, naming every missing input; numbers zeroed
+    response = col.get_readiness()
+    assert response.kind == response.ABSTAIN
+    assert response.p_pass_low == 0.0
+    assert response.p_pass_high == 0.0
+    assert response.call == ""
+    assert len(response.missing) >= 3
+    assert response.evidence.topics_total == 10
+    assert response.min_delayed_probes == 50
+    # honesty contract renders even while abstaining
+    assert response.best_next_topic
+
+    # test mode emits a loudly-labelled wide band and keeps the gate list
+    test = col.get_readiness(test_mode=True)
+    assert test.kind == test.TEST
+    assert test.p_pass_high - test.p_pass_low > 0.5
+    assert test.missing
+    assert any("TEST MODE" in reason for reason in test.reasons)
+
+    # the tag→topic map feeds coverage/best-next attribution
+    mapped = col.get_readiness(tag_topic_map={"finance": "fixed_income"})
+    assert mapped.kind == mapped.ABSTAIN
+
+
+def test_readiness_probe_outcomes():
+    "Probe cards feed evidence; mastery excludes them (held-out hygiene)."
+    col = getEmptyCol()
+    probe = col.newNote()
+    probe["Front"] = "probe mcq"
+    probe.tags = [
+        "probe::held_out",
+        "probe::pool::performance",
+        "cluster::fi::duration",
+        "cfa::topic::fixed_income",
+    ]
+    col.addNote(probe)
+
+    # the probe card never feeds the Memory gauge or coverage
+    mastery = col.topic_mastery()
+    assert mastery.held_out_probe_cards == 1
+    assert not mastery.topics
+
+    # answering the probe (never-studied cluster => counts as delayed)
+    card = col.sched.getCard()
+    col.sched.answerCard(card, 3)
+    response = col.get_readiness()
+    assert response.evidence.probe_answered_delayed == 1
+    assert response.evidence.probe_correct == 1
+    assert response.evidence.probe_never_studied == 1
+    # probe answers are measurement, not study evidence
+    assert response.evidence.graded_reviews == 0
+
+
 def test_graphs():
     dir = tempfile.gettempdir()
     col = getEmptyCol()

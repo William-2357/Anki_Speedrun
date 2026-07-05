@@ -3,7 +3,7 @@ Copyright: Ankitects Pty Ltd and contributors
 License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
 -->
 <script lang="ts">
-    import { topicMastery } from "@generated/backend";
+    import { getReadiness, topicMastery } from "@generated/backend";
 
     import {
         coachFacts,
@@ -84,13 +84,19 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
             examDate = storedExamDate;
             examDateInput = storedExamDate;
             assistant = status;
-            const response = await topicMastery({
-                search: "",
-                topicPrefix: "",
-                highRecallThreshold: 0,
-                tagTopicMap,
-            });
-            model = buildDashboardModel(response, { testMode });
+            const [response, readiness] = await Promise.all([
+                topicMastery({
+                    search: "",
+                    topicPrefix: "",
+                    highRecallThreshold: 0,
+                    tagTopicMap,
+                }),
+                // the readiness math + give-up gate live in the Rust
+                // backend; an unreachable backend means the gauge abstains
+                // (never a locally-computed fallback number)
+                getReadiness({ testMode, tagTopicMap }).catch(() => null),
+            ]);
+            model = buildDashboardModel(response, { testMode, readiness });
             error = null;
         } catch (exc) {
             error = String(exc);
@@ -299,6 +305,92 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
             />
         </section>
 
+        {#if model.readinessDetail}
+            {@const detail = model.readinessDetail}
+            <!-- The honesty contract (Phase 3 M1): evidence, what's missing
+                 (in the gauge above), calibration history, the band, and
+                 the best next topic - rendered even while abstaining. -->
+            <section class="readiness-detail">
+                <h2>Behind the Readiness gauge</h2>
+                <div class="detail-grid">
+                    <div class="meta-item">
+                        <span class="label">Pass/fail call</span>
+                        <span class="value">
+                            {#if detail.call}
+                                {detail.call} · confidence {detail.callConfidence.toFixed(
+                                    2,
+                                )} (capped at {detail.confidenceCap})
+                            {:else}
+                                abstaining — too close to call
+                            {/if}
+                        </span>
+                    </div>
+                    {#if detail.evidence}
+                        <div class="meta-item">
+                            <span class="label">Delayed probe outcomes</span>
+                            <span class="value">
+                                {detail.evidence.probeCorrect} correct of {detail
+                                    .evidence.probeAnsweredDelayed}
+                            </span>
+                        </div>
+                        <div class="meta-item">
+                            <span class="label">Probe status</span>
+                            <span class="value">
+                                {detail.evidence.probeUnanswered} unanswered · {detail
+                                    .evidence.probeAnsweredUndelayed} too recent (excluded)
+                                · {detail.evidence.probeNeverStudied} on never-studied material
+                            </span>
+                        </div>
+                        {#if detail.evidence.meanProbeLagDays > 0}
+                            <div class="meta-item">
+                                <span class="label">Mean study→probe lag</span>
+                                <span class="value">
+                                    {detail.evidence.meanProbeLagDays.toFixed(1)} days (≥7
+                                    required)
+                                </span>
+                            </div>
+                        {/if}
+                        <div class="meta-item">
+                            <span class="label">Study evidence</span>
+                            <span class="value">
+                                {detail.evidence.gradedReviews} graded reviews · {detail
+                                    .evidence.topicsStudied}/{detail.evidence
+                                    .topicsTotal} topics studied
+                            </span>
+                        </div>
+                    {/if}
+                    <div class="meta-item">
+                        <span class="label">Calibration history</span>
+                        <span class="value">
+                            {#if detail.calibration}
+                                last checked {detail.calibration.fittedAt} on {detail
+                                    .calibration.n} held-out outcomes · Brier {detail.calibration.brier.toFixed(
+                                    3,
+                                )} · log-loss {detail.calibration.logLoss.toFixed(3)}
+                            {:else}
+                                never run — the offline probe harness has not scored the
+                                calibration pool yet
+                            {/if}
+                        </span>
+                    </div>
+                    {#if detail.bestNextTopic}
+                        <div class="meta-item best-next">
+                            <span class="label">Best next topic</span>
+                            <span class="value">{detail.bestNextTopic}</span>
+                        </div>
+                    {/if}
+                    <div class="meta-item">
+                        <span class="label">Pass band (MPS proxy)</span>
+                        <span class="value">
+                            {Math.round(detail.mpsLow * 100)}–{Math.round(
+                                detail.mpsHigh * 100,
+                            )}% (unpublished; carried as a band)
+                        </span>
+                    </div>
+                </div>
+            </section>
+        {/if}
+
         <section class="meta">
             <div class="meta-item">
                 <span class="label">Exam coverage (studied)</span>
@@ -313,7 +405,7 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
                 <span class="value">{model.gradedReviews}</span>
             </div>
             <div class="meta-item">
-                <span class="label">Held-out probes</span>
+                <span class="label">Delayed probes answered</span>
                 <span class="value">{model.heldOutProbes}</span>
             </div>
             {#if model.bestNext}
@@ -635,6 +727,15 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
             {#if model.aigExclusionNote}
                 <p class="aig-note">{model.aigExclusionNote}.</p>
             {/if}
+            {#if model.heldOutProbeCards > 0}
+                <p class="aig-note">
+                    {model.heldOutProbeCards} held-out probe {model.heldOutProbeCards ===
+                    1
+                        ? "card is"
+                        : "cards are"} excluded from Memory and coverage — the measurement
+                    instrument never feeds the gauges it tests.
+                </p>
+            {/if}
             {#if model.cardsWithoutTopic > 0 || Object.keys(savedMap).length > 0}
                 <p class="untagged-note">
                     {#if model.cardsWithoutTopic > 0}
@@ -747,12 +848,14 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
 
         <footer>
             <p>
-                <strong>The give-up rule:</strong>
+                <strong>The give-up rule (enforced by the backend):</strong>
                 Readiness shows no probability until there are at least {READINESS_GATES.minGradedReviews}
-                graded reviews, {Math.round(READINESS_GATES.minCoverage * 100)}% topic
-                coverage, and {READINESS_GATES.minHeldOutProbes} answered held-out probe
-                questions, and the resulting band is usefully narrow. A system that knows
-                when it does not know beats a confident guess.
+                graded study reviews, {Math.round(READINESS_GATES.minCoverage * 100)}%
+                topic coverage, and {READINESS_GATES.minHeldOutProbes} answered held-out
+                probes taken at least 7 days after the material was last studied, and the
+                resulting band is usefully narrow. The gate lives in the Rust engine, not
+                in this page, so no display bug can leak an unearned number. A system that
+                knows when it does not know beats a confident guess.
             </p>
         </footer>
     {/if}
@@ -842,6 +945,47 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
 
             .value {
                 font-size: 1.05rem;
+                font-weight: 600;
+            }
+
+            &.best-next .value {
+                color: var(--accent-card, #3b82f6);
+            }
+        }
+    }
+
+    .readiness-detail {
+        margin: 1.25rem 0;
+        padding: 0.75rem 1rem;
+        border: 1px solid var(--border);
+        border-radius: var(--border-radius-medium, 10px);
+        background: var(--canvas-elevated);
+
+        h2 {
+            font-size: 0.95rem;
+            margin: 0 0 0.6rem;
+        }
+
+        .detail-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1.5rem;
+        }
+
+        .meta-item {
+            display: flex;
+            flex-direction: column;
+            max-width: 22rem;
+
+            .label {
+                font-size: 0.7rem;
+                text-transform: uppercase;
+                letter-spacing: 0.04em;
+                color: var(--fg-subtle);
+            }
+
+            .value {
+                font-size: 0.9rem;
                 font-weight: 600;
             }
 

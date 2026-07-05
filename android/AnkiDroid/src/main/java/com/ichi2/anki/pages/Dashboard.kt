@@ -25,9 +25,11 @@ import com.ichi2.anki.SingleFragmentActivity
  * Hosts the shared SvelteKit `dashboard` page - the Memory / Performance /
  * Readiness gauges, per-topic table, coverage map and the give-up rule -
  * for the whole collection. The page and the engine RPCs behind it
- * (`topicMastery`, plus the config service for the tag->topic map and exam
- * date) ship inside the rsdroid `.aar`, so this fragment only provides the
- * WebView host; the rendering is identical to the desktop app.
+ * (`topicMastery` and `getReadiness` - the Phase 3 banded, abstaining
+ * Readiness estimate whose give-up gate lives in the shared Rust engine -
+ * plus the config service for the tag->topic map and exam date) ship
+ * inside the rsdroid `.aar`, so this fragment only provides the WebView
+ * host; the rendering is identical to the desktop app.
  */
 class Dashboard : PageFragment() {
     override val pagePath: String = "dashboard"

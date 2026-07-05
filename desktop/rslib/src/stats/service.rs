@@ -49,6 +49,13 @@ impl crate::services::StatsService for Collection {
         self.concept_graph(crate::decks::DeckId(input.deck_id))
     }
 
+    fn get_readiness(
+        &mut self,
+        input: anki_proto::stats::GetReadinessRequest,
+    ) -> error::Result<anki_proto::stats::GetReadinessResponse> {
+        self.get_readiness(input.test_mode, &input.tag_topic_map)
+    }
+
     fn set_graph_preferences(
         &mut self,
         input: anki_proto::stats::GraphPreferences,

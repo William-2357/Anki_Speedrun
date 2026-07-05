@@ -124,6 +124,9 @@ pub struct DeckConfSchema11 {
     self_explain_enabled: bool,
     #[serde(default)]
     element_interactivity_gate: bool,
+    // Anki Speedrun Phase 3 M2: readiness-optimization allocation
+    #[serde(default)]
+    readiness_allocation: bool,
 
     #[serde(flatten)]
     other: HashMap<String, Value>,
@@ -352,6 +355,7 @@ impl Default for DeckConfSchema11 {
             fade_order: 0,
             self_explain_enabled: false,
             element_interactivity_gate: false,
+            readiness_allocation: false,
         }
     }
 }
@@ -446,6 +450,7 @@ impl From<DeckConfSchema11> for DeckConfig {
                 fade_order: c.fade_order,
                 self_explain_enabled: c.self_explain_enabled,
                 element_interactivity_gate: c.element_interactivity_gate,
+                readiness_allocation: c.readiness_allocation,
                 other: other_bytes,
             },
         }
@@ -572,6 +577,7 @@ impl From<DeckConfig> for DeckConfSchema11 {
             fade_order: i.fade_order,
             self_explain_enabled: i.self_explain_enabled,
             element_interactivity_gate: i.element_interactivity_gate,
+            readiness_allocation: i.readiness_allocation,
         }
     }
 }
@@ -619,6 +625,7 @@ static RESERVED_DECKCONF_KEYS: Set<&'static str> = phf_set! {
     "fadeOrder",
     "selfExplainEnabled",
     "elementInteractivityGate",
+    "readinessAllocation",
 };
 
 static RESERVED_DECKCONF_NEW_KEYS: Set<&'static str> = phf_set! {

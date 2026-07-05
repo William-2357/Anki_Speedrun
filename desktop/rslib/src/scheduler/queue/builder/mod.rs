@@ -1,6 +1,7 @@
 // Copyright: Ankitects Pty Ltd and contributors
 // License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
 
+mod allocation;
 mod burying;
 mod contrast;
 pub(crate) mod fade;
@@ -12,6 +13,7 @@ mod sorting;
 use std::collections::HashMap;
 use std::collections::VecDeque;
 
+use allocation::AllocationContext;
 use contrast::ContrastContext;
 use fade::FadeContext;
 use intersperser::Intersperser;
@@ -119,6 +121,8 @@ pub(super) struct QueueSortOptions {
     pub(super) fade_order: crate::deckconfig::FadeOrder,
     pub(super) self_explain_enabled: bool,
     pub(super) element_interactivity_gate: bool,
+    /// Phase 3 M2: readiness-optimization allocation (allocation.rs)
+    pub(super) readiness_allocation: bool,
 }
 
 #[derive(Debug)]
@@ -132,6 +136,10 @@ pub(super) struct QueueBuilder {
     /// Set between gathering and building when contrast scheduling is
     /// enabled and the gathered notes carry cluster tags.
     contrast: Option<ContrastContext>,
+    /// Set between gathering and building when readiness allocation is
+    /// enabled and any gathered note resolves to a blueprint topic with a
+    /// positive recall gap.
+    allocation: Option<AllocationContext>,
     /// Populated before gathering when the fade ladder is enabled; cards it
     /// gates are skipped bury-style (limits untouched) during the gather.
     fade: FadeContext,
@@ -197,6 +205,7 @@ impl QueueBuilder {
             limits,
             load_balancer,
             contrast: None,
+            allocation: None,
             fade: FadeContext::default(),
             context: Context {
                 timing,
@@ -222,18 +231,20 @@ impl QueueBuilder {
         let review_count = self.review.len();
         let new_count = self.new.len();
 
-        // the contrast pass runs on the merged queue (C3), which no longer
-        // knows about notes; snapshot the card -> note mapping first
-        let card_note: HashMap<CardId, NoteId> = if self.contrast.is_some() {
-            self.new
-                .iter()
-                .map(|c| (c.id, c.note_id))
-                .chain(self.review.iter().map(|c| (c.id, c.note_id)))
-                .chain(self.day_learning.iter().map(|c| (c.id, c.note_id)))
-                .collect()
-        } else {
-            HashMap::new()
-        };
+        // the allocation and contrast passes run on the merged queue (C3),
+        // which no longer knows about notes; snapshot the card -> note
+        // mapping first
+        let card_note: HashMap<CardId, NoteId> =
+            if self.contrast.is_some() || self.allocation.is_some() {
+                self.new
+                    .iter()
+                    .map(|c| (c.id, c.note_id))
+                    .chain(self.review.iter().map(|c| (c.id, c.note_id)))
+                    .chain(self.day_learning.iter().map(|c| (c.id, c.note_id)))
+                    .collect()
+            } else {
+                HashMap::new()
+            };
 
         // merge interday and new cards into main
         let with_interday_learn = merge_day_learning(
@@ -247,6 +258,11 @@ impl QueueBuilder {
             self.context.sort_options.new_review_mix,
         );
         let mut main: VecDeque<MainQueueEntry> = main_iter.collect();
+        // allocation orders the macro queue first (M2), then contrast
+        // enforces confusable adjacency inside that order
+        if let Some(allocation_context) = &self.allocation {
+            main = allocation::apply_allocation(main, &card_note, allocation_context);
+        }
         if let Some(contrast_context) = &self.contrast {
             main = contrast::apply_contrast(main, &card_note, contrast_context);
         }
@@ -307,6 +323,7 @@ fn sort_options(deck: &Deck, config_map: &HashMap<DeckConfigId, DeckConfig>) -> 
                 fade_order: config.inner.fade_order(),
                 self_explain_enabled: config.inner.self_explain_enabled,
                 element_interactivity_gate: config.inner.element_interactivity_gate,
+                readiness_allocation: config.inner.readiness_allocation,
             }
         })
         .unwrap_or_else(|| {
@@ -366,6 +383,9 @@ impl Collection {
         // limits; a no-op unless fade_enabled is set on the deck
         queues.load_fade_gate(self)?;
         queues.gather_cards(self)?;
+        // readiness allocation (Anki Speedrun, Phase 3 M2): weighted-gap
+        // priorities for the gathered survivors; a no-op unless enabled
+        queues.load_allocation_priorities(self)?;
         // contrast scheduling (Anki Speedrun): derive confusable clusters
         // from the gathered notes' tags; a no-op unless enabled on the deck
         queues.load_contrast_clusters(self)?;

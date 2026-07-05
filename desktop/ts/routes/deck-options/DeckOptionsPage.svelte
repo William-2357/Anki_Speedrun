@@ -26,6 +26,7 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
     import LapseOptions from "./LapseOptions.svelte";
     import type { DeckOptionsState } from "./lib";
     import NewOptions from "./NewOptions.svelte";
+    import ReadinessOptions from "./ReadinessOptions.svelte";
     import TimerOptions from "./TimerOptions.svelte";
     import EasyDays from "./EasyDays.svelte";
 
@@ -58,6 +59,7 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
     export const buryOptions = {};
     export const contrastOptions = {};
     export const fadeOptions = {};
+    export const readinessOptions = {};
     export const displayOrder = {};
     export const timerOptions = {};
     export const audioOptions = {};
@@ -113,6 +115,10 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
 
             <Row class="row-columns">
                 <FadeOptions {state} api={fadeOptions} />
+            </Row>
+
+            <Row class="row-columns">
+                <ReadinessOptions {state} api={readinessOptions} />
             </Row>
 
             <Row class="row-columns">

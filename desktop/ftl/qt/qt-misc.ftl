@@ -85,3 +85,4 @@ qt-misc-replace-your-collection-with-an-earlier = Replace your collection with a
 
 qt-misc-speedrun-dashboard = Dashboard
 qt-misc-speedrun-concept-map = Concept map
+qt-misc-speedrun-prepare-for-speedrun = Prepare for Speedrun...

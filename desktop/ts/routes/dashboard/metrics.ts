@@ -9,26 +9,29 @@
  * - Memory: real, from FSRS predicted retrievability (via the TopicMastery
  *   RPC). Abstains when FSRS is off or nothing has been studied.
  * - Performance: an *uncalibrated proxy* (Memory x documented transfer
- *   factor), always labelled as such. Phase 2's held-out exam-style question
- *   bank replaces it with a measurement.
- * - Readiness: P(pass) for the pass/fail CFA Level I exam. ABSTAINS by
- *   default under the give-up rule below; the underlying method is
- *   documented here and exercisable only in an explicitly-labelled test
- *   mode. A confident number with no evidence behind it is worse than no
- *   number.
+ *   factor), always labelled as such; the Phase 3 held-out probe harness
+ *   measures the real memory->performance gap offline.
+ * - Readiness: P(pass) for the pass/fail CFA Level I exam. Phase 3 moved
+ *   the math and the give-up gate into the Rust backend (`GetReadiness`,
+ *   `rslib/src/readiness/`): a Beta-Binomial band over DELAYED held-out
+ *   probe outcomes, a second honest number (confidence of the pass/fail
+ *   call), and backend-enforced abstention. This file is now a thin
+ *   DISPLAY layer for Readiness - it renders what the backend sent and
+ *   computes nothing, so no display bug can leak an unearned number.
  *
- * The give-up rule (R1, written down):
+ * The give-up rule (R1, enforced in the backend, echoed here for display):
  *   Readiness is shown only when ALL hold:
- *     graded reviews >= 300,
+ *     graded study reviews >= 300,
  *     topic coverage >= 70% (weighted, studied),
- *     held-out performance probes answered >= 50,
- *     and the resulting interval half-width <= 0.20.
- *   Otherwise the dashboard names exactly which inputs are missing.
- *   Phase 1 ships no held-out probe bank, so Readiness always abstains in
- *   real use - which is the honest state until Phase 2/3 land.
+ *     delayed held-out probe outcomes >= 50,
+ *     and the resulting band half-width <= 0.20.
+ *   Otherwise the backend names exactly which inputs are missing, and the
+ *   dashboard shows that list. The labelled test mode (?readinessTest=1)
+ *   asks the backend to relax the gates; its output is marked TEST data.
  */
 
-import type { TopicMasteryResponse } from "@generated/anki/stats_pb";
+import type { GetReadinessResponse, TopicMasteryResponse } from "@generated/anki/stats_pb";
+import { GetReadinessResponse_Kind } from "@generated/anki/stats_pb";
 
 import { canonicalTopicId, TOPICS, TOTAL_MIDPOINT_WEIGHT } from "./topics";
 import type { TopicInfo } from "./topics";
@@ -89,6 +92,8 @@ export interface DashboardModel {
     ungradedAigCards: number;
     /** one-line disclosure of the aig exclusion, or null when nothing is excluded */
     aigExclusionNote: string | null;
+    /** probe::held_out cards, excluded from Memory/coverage (held-out hygiene) */
+    heldOutProbeCards: number;
     /** weighted share of the exam whose topics have >= 1 studied card, 0-1 */
     coverage: number;
     /** weighted share of the exam whose topics exist in the deck at all, 0-1 */
@@ -97,12 +102,18 @@ export interface DashboardModel {
     memory: Gauge;
     performance: Gauge;
     readiness: Gauge;
+    /** the raw GetReadiness response backing the readiness gauge (the full
+     * honesty contract: evidence, calibration history, second number), or
+     * null when the backend was unreachable */
+    readinessDetail: GetReadinessResponse | null;
     bestNext: string | null;
     generatedAt: Date;
 }
 
-/** The written-down give-up thresholds. Test mode relaxes them but labels
- * every resulting number as test data. */
+/** The written-down give-up thresholds — enforced by the Rust backend
+ * (`rslib/src/readiness/`); echoed here only for the footer documentation.
+ * Test mode asks the backend to relax them; every resulting number is
+ * labelled test data. */
 export const READINESS_GATES = {
     minGradedReviews: 300,
     minCoverage: 0.7,
@@ -110,13 +121,11 @@ export const READINESS_GATES = {
     maxIntervalHalfWidth: 0.2,
 };
 
-/** Documented readiness mapping (method shipped, number abstains):
- * P(pass) = logistic(k * (weightedPerformance - MPS)), with the unpublished
- * minimum passing standard carried as a band rather than a point. */
-export const READINESS_METHOD = {
-    mpsLow: 0.6,
-    mpsHigh: 0.7,
-    logisticSlope: 14,
+/** Display parameters for the Memory and Performance gauges (unchanged
+ * from Phase 1). Readiness no longer reads any of these — its math lives
+ * in the Rust backend. */
+export const PROXY_DISPLAY = {
+    /** per-topic recall target used for the weighted-gap column */
     performanceTarget: 0.8,
     /** extra widening on the performance proxy: tau is an assumption */
     proxyExtraWidth: 0.15,
@@ -124,20 +133,66 @@ export const READINESS_METHOD = {
     z90: 1.645,
 };
 
-function logistic(x: number): number {
-    return 1 / (1 + Math.exp(-x));
-}
-
 function clamp01(x: number): number {
     return Math.min(1, Math.max(0, x));
 }
 
-/** Phase 1 has no held-out probe bank; the count is 0 by construction. */
-export const HELD_OUT_PROBES_ANSWERED = 0;
+/** Map the backend's readiness response onto the display gauge — a pure
+ * projection. When the backend abstains the numbers are already zeroed
+ * server-side and none are shown; when it is unreachable (`null`, e.g. an
+ * old backend build) the gauge abstains too, rather than falling back to
+ * any local computation. */
+export function readinessGaugeFromRpc(
+    response: GetReadinessResponse | null | undefined,
+): Gauge {
+    if (!response) {
+        return {
+            kind: "abstain",
+            confidence: "none",
+            reasons: [],
+            missing: [
+                "The readiness backend did not respond; no number is shown in its place.",
+            ],
+        };
+    }
+    if (response.kind === GetReadinessResponse_Kind.ABSTAIN) {
+        return {
+            kind: "abstain",
+            confidence: "none",
+            reasons: [],
+            missing: [...response.missing],
+        };
+    }
+    const test = response.kind === GetReadinessResponse_Kind.TEST;
+    // the certainty cap means "high" is unreachable by design
+    const confidence: Confidence = response.callConfidence >= 0.75 ? "medium" : "low";
+    const calibration = response.calibration;
+    let badge: string;
+    if (test) {
+        badge = "TEST DATA \u2014 not a real prediction";
+    } else if (calibration) {
+        badge = `calibration checked ${calibration.fittedAt}`;
+    } else {
+        badge = "band from held-out probes; calibration never run";
+    }
+    return {
+        kind: test ? "test" : "value",
+        value: response.pPassCenter,
+        range: { low: response.pPassLow, high: response.pPassHigh },
+        confidence,
+        badge,
+        reasons: [...response.reasons],
+        missing: test ? [...response.missing] : [],
+    };
+}
 
 export function buildDashboardModel(
     response: TopicMasteryResponse,
-    options: { testMode: boolean; now?: Date } = { testMode: false },
+    options: {
+        testMode: boolean;
+        now?: Date;
+        readiness?: GetReadinessResponse | null;
+    } = { testMode: false },
 ): DashboardModel {
     const fsrsEnabled = response.fsrsEnabled;
     const gradedReviews = Number(response.gradedReviews);
@@ -180,13 +235,13 @@ export function buildDashboardModel(
             const pooledSd = studied > 1 ? Math.sqrt(acc.varSum / (studied - 1)) : 0.25;
             const sem = pooledSd / Math.sqrt(studied);
             memoryRange = {
-                low: clamp01(memory - READINESS_METHOD.z90 * sem),
-                high: clamp01(memory + READINESS_METHOD.z90 * sem),
+                low: clamp01(memory - PROXY_DISPLAY.z90 * sem),
+                high: clamp01(memory + PROXY_DISPLAY.z90 * sem),
             };
         }
         const performance = memory !== null ? clamp01(memory * topic.transfer) : null;
         const weightedGap = topic.midpoint
-            * (READINESS_METHOD.performanceTarget - (performance ?? 0));
+            * (PROXY_DISPLAY.performanceTarget - (performance ?? 0));
         return {
             topic,
             totalCards: acc?.total ?? 0,
@@ -213,20 +268,17 @@ export function buildDashboardModel(
 
     const memory = memoryGauge(subjects, fsrsEnabled, coverage);
     const performance = performanceGauge(subjects, memory, coverage);
-    const readiness = readinessGauge(
-        subjects,
-        coverage,
-        gradedReviews,
-        HELD_OUT_PROBES_ANSWERED,
-        options.testMode,
-    );
+    // thin layer: the readiness gauge is a pure projection of the backend
+    // response — nothing is computed locally
+    const readinessDetail = options.readiness ?? null;
+    const readiness = readinessGaugeFromRpc(readinessDetail);
 
     const ungradedAigCards = response.ungradedAigCards;
 
     return {
         fsrsEnabled,
         gradedReviews,
-        heldOutProbes: HELD_OUT_PROBES_ANSWERED,
+        heldOutProbes: readinessDetail?.evidence?.probeAnsweredDelayed ?? 0,
         totalCards: response.totalCards,
         cardsWithoutTopic: response.cardsWithoutTopic,
         unmappedTags: response.unmappedTags.map((tag) => ({
@@ -240,12 +292,14 @@ export function buildDashboardModel(
                 ungradedAigCards === 1 ? "card is" : "cards are"
             } excluded from all gauges`
             : null,
+        heldOutProbeCards: response.heldOutProbeCards,
         coverage,
         deckCoverage,
         subjects,
         memory,
         performance,
         readiness,
+        readinessDetail,
         bestNext,
         generatedAt: options.now ?? new Date(),
     };
@@ -327,7 +381,7 @@ function performanceGauge(
     const studiedCards = rows.reduce((sum, row) => sum + row.studiedCards, 0);
     const mean = rows.reduce((sum, row) => sum + row.performance! * row.studiedCards, 0)
         / studiedCards;
-    const width = READINESS_METHOD.proxyExtraWidth;
+    const width = PROXY_DISPLAY.proxyExtraWidth;
     const low = clamp01(
         rows.reduce(
                     (sum, row) =>
@@ -352,106 +406,10 @@ function performanceGauge(
         badge: "uncalibrated estimate",
         reasons: [
             "Memory x a documented per-topic transfer factor (a stated assumption, not a measurement).",
-            "No held-out exam-style questions have been answered yet, so real transfer cannot be measured in Phase 1.",
+            "The Phase 3 probe harness measures the real memory\u2192performance gap on delayed held-out MCQs; until it reports, this proxy stays uncalibrated.",
             `Range widened by \u00b1${width} to reflect that the transfer factor is an assumption.`,
             `Coverage: ${Math.round(coverage * 100)}% of exam weight has studied cards.`,
         ],
         missing: [],
-    };
-}
-
-function readinessGauge(
-    subjects: SubjectRow[],
-    coverage: number,
-    gradedReviews: number,
-    heldOutProbes: number,
-    testMode: boolean,
-): Gauge {
-    const gates = READINESS_GATES;
-    const missing: string[] = [];
-    if (gradedReviews < gates.minGradedReviews) {
-        missing.push(
-            `Only ${gradedReviews} graded reviews; need at least ${gates.minGradedReviews}.`,
-        );
-    }
-    if (coverage < gates.minCoverage) {
-        const uncovered = subjects
-            .filter((row) => row.studiedCards === 0)
-            .map((row) => row.topic.name);
-        missing.push(
-            `Topic coverage is ${Math.round(coverage * 100)}%; need at least ${Math.round(gates.minCoverage * 100)}%.`
-                + (uncovered.length
-                    ? ` Not studied yet: ${uncovered.slice(0, 3).join(", ")}${uncovered.length > 3 ? ", \u2026" : ""}.`
-                    : ""),
-        );
-    }
-    if (heldOutProbes < gates.minHeldOutProbes) {
-        missing.push(
-            `Only ${heldOutProbes} held-out performance probes answered; need at least ${gates.minHeldOutProbes}. The probe bank ships in a later phase.`,
-        );
-    }
-
-    if (missing.length > 0 && !testMode) {
-        return {
-            kind: "abstain",
-            confidence: "none",
-            reasons: [],
-            missing,
-        };
-    }
-
-    // Documented method - only reachable when the gates pass, or in the
-    // explicitly-labelled test mode.
-    const rows = subjects.filter((row) => row.performance !== null);
-    if (rows.length === 0) {
-        return { kind: "abstain", confidence: "none", reasons: [], missing: [...missing, "No studied topics at all."] };
-    }
-    const weightSum = rows.reduce((sum, row) => sum + row.topic.midpoint, 0);
-    const weightedPerformance = rows.reduce(
-        (sum, row) => sum + row.performance! * row.topic.midpoint,
-        0,
-    ) / weightSum;
-    // pessimistic corner folds in the uncovered exam weight as zeroes
-    const pessimisticPerformance = rows.reduce(
-        (sum, row) => sum + row.performance! * row.topic.midpoint,
-        0,
-    ) / TOTAL_MIDPOINT_WEIGHT;
-
-    const method = READINESS_METHOD;
-    const mpsMid = (method.mpsLow + method.mpsHigh) / 2;
-    const value = logistic(method.logisticSlope * (weightedPerformance - mpsMid));
-    const low = logistic(
-        method.logisticSlope * (pessimisticPerformance - method.mpsHigh),
-    );
-    const high = logistic(
-        method.logisticSlope * (weightedPerformance + method.proxyExtraWidth - method.mpsLow),
-    );
-    const halfWidth = (high - low) / 2;
-
-    if (halfWidth > gates.maxIntervalHalfWidth && !testMode) {
-        return {
-            kind: "abstain",
-            confidence: "none",
-            reasons: [],
-            missing: [
-                `The probability band is too wide to be useful (half-width ${
-                    halfWidth.toFixed(2)
-                } > ${gates.maxIntervalHalfWidth}).`,
-            ],
-        };
-    }
-
-    return {
-        kind: testMode ? "test" : "value",
-        value,
-        range: { low, high },
-        confidence: coverage >= 0.9 && gradedReviews >= 1000 ? "medium" : "low",
-        badge: testMode ? "TEST DATA \u2014 not a real prediction" : "uncalibrated",
-        reasons: [
-            "CFA Level I is pass/fail, so this is a pass probability, not an invented score.",
-            `Method: logistic(${method.logisticSlope} x (weighted performance \u2212 MPS)), MPS carried as a band [${method.mpsLow}, ${method.mpsHigh}] because CFA never publishes it.`,
-            "Built on the uncalibrated Performance proxy; no held-out mock results back this number yet.",
-        ],
-        missing: testMode ? missing : [],
     };
 }

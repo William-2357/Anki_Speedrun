@@ -720,3 +720,17 @@ deck-config-element-interactivity-gate-tooltip =
     Restricts the ladder to clusters tagged "interactivity::high" (dense,
     multi-step formula material, where worked examples pay off). Simple
     fact cards stay on plain spaced repetition either way.
+
+## Anki Speedrun: readiness-optimization allocation (Phase 3 M2)
+
+deck-config-readiness-title = Readiness Allocation (Speedrun)
+deck-config-readiness-allocation = Order today's cards by exam impact
+deck-config-readiness-allocation-tooltip =
+    Re-orders (never adds or drops) the day's queue so cards from the exam
+    topics with the largest weighted recall gap come first - exam weight ×
+    (target − current recall), using the official CFA topic-weight
+    midpoints as fixed priors and each topic's own recall only (no
+    cross-topic credit). With a bounded daily budget, ordering is
+    allocation: what you never reach today is what this deprioritized.
+    Off by default; the ablation compares it against plain uniform
+    scheduling.

@@ -31,6 +31,10 @@
 //! * [R24] notes tagged `aig::ungraded` (AI-generated, never graded) are
 //!   excluded from every topic bucket and reported in `ungraded_aig_cards`, so
 //!   they can never feed readiness while remaining visibly disclosed.
+//! * Notes tagged `probe::held_out` (the Phase 3 delayed-probe bank) are
+//!   likewise excluded and reported in `held_out_probe_cards`: the measurement
+//!   instrument must never feed the Memory gauge or the coverage it is supposed
+//!   to test (held-out hygiene).
 
 use std::collections::HashMap;
 
@@ -103,7 +107,7 @@ impl TopicAccumulator {
 /// Normalize user map keys for matching: trimmed, lowercased, and with a
 /// trailing "::" stripped so "finance" and "finance::" address the same
 /// subtree. Entries with an empty key or value are dropped.
-fn normalized_tag_topic_map(map: &HashMap<String, String>) -> HashMap<String, String> {
+pub(crate) fn normalized_tag_topic_map(map: &HashMap<String, String>) -> HashMap<String, String> {
     map.iter()
         .filter_map(|(key, value)| {
             let key = key.trim().to_ascii_lowercase();
@@ -123,7 +127,7 @@ fn normalized_tag_topic_map(map: &HashMap<String, String>) -> HashMap<String, St
 /// tier, handled by the caller first). Returns (key length, topic id).
 /// Walks the tag's own `::` boundaries from the right, so cost is bounded
 /// by the tag's segment count - no per-card queries.
-fn longest_prefix_match<'m>(
+pub(crate) fn longest_prefix_match<'m>(
     map: &'m HashMap<String, String>,
     tag: &str,
 ) -> Option<(usize, &'m str)> {
@@ -183,6 +187,7 @@ impl Collection {
         let mut total_cards = 0u32;
         let mut cards_without_topic = 0u32;
         let mut ungraded_aig_cards = 0u32;
+        let mut held_out_probe_cards = 0u32;
         {
             let guard = self.search_cards_into_table(search, SortMode::NoOrder)?;
             guard
@@ -203,6 +208,16 @@ impl Collection {
                         // are excluded, not unattributed.
                         if tag_list.iter().any(|tag| tag == AIG_UNGRADED_TAG) {
                             ungraded_aig_cards += 1;
+                            return;
+                        }
+                        // held-out hygiene: probe-bank cards are the
+                        // measurement instrument, so they never feed the
+                        // Memory gauge or coverage. Disclosed via the count.
+                        if tag_list
+                            .iter()
+                            .any(|tag| tag == crate::readiness::PROBE_HELD_OUT_TAG)
+                        {
+                            held_out_probe_cards += 1;
                             return;
                         }
                         // (1) canonical prefix tag
@@ -287,6 +302,7 @@ impl Collection {
             high_recall_threshold: threshold,
             unmapped_tags,
             ungraded_aig_cards,
+            held_out_probe_cards,
         })
     }
 }
@@ -506,6 +522,33 @@ mod test {
         // most frequent first
         assert_eq!(response.unmapped_tags[0].topic, "tag204");
         assert_eq!(response.unmapped_tags[0].total_cards, 2);
+        Ok(())
+    }
+
+    /// Held-out hygiene: probe-bank cards never feed the Memory gauge or
+    /// coverage - excluded from every bucket, disclosed via the count.
+    #[test]
+    fn held_out_probe_cards_are_excluded_and_counted() -> Result<()> {
+        let mut col = Collection::new();
+        let probe = col.add_topic_note(
+            "p",
+            &[
+                "cfa::topic::ethics",
+                "probe::held_out",
+                "probe::pool::performance",
+            ],
+        );
+        col.add_topic_note("study", &["cfa::topic::ethics"]);
+        col.set_memory_state(&probe, 100.0, 0);
+
+        let response = col.topic_mastery("", "", 0.0, &HashMap::new())?;
+        assert_eq!(response.total_cards, 2);
+        assert_eq!(response.held_out_probe_cards, 1);
+        // the studied probe must not create a studied ethics bucket
+        assert_eq!(response.topics.len(), 1);
+        assert_eq!(response.topics[0].total_cards, 1);
+        assert_eq!(response.topics[0].studied_cards, 0);
+        assert_eq!(response.cards_without_topic, 0);
         Ok(())
     }
 

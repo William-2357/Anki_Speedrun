@@ -1071,6 +1071,29 @@ class Collection(DeprecatedNamesMixin):
         """
         return self._backend.concept_graph(deck_id=deck_id)
 
+    def get_readiness(
+        self,
+        test_mode: bool = False,
+        tag_topic_map: dict[str, str] | None = None,
+    ) -> stats_pb2.GetReadinessResponse:
+        """Anki Speedrun (Phase 3): the banded, abstaining Readiness estimate.
+
+        Beta-Binomial (Jeffreys prior) over DELAYED held-out probe outcomes,
+        mapped through the configurable MPS band — never a bare point, never
+        derived from FSRS recall. The give-up gate (>=300 graded study
+        reviews, >=70% weighted coverage, >=50 delayed probes, band
+        half-width <= 0.20) is enforced by the Rust backend; when it fails,
+        `kind` is ABSTAIN, the numbers are zeroed, and `missing` names each
+        failed input. `test_mode=True` relaxes the gates for pipeline
+        testing and marks the output `kind=TEST` (never a real prediction).
+        The offline probe harness is the only writer of the calibration
+        record this surfaces.
+        """
+        return self._backend.get_readiness(
+            test_mode=test_mode,
+            tag_topic_map=tag_topic_map or {},
+        )
+
     # Undo
     ##########################################################################
 

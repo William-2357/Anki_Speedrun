@@ -44,6 +44,7 @@ import com.ichi2.anki.libanki.setConfigJsonRaw
 import com.ichi2.anki.libanki.stats.cardStatsRaw
 import com.ichi2.anki.libanki.stats.conceptGraphRaw
 import com.ichi2.anki.libanki.stats.getGraphPreferencesRaw
+import com.ichi2.anki.libanki.stats.getReadinessRaw
 import com.ichi2.anki.libanki.stats.graphsRaw
 import com.ichi2.anki.libanki.stats.setGraphPreferencesRaw
 import com.ichi2.anki.libanki.stats.topicMasteryRaw
@@ -116,6 +117,7 @@ val collectionMethods =
         // Anki Speedrun
         "conceptGraph" to { bytes -> conceptGraphRaw(bytes) },
         "topicMastery" to { bytes -> topicMasteryRaw(bytes) },
+        "getReadiness" to { bytes -> getReadinessRaw(bytes) },
         "getConfigJson" to { bytes -> getConfigJsonRaw(bytes) },
         "setConfigJson" to { bytes -> setConfigJsonRaw(bytes) },
         "getDeckConfigsForUpdate" to { bytes -> getDeckConfigsForUpdateRaw(bytes) },

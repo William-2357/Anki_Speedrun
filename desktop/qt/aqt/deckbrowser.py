@@ -321,6 +321,12 @@ class DeckBrowser:
         a = m.addAction(tr.qt_misc_speedrun_concept_map())
         assert a is not None
         qconnect(a.triggered, lambda b, did=did: self._concept_map(DeckId(int(did))))
+        # Anki Speedrun: BYO-deck onboarding (M5)
+        a = m.addAction(tr.qt_misc_speedrun_prepare_for_speedrun())
+        assert a is not None
+        qconnect(
+            a.triggered, lambda b, did=did: self._speedrun_onboard(DeckId(int(did)))
+        )
         a = m.addAction(tr.actions_delete())
         assert a is not None
         qconnect(a.triggered, lambda b, did=did: self._delete(DeckId(int(did))))
@@ -329,6 +335,11 @@ class DeckBrowser:
 
     def _concept_map(self, did: DeckId) -> None:
         aqt.dialogs.open("SpeedrunConceptMap", self.mw, int(did))
+
+    def _speedrun_onboard(self, did: DeckId) -> None:
+        import aqt.speedrun_onboard
+
+        aqt.speedrun_onboard.show_onboard_dialog(self.mw, int(did))
 
     def _export(self, did: DeckId) -> None:
         self.mw.onExport(did=did)

@@ -209,21 +209,34 @@ FSRS predicted retrievability (`extract_fsrs_retrievability`, `rslib/src/storage
   transfer. Showing `Memory × τ` with a visible gap and an "uncalibrated" flag satisfies "measure the
   gap, don't hide it"; Phase 2 (paraphrase test + held-out MCQ bank) replaces `τ` with a fitted model.
 
-### Readiness (P(pass), abstains until calibrated)
+### Readiness (P(pass) band from held-out probe outcomes — Phase 3 backend)
 
 CFA L1 is **pass/fail with no published numeric score**, so Readiness is a **probability of passing**,
-not a number on a scale (mirrors the spec's USMLE Step 1 guidance).
+not a number on a scale (mirrors the spec's USMLE Step 1 guidance). **Phase 3 moved the math and the
+give-up gate into the Rust backend** (`rslib/src/readiness/`, `GetReadiness` RPC); the page renders
+the response and computes nothing (`metrics.ts` is a thin display layer, so no display bug can leak
+an unearned number).
 
-1. **Overall performance:** `P̄ = Σ_s w(s)·Performance(s) / Σ_s w(s)` over subjects that have data.
-2. **Map to P(pass):** `P(pass) = logistic(k · (P̄ − MPS))`, where `MPS` = the assumed **minimum
-   passing standard** (CFA never publishes it → use a **wide band**, default `MPS ∈ [0.60, 0.70]`,
-   centre 0.65) and `k` = a documented slope (default 14).
-3. **Range:** evaluate P(pass) at the pessimistic corner `(P̄_low, MPS_high)` and the optimistic corner
-   `(P̄_high, MPS_low)`, where `P̄_low/high` fold in the per-subject ranges **and a coverage penalty**
-   (uncovered exam weight pulls `P̄_low` down). Report `[P_low, P_high]`.
-4. **Confidence:** derived from **coverage %** and **total graded reviews** → low / medium / high.
-5. **Best next topic:** `argmax_s w(s) · (target − Performance(s))` — the largest **weighted** gap
-   (default `target = 0.80`).
+1. **Outcomes:** `x` correct of `n` **delayed** held-out probe answers (the hand-authored
+   `probe::pool::performance` bank; first answer per probe; counted only when taken **≥ 7 days**
+   after the probe's cluster was last studied — never-studied clusters count as delayed). FSRS
+   recall is never converted into outcomes.
+2. **Posterior:** `Beta(x+0.5, n−x+0.5)` (Jeffreys prior).
+3. **Map to P(pass):** `P(pass) = P(score ≥ MPS)` under a `Binomial(180, p)` exam-score model; MPS is
+   a **configurable mock-proxy band** (default `[0.68, 0.75]`, key `speedrun:passBand`), never a
+   point. Band: centre = the Beta-Binomial posterior predictive at the band midpoint; low/high = the
+   Jeffreys 90% quantiles through the pessimistic `(q05, MPS_high)` / optimistic `(q95, MPS_low)`
+   corners.
+4. **Certainty caps:** half-width floored at 0.10, band clamped into [0.02, 0.98], call confidence
+   capped at 0.85 (mock↔exam r ≈ 0.7 ceiling).
+5. **Second number:** the confidence of the pass/fail **call** (`max(P, 1−P)`, capped), abstaining
+   "too close to call" whenever the band straddles 50%.
+6. **Best next topic:** `argmax_s w(s) · (0.80 − Memory(s))` over blueprint weights, computed
+   backend-side (no τ), with a documented **Ethics tie-break** near the boundary.
+7. **Honesty contract (always rendered, even when abstaining):** the evidence (x/n, undelayed and
+   unanswered probe counts, study→probe lags, graded reviews, coverage), what's missing (each failed
+   gate), the calibration history (`speedrun:readinessCalibration`, written only by the offline
+   probe harness: fit date, Brier, log-loss, n), the band, and the best next topic.
 
 ### Coverage
 
@@ -232,18 +245,25 @@ not a number on a scale (mirrors the spec's USMLE Step 1 guidance).
 - Also render the **outline map** (spec §7c): which of the official readings/topics the deck contains
   at all (deck coverage) vs has been studied.
 
-## Give-up rule (written down, enforced)
+## Give-up rule (written down, enforced in the Rust backend)
 
-> **Readiness shows no P(pass)** until the collection has **≥ 300 graded reviews**,
-> **≥ 70% topic coverage** (studied), **and ≥ 50 graded held-out probe items**. Below any line,
-> Readiness displays only its **decomposed components** (per-subject Memory/Performance, coverage %,
-> best-next-topic) under an **"insufficient data — no score"** label that **names the missing input**.
+> **Readiness shows no P(pass)** until the collection has **≥ 300 graded study reviews** (probe
+> answers don't count), **≥ 70% topic coverage** (studied), **≥ 50 delayed held-out probe
+> outcomes**, **and** a band half-width **≤ 0.20**. Below any line, Readiness displays only its
+> **decomposed components** (per-subject Memory/Performance, coverage %, best-next-topic) under an
+> **"insufficient data — no score"** label that **names the missing input**. The gate lives in
+> `rslib/src/readiness/` — the RPC zeroes the numbers when abstaining, so no display layer can show
+> them. Near the pass boundary the width gate may **never** clear (the unpublished MPS is
+> irreducible uncertainty); permanent abstention there is the honest answer, not a bug.
 >
-> _(Dev-only escape hatch: opening the page with `?readinessTest=1` relaxes the gates so the pipeline
-> can be exercised end-to-end; that output is labelled "TEST DATA — not a real prediction".)_
+> _(Dev-only escape hatch: opening the page with `?readinessTest=1` sets `test_mode` on the RPC,
+> which relaxes the gates so the pipeline can be exercised end-to-end; that output is marked
+> `kind=TEST` and labelled "TEST DATA — not a real prediction".)_
 
-Performance is **always** labelled "uncalibrated" in Phase 1. Memory shows whenever a subject has ≥ 1
-studied card (otherwise that subject abstains).
+Performance is **always** labelled "uncalibrated" until the probe harness reports a measured
+memory→performance gap. Memory shows whenever a subject has ≥ 1 studied card (otherwise that
+subject abstains). Held-out probe cards are excluded from Memory and coverage (held-out hygiene)
+and the exclusion is disclosed with a count.
 
 ## Access — where the user opens it
 
@@ -254,7 +274,8 @@ studied card (otherwise that subject abstains).
   same page scoped to that deck, for users juggling several exam decks.
 - **Android.** The deck list's overflow menu has a **"CFA Dashboard"** entry
   (`android/.../pages/Dashboard.kt`) hosting the identical whole-collection Svelte page from the
-  rsdroid `.aar`; `topicMastery` + the config RPCs are routed in `pages/PostRequestHandler.kt`.
+  rsdroid `.aar`; `topicMastery` + `getReadiness` + the config RPCs are routed in
+  `pages/PostRequestHandler.kt`.
 - **Routes:** `dashboard` (whole collection, `deck_id = 0`) and `dashboard/[deckId]` (scoped); the
   metrics RPC treats `deck_id = 0` as the whole collection.
 - **How (Anki convention):** the toolbar links live in `qt/aqt/toolbar.py` (`_centerLinks` +

@@ -1,0 +1,193 @@
+{
+    "meta": {
+        "tool": "probe_harness",
+        "generated_at": "2026-07-04T13:12:17+00:00",
+        "bank": "/Users/william/Anki_Speedrun/desktop/tools/speedrun/probes/probe_bank.jsonl",
+        "modes": [
+            "validation",
+            "leakage-scan",
+            "self-test"
+        ],
+        "delay_rule": "first graded answer; delayed iff >= 7.0 days after the last graded non-probe review of the probe's cluster; never-studied clusters count as delayed"
+    },
+    "validation": {
+        "passed": true,
+        "record_count": 70,
+        "concepts": 35,
+        "performance_items": 50,
+        "calibration_items": 20,
+        "topics_covered": [
+            "alternative_investments",
+            "corporate_issuers",
+            "derivatives",
+            "economics",
+            "equity_investments",
+            "ethics",
+            "financial_statement_analysis",
+            "fixed_income",
+            "portfolio_management",
+            "quantitative_methods"
+        ],
+        "errors": [],
+        "variant_divergence": {
+            "threshold": 0.7,
+            "max_jaccard": 0.5294,
+            "worst_concept": "c33",
+            "per_concept": {
+                "c01": 0.069,
+                "c02": 0.1207,
+                "c03": 0.1277,
+                "c04": 0.04,
+                "c05": 0.2051,
+                "c06": 0.0952,
+                "c07": 0.1379,
+                "c08": 0.04,
+                "c09": 0.2,
+                "c10": 0.1875,
+                "c11": 0.1579,
+                "c12": 0.0909,
+                "c13": 0.2222,
+                "c14": 0.0541,
+                "c15": 0.1905,
+                "c16": 0.16,
+                "c17": 0.4815,
+                "c18": 0.1944,
+                "c19": 0.4333,
+                "c20": 0.06,
+                "c21": 0.2571,
+                "c22": 0.2093,
+                "c23": 0.3043,
+                "c24": 0.3548,
+                "c25": 0.3103,
+                "c26": 0.0566,
+                "c27": 0.0645,
+                "c28": 0.0714,
+                "c29": 0.2558,
+                "c30": 0.2222,
+                "c31": 0.0857,
+                "c32": 0.0444,
+                "c33": 0.5294,
+                "c34": 0.0741,
+                "c35": 0.0435
+            }
+        }
+    },
+    "leakage": {
+        "passed": true,
+        "ngram_n": 8,
+        "probes_scanned": 70,
+        "sources_scanned": [
+            "aig/prompts.py",
+            "corpus/bond_pricing.md",
+            "corpus/duration.md",
+            "corpus/inventory.md",
+            "corpus/tvm.md",
+            "items/generated.jsonl",
+            "items/seed_fixtures.jsonl"
+        ],
+        "reference_pdf_available": true,
+        "forward_hits": [],
+        "reverse_hits": []
+    },
+    "self_test": {
+        "seed": 20260704,
+        "checks_passed": [
+            "brier/log-loss match hand-computed values",
+            "temperature softens overconfident predictions",
+            "temperature fit never worsens log-loss",
+            "delay rule: 7-day boundary, never-studied, first-answer-only",
+            "calibration abstains below 10 outcomes",
+            "synthetic outcome partition adds up",
+            "bridge proof produced a measured gap",
+            "calibration fit on synthetic outcomes, record shape exact"
+        ],
+        "outcomes": {
+            "pools": {
+                "performance": {
+                    "items": 50,
+                    "correct": 29,
+                    "delayed": 50,
+                    "undelayed": 0,
+                    "unanswered": 0,
+                    "never_studied": 8,
+                    "lag_distribution": {
+                        "n": 42,
+                        "min": 8.0,
+                        "median": 10.0,
+                        "mean": 9.81,
+                        "max": 12.0
+                    },
+                    "undelayed_lags": []
+                },
+                "calibration": {
+                    "items": 20,
+                    "correct": 8,
+                    "delayed": 16,
+                    "undelayed": 2,
+                    "unanswered": 2,
+                    "never_studied": 2,
+                    "lag_distribution": {
+                        "n": 14,
+                        "min": 8.0,
+                        "median": 10.0,
+                        "mean": 10.0,
+                        "max": 12.0
+                    },
+                    "undelayed_lags": [
+                        2.0,
+                        2.0
+                    ]
+                }
+            }
+        },
+        "readiness_inputs": {
+            "x_correct": 29,
+            "n_delayed": 50
+        },
+        "bridge": {
+            "retention": {
+                "window_days": 30,
+                "n_reviews": 690,
+                "accuracy": 0.7928
+            },
+            "delayed_probe_accuracy": {
+                "performance_pool": {
+                    "accuracy": 0.58,
+                    "n": 50
+                },
+                "both_pools": {
+                    "accuracy": 0.5606,
+                    "n": 66
+                }
+            },
+            "memory_minus_performance_gap": 0.2128,
+            "note": "gap = trailing-window retention accuracy on the probes' source clusters (non-probe cards) minus delayed performance-pool probe accuracy; positive = recognition memory outruns delayed application, the transfer gap the probes exist to measure"
+        },
+        "calibration": {
+            "pool": "calibration",
+            "outcomes_used": 16,
+            "min_outcomes": 10,
+            "proxy": "accuracy of the most recent <= 20 graded non-probe reviews of the probe's cluster before its first answer, add-one smoothed; never-studied clusters predict 1/3 (3-choice chance rate)",
+            "abstained": false,
+            "raw": {
+                "brier": 0.281881,
+                "log_loss": 0.811411
+            },
+            "calibrated": {
+                "brier": 0.242222,
+                "log_loss": 0.677617
+            },
+            "temperature": 4.335954,
+            "record": {
+                "fitted_at": "2026-07-04",
+                "brier": 0.242222,
+                "log_loss": 0.677617,
+                "n": 16,
+                "temperature": 4.335954
+            },
+            "note": "record carries the post-temperature scores; with one fitted scalar on a small n they are mildly optimistic in-sample (disclosed; see PROBE_SCHEMA.md)"
+        }
+    },
+    "failures": [],
+    "exit_code": 0
+}

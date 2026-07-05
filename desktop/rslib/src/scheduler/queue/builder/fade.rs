@@ -1137,4 +1137,52 @@ mod test {
         col.set_exam_date_days_ahead(45);
         assert_eq!(days_until_exam(&mut col, timing).unwrap(), Some(45));
     }
+
+    /// Phase 3 M0 — the unified graph pass: rung dependencies GATE first,
+    /// then the interference edges order the SURVIVORS by cluster, all in
+    /// one `build_queues` call. A fresh ladder's locked solve rung is
+    /// withheld bury-style while the surviving worked cards of the same
+    /// cluster still form a contrast-adjacent run (and precedence means the
+    /// gated card never occupies a contrast slot).
+    #[test]
+    fn gate_first_then_cluster_survivors_in_one_pass() {
+        let mut col = Collection::new();
+        col.enable_fade();
+        col.update_default_deck_config(|config| {
+            config.contrast_scheduling = true;
+            config.contrast_tag_prefix = String::new();
+            // legacy ungated arm: adjacency machinery under test, not R18
+            config.contrast_confusable_tag = String::new();
+        });
+        col.set_exam_date_days_ahead(30);
+
+        // ladder with one correct worked session: comprehension precondition
+        // (R13) clears, but the 3-session promotion gate still locks solve
+        let worked_a = col.add_rung_note("worked a", "worked", false);
+        // ungated background noise between the cluster members
+        for i in 0..3 {
+            NoteAdder::basic(&mut col)
+                .fields(&[&format!("noise {i}"), "back"])
+                .add(&mut col);
+        }
+        let worked_b = col.add_rung_note("worked b", "worked", false);
+        let solve = col.add_rung_note("solve locked", "solve", false);
+        col.log_review(&worked_a, 3, 3);
+
+        let queue = col.queue_note_ids();
+        // gate first: the locked rung is absent…
+        assert!(
+            !queue.contains(&solve.id),
+            "locked solve rung must be withheld: {queue:?}"
+        );
+        // …then cluster: both surviving worked cards adjoin
+        let position = |id: NoteId| queue.iter().position(|n| *n == id).unwrap();
+        assert_eq!(
+            position(worked_a.id).abs_diff(position(worked_b.id)),
+            1,
+            "surviving cluster members must adjoin: {queue:?}"
+        );
+        // and nothing else was dropped: 2 rung survivors + 3 noise notes
+        assert_eq!(queue.len(), 5);
+    }
 }

@@ -35,6 +35,39 @@ that turns a spaced-repetition app into a **transfer-and-readiness** engine:
   never feeds them; see below). Desktop: toolbar → **CFA Dashboard**.
   Android: deck list overflow menu → **CFA Dashboard** (the same Svelte
   page, served from the `.aar` on-device).
+- **A banded, two-number, abstaining Readiness backend** (the Phase 3 Rust
+  change): the Readiness math and its give-up gate moved out of the display
+  layer into `rslib/src/readiness/` (a new `GetReadiness` RPC). The
+  estimate is a **Beta-Binomial band over delayed held-out probe
+  outcomes** (Jeffreys prior, mapped through a configurable unpublished-MPS
+  band, half-width floored, certainty capped at the mock↔exam r≈0.7
+  ceiling) plus a **second honest number** — the confidence of the
+  pass/fail call, which abstains "too close to call" when the band
+  straddles 50%. The gate (≥300 graded study reviews, ≥70% weighted
+  coverage, ≥50 **delayed** probes, band half-width ≤0.20) is enforced in
+  the engine — an abstaining response carries zeroed numbers, so no
+  display bug can leak an unearned probability. The full honesty contract
+  (evidence, missing inputs, calibration history, band, best next topic —
+  with a documented Ethics tie-break near the boundary) renders even while
+  abstaining, on both apps.
+- **A held-out delayed-probe bank + one-command harness** (Phase 3): 35
+  concepts × 2 hand-authored, reworded application MCQs, split into
+  concept-disjoint **performance** and **calibration** pools
+  (`probe::pool::*` tags), leakage-scanned against the corpus and the
+  generated items. Probe outcomes only count when answered **≥7 days**
+  after their cluster was last studied (measured from the revlog — the
+  delay is measured, never claimed). Probe cards are excluded from Memory
+  and coverage (the instrument never feeds the gauges it tests), and the
+  harness reports the memory→performance bridge gap, calibration
+  (Brier/log-loss + fitted temperature) on the calibration pool only, and
+  writes the calibration record the dashboard surfaces.
+- **Readiness-optimization allocation** (Phase 3, demoted SPOV 4): an
+  off-by-default deck-options toggle that stably re-orders the day's
+  merged queue by **exam-weight × topic recall gap** (CFA blueprint
+  midpoints as fixed priors, within-topic credit only — no cross-topic
+  transfer credit anywhere). Pure permutation: limits and counts stay
+  exact, and the contrast pass still enforces confusable adjacency inside
+  the allocation's macro order.
 - **The fade ladder** (the Phase 2 Rust change, SPOV 2): within a cluster,
   cards tagged `rung::worked` → `rung::faded` → `rung::solve` form a
   worked-example ladder, and the queue builder serves **exactly one rung
@@ -201,6 +234,61 @@ PYTHONPATH=out/pylib out/pyenv/bin/python tools/speedrun/build_ladder_deck.py \
     --items "tools/speedrun/items/generated.jsonl"
 ```
 
+### The held-out probe deck (Phase 3)
+
+The measurement instrument behind Readiness: **35 concepts × 2 reworded
+application MCQs**, hand-authored (no AI), covering all 10 topics, split
+concept-disjoint into a 50-item **performance** pool (feeds the gauge) and
+a 20-item **calibration** pool (feeds only the offline harness — no
+circularity). Checked in at `desktop/tools/speedrun/cfa_probes.apkg`;
+import it next to your study decks. Probe cards never feed Memory or
+coverage, their answers never count as study reviews, and an outcome only
+reaches Readiness when the probe was answered **≥ 7 days** after its
+cluster was last studied (the delay is measured from the revlog, never
+assumed). Contract: `desktop/tools/speedrun/probes/PROBE_SCHEMA.md`. To
+regenerate and re-verify:
+
+```bash
+cd desktop
+# validate the bank + leakage-scan it against the corpus/generator + self-test
+python3 tools/speedrun/probe_harness.py
+# rebuild the .apkg from the JSONL bank
+PYTHONPATH=out/pylib out/pyenv/bin/python tools/speedrun/build_probe_deck.py
+# after real study: bridge proof + calibration from your collection, then
+# write the calibration record the dashboard surfaces
+python3 tools/speedrun/probe_harness.py --collection <collection.anki2> --apply
+```
+
+### The ablation harness (Phase 3)
+
+`python3 tools/speedrun/ablation.py` (from `desktop/`) runs the
+**simulation** ablation: nine arms (vanilla / contrast / fade / allocation
+/ full-on / cross-topic-leakage / leave-one-out arms) on equal study
+budgets and identical content, scored on Memory, **delayed** Performance
+and Readiness-calibration, with the pre-registered primary comparison
+stated ahead (full-on vs vanilla on delayed performance) and the
+lenient-vs-strict **abstention arm** quantifying the honesty cost of
+over-claiming. Seeded and deterministic; reports land in
+`tools/speedrun/eval/ablation_report.{json,md}` and the analysis in
+[`desktop/PHASE3_RESULTS.md`](desktop/PHASE3_RESULTS.md) — which discloses
+loudly that these are properties of a documented learner model, not human
+data.
+
+### BYO decks — "Prepare this deck for Speedrun" (Phase 3)
+
+For imported/untagged decks: a deck gear-menu action (desktop-only,
+**default-off** — enable `speedrun:byoOnboardingEnabled`) that proposes
+`cfa::topic::*`, `cluster::*`, `rung::*` and `interactivity::*` tags from
+deterministic lexicon/structure heuristics (an optional AI pass may fill
+blanks the heuristics abstained on, same grounded-or-abstain rules as the
+assistant), mines `confusable::high` markers from the deck's own revlog
+when ≥200 reviews exist (auto-validated, abstaining), and can draft
+missing rung items through the full AIG gate pipeline (always
+`aig::ungraded` — studyable, never feeding Readiness). Every proposal
+shows its **evidence and confidence** in a preview dialog; nothing is
+written until you click Apply, the write is tags-only and **undoable**,
+and note content is never touched.
+
 Companion offline tools (all under `desktop/tools/speedrun/`):
 
 - `aig/confusability.py` — behavioural confusion-mining over the revlog;
@@ -209,10 +297,11 @@ Companion offline tools (all under `desktop/tools/speedrun/`):
 - `retire_items.py` — [R24] auto-retirement: flags generated items whose
   live point-biserial shows no discrimination (`--apply` tags them
   `aig::retired`).
-- `python3 -m unittest discover -s tools/speedrun/tests` runs the 225-test
+- `python3 -m unittest discover -s tools/speedrun/tests` runs the 382-test
   suite (schema/lint, generators, gates, retrieval, confusability mining,
-  retirement — and the runtime assistant's grounding / abstention / bridge
-  gating).
+  retirement, the runtime assistant's grounding / abstention / bridge
+  gating — and Phase 3's probe bank/harness, ablation and onboarding
+  suites).
 
 ## Building the Android app
 
@@ -294,23 +383,26 @@ Notes:
 
 | Area | Change |
 | --- | --- |
-| `desktop/proto/anki/deck_config.proto` | Phase 1: `contrast_scheduling` (47), `contrast_tag_prefix` (48). Phase 2: `contrast_confusable_tag` (49) + the fade-ladder fields (50–58) and `FadeSignal`/`FadeOrder` enums |
+| `desktop/proto/anki/deck_config.proto` | Phase 1: `contrast_scheduling` (47), `contrast_tag_prefix` (48). Phase 2: `contrast_confusable_tag` (49) + the fade-ladder fields (50–58) and `FadeSignal`/`FadeOrder` enums. **Phase 3**: `readiness_allocation` (59) |
 | `desktop/rslib/src/scheduler/queue/builder/contrast.rs` | the contrast pass (Phase 2: + confusability/fluency gate; 6 unit tests) |
-| `desktop/rslib/src/scheduler/queue/builder/fade.rs` | **Phase 2**: FSRS-driven fade gating (new file, 13 unit tests) |
+| `desktop/rslib/src/scheduler/queue/builder/fade.rs` | **Phase 2**: FSRS-driven fade gating (13 unit tests; **Phase 3**: + the M0 combined-pass integration test — gate first, then cluster the survivors) |
 | `desktop/rslib/src/scheduler/queue/builder/gathering.rs` | **Phase 2**: bury-style gate check in the gather path |
-| `desktop/rslib/src/stats/mastery.rs` | `TopicMastery` RPC (Phase 2: + user tag→topic map, unmapped-tag buckets, `aig::ungraded` exclusion; 8 unit tests) |
+| `desktop/rslib/src/scheduler/queue/builder/allocation.rs` | **Phase 3**: readiness-optimization allocation — stable weighted-gap reorder of the merged queue (new file, 4 unit tests) |
+| `desktop/rslib/src/readiness/` | **Phase 3**: the Readiness backend — self-contained Beta/Binomial math (`beta.rs`), versioned CFA blueprint priors (`blueprint.rs`), delayed-probe outcome extraction (`probes.rs`), and the banded, two-number, abstaining gauge with the backend-enforced give-up gate (`mod.rs`); 19 unit tests |
+| `desktop/rslib/src/stats/mastery.rs` | `TopicMastery` RPC (Phase 2: + user tag→topic map, unmapped-tag buckets, `aig::ungraded` exclusion; **Phase 3**: + `probe::held_out` exclusion; 9 unit tests) |
 | `desktop/rslib/src/stats/concept_graph.rs` | `ConceptGraph` RPC (new file, 2 unit tests) |
-| `desktop/proto/anki/stats.proto` | `TopicMastery` + `ConceptGraph` messages (Phase 2: `tag_topic_map`, `unmapped_tags`, `ungraded_aig_cards`) |
+| `desktop/proto/anki/stats.proto` | `TopicMastery` + `ConceptGraph` messages (Phase 2: `tag_topic_map`, `unmapped_tags`, `ungraded_aig_cards`); **Phase 3**: `GetReadiness` RPC + the full honesty-contract response (`held_out_probe_cards` on TopicMastery) |
 | `desktop/ts/routes/concept-graph/` | force-directed knowledge map (new page) |
-| `desktop/pylib/anki/collection.py` | `Collection.topic_mastery()` (+ map argument) + pytests |
-| `desktop/ts/routes/dashboard/` | the three-gauge dashboard (Phase 2: Map-tags editor, exam-date field, `aig::ungraded` disclosure, vitest suite) |
-| `desktop/ts/routes/deck-options/{ContrastOptions,FadeOptions}.svelte` | the toggle UIs |
-| `desktop/qt/aqt/speedrun_dashboard.py`, `toolbar.py`, `mediasrv.py` | Dashboard dialog + toolbar link + config RPC exposure |
-| `desktop/tools/speedrun/` | tagged sample deck + generator; **Phase 2**: ladder note types + deck builder (now with readable source citations), the automated AIG pipeline (`aig/`), grounding corpus, confusability mining, item retirement |
+| `desktop/pylib/anki/collection.py` | `Collection.topic_mastery()` + `concept_graph()` + **Phase 3** `get_readiness()` + pytests |
+| `desktop/ts/routes/dashboard/` | the three-gauge dashboard (Phase 2: Map-tags editor, exam-date field, `aig::ungraded` disclosure, vitest suite; **Phase 3**: Readiness is a thin display layer over `GetReadiness` — the honesty-contract panel shows the call + its confidence, probe evidence, lags, and calibration history) |
+| `desktop/ts/routes/deck-options/{ContrastOptions,FadeOptions,ReadinessOptions}.svelte` | the toggle UIs (**Phase 3**: + Readiness Allocation) |
+| `desktop/qt/aqt/speedrun_dashboard.py`, `toolbar.py`, `mediasrv.py` | Dashboard dialog + toolbar link + config/RPC exposure (**Phase 3**: + `getReadiness`) |
+| `desktop/tools/speedrun/` | tagged sample deck + generator; **Phase 2**: ladder note types + deck builder (now with readable source citations), the automated AIG pipeline (`aig/`), grounding corpus, confusability mining, item retirement; **Phase 3**: the held-out probe bank (`probes/`), probe deck builder, one-command probe harness, simulation ablation harness, BYO onboarding engine |
 | `desktop/tools/speedrun/assistant/` | **Runtime assistant** (new): the grounded-or-abstain adapter (S1, reusing `aig/models.py`) + the read-only debrief / coach / tag-suggest features; 98 unit tests |
 | `desktop/qt/aqt/speedrun_assistant.py` (+ route in `mediasrv.py`) | **Runtime assistant** (new): the desktop-only, read-only host bridge (`/_anki/speedrunAssistant`) — default-off, every flag re-checked server-side |
 | `desktop/ts/routes/dashboard/assistant.ts` (+ `DashboardPage.svelte`, `config.ts`) | **Runtime assistant** (new): the coach / debrief / suggest UI, the bridge client, and the `speedrun:aiAssist*` toggles (+ vitest) |
-| `android/`, `android-backend/` | monorepo local-backend wiring; engine version pin; deck long-press → **Concept map** and deck-list menu → **CFA Dashboard** (WebView hosts + RPC routing in `AnkiDroid/.../pages/`); the runtime assistant is desktop-only and its affordances stay hidden here |
+| `desktop/qt/aqt/speedrun_onboard.py` (+ `deckbrowser.py` hook) | **Phase 3**: the "Prepare this deck for Speedrun" onboarding action — desktop-only, default-off (`speedrun:byoOnboardingEnabled`), previewed, undoable |
+| `android/`, `android-backend/` | monorepo local-backend wiring; engine version pin; deck long-press → **Concept map** and deck-list menu → **CFA Dashboard** (WebView hosts + RPC routing in `AnkiDroid/.../pages/`; **Phase 3**: + `getReadiness` route so the phone gauge shows the same backend band); the runtime assistant and onboarding are desktop-only and their affordances stay hidden here |
 
 Full details, the "why Rust, not Python" note, and the upstream-merge
 analysis: [`desktop/RUST_CHANGE_NOTE.md`](desktop/RUST_CHANGE_NOTE.md).
@@ -324,9 +416,20 @@ assistant layer's spec, invariants, and per-feature acceptance criteria:
 - No gauge ever blends Memory, Performance and Readiness into one number.
 - Memory abstains when FSRS is off or nothing is studied — no proxies.
 - Performance is labelled **uncalibrated** (Memory × a documented transfer
-  factor) until a held-out exam-style question bank exists (deferred).
-- Readiness **abstains** until ≥ 300 graded reviews, ≥ 70% topic coverage,
-  and ≥ 50 held-out probes — and names exactly which inputs are missing.
+  factor); the probe harness measures the real memory→performance gap on
+  delayed held-out MCQs, and that transfer factor never feeds Readiness.
+- Readiness **abstains** until ≥ 300 graded study reviews, ≥ 70% topic
+  coverage, and ≥ 50 **delayed** held-out probe outcomes with a usefully
+  narrow band — and names exactly which inputs are missing. Since Phase 3
+  the gate lives **in the Rust engine** (`GetReadiness` zeroes the numbers
+  while abstaining), never in the display layer; it never emits a bare
+  point, caps its certainty at the mock↔exam ceiling, and near the pass
+  boundary it may abstain forever — the unpublished MPS is irreducible
+  uncertainty, and saying so beats a confident guess.
+- Held-out hygiene: probe-bank cards never feed Memory or coverage, probe
+  answers don't count as study reviews, the performance and calibration
+  pools are concept-disjoint (no circular calibration), and the probe bank
+  is leakage-scanned against the corpus and every generator prompt.
 - **The review loop is AI-free by construction** — it makes no model calls,
   ever. Authoring-time AI bakes generated cards and their named sources into
   the deck offline; the optional **runtime assistant layer** runs only at

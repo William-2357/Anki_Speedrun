@@ -42,3 +42,7 @@ fun Collection.conceptGraphRaw(input: ByteArray): ByteArray = backend.conceptGra
 // Anki Speedrun: per-topic mastery aggregates for the readiness dashboard,
 // computed by the shared Rust engine.
 fun Collection.topicMasteryRaw(input: ByteArray): ByteArray = backend.topicMasteryRaw(input)
+
+// Anki Speedrun Phase 3: the banded, abstaining Readiness estimate; the
+// give-up gate is enforced inside the shared Rust engine.
+fun Collection.getReadinessRaw(input: ByteArray): ByteArray = backend.getReadinessRaw(input)
