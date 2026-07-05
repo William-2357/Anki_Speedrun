@@ -8,3 +8,10 @@
 # Copyrighted third-party reference material (e.g. official CFA sample questions,
 # © CFA Institute) used only as private authoring-time exemplars — never committed/redistributed.
 desktop/tools/speedrun/reference/
+
+#Implementation document:
+Speedrun_ A Desktop + Mobile Study App Built on Anki.pdf
+
+# Local user-testing scratch harness (vendored playwright node_modules + run
+# artifacts); not part of the project.
+desktop/tools/speedrun/usertest/

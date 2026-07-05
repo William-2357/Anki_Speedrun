@@ -1,0 +1,214 @@
+{
+    "meta": {
+        "tool": "sync_test",
+        "generated_at": "2026-07-05T05:48:57+00:00",
+        "port": 28711,
+        "seed": 20260704,
+        "python": "3.13.5",
+        "invocation": "PYTHONPATH=out/pylib out/pyenv/bin/python tools/speedrun/sync_test.py"
+    },
+    "honesty": [
+        "\"Offline\" here means no sync calls were made between the phases - honest for Anki's model, where sync is manual and explicit. The server process was additionally STOPPED during the offline phases, so any stray sync attempt would have failed loudly.",
+        "Observed protocol hazard (found by an earlier run of this script, now guarded): revlog ids are taken-at epoch-MILLISECONDS and the append-only merge is INSERT OR IGNORE on that id, so two DIFFERENT reviews graded in the same millisecond on two different devices collide and the later-arriving entry is dropped. Unreachable at human review speed (reviews are seconds apart); this script now spaces scripted answers 50 ms apart to model that, and keeps a cross-side collision tripwire in the union check so the hazard is detected loudly rather than masked.",
+        "The revlog id doubles as the taken-at epoch-ms and the table's primary key; the server merges revlog entries append-only (rslib sync/collection/chunks.rs merge_revlog -> INSERT OR IGNORE). Both conflict reviews therefore survive as two REAL distinct reviews; review counts add, nothing is double-counted.",
+        "Card scheduling conflicts resolve by modification time: add_or_update_card_if_newer keeps the locally-modified copy unless the incoming one is newer. The test spaces the two answers >1 s apart so card.mod (seconds) orders them deterministically.",
+        "The phone offline path is exercised by AnkiDroid using this same sync protocol against the same server implementation; this script does not re-prove the Android client itself.",
+        "This script talks only to 127.0.0.1 on its own port (28711 by default; the bench agent owns 28701)."
+    ],
+    "setup": {
+        "cards": 40,
+        "a_first_sync_required": 4,
+        "b_first_sync_required": 3,
+        "card_ids_match": true
+    },
+    "offline": {
+        "server_stopped": true,
+        "a_reviews": [
+            {
+                "cid": 1783230539983,
+                "revlog_id": 1783230546173,
+                "ease": 3
+            },
+            {
+                "cid": 1783230539984,
+                "revlog_id": 1783230546229,
+                "ease": 3
+            },
+            {
+                "cid": 1783230539985,
+                "revlog_id": 1783230546286,
+                "ease": 3
+            },
+            {
+                "cid": 1783230539986,
+                "revlog_id": 1783230546351,
+                "ease": 3
+            },
+            {
+                "cid": 1783230539987,
+                "revlog_id": 1783230546413,
+                "ease": 3
+            },
+            {
+                "cid": 1783230539988,
+                "revlog_id": 1783230546471,
+                "ease": 3
+            },
+            {
+                "cid": 1783230539989,
+                "revlog_id": 1783230546527,
+                "ease": 3
+            },
+            {
+                "cid": 1783230539990,
+                "revlog_id": 1783230546578,
+                "ease": 3
+            },
+            {
+                "cid": 1783230539991,
+                "revlog_id": 1783230546635,
+                "ease": 3
+            },
+            {
+                "cid": 1783230539992,
+                "revlog_id": 1783230546686,
+                "ease": 3
+            }
+        ],
+        "b_reviews": [
+            {
+                "cid": 1783230539993,
+                "revlog_id": 1783230546744,
+                "ease": 2
+            },
+            {
+                "cid": 1783230539994,
+                "revlog_id": 1783230546808,
+                "ease": 4
+            },
+            {
+                "cid": 1783230539995,
+                "revlog_id": 1783230546863,
+                "ease": 2
+            },
+            {
+                "cid": 1783230539996,
+                "revlog_id": 1783230546919,
+                "ease": 1
+            },
+            {
+                "cid": 1783230539997,
+                "revlog_id": 1783230546977,
+                "ease": 3
+            },
+            {
+                "cid": 1783230539998,
+                "revlog_id": 1783230547035,
+                "ease": 1
+            },
+            {
+                "cid": 1783230539999,
+                "revlog_id": 1783230547089,
+                "ease": 4
+            },
+            {
+                "cid": 1783230540000,
+                "revlog_id": 1783230547146,
+                "ease": 3
+            },
+            {
+                "cid": 1783230540001,
+                "revlog_id": 1783230547205,
+                "ease": 3
+            },
+            {
+                "cid": 1783230540002,
+                "revlog_id": 1783230547261,
+                "ease": 2
+            }
+        ]
+    },
+    "union_check": {
+        "expected_total": 20,
+        "lost": [],
+        "duplicated": [],
+        "id_collisions": [],
+        "cross_side_id_collisions": [],
+        "per_side": {
+            "a": {
+                "found": 20,
+                "expected": 20
+            },
+            "b": {
+                "found": 20,
+                "expected": 20
+            }
+        },
+        "passed": true
+    },
+    "full_revlog_identical": true,
+    "conflict": {
+        "cid": 1783230540003,
+        "a_revlog_id": 1783230550111,
+        "a_ease": 3,
+        "b_revlog_id": 1783230551319,
+        "b_ease": 1,
+        "gap_seconds": 1,
+        "snapshot_a": {
+            "mod": 1783230550,
+            "type": 1,
+            "queue": 1,
+            "due": 1783231251,
+            "ivl": 0,
+            "factor": 0,
+            "reps": 1,
+            "lapses": 0,
+            "left": 1
+        },
+        "snapshot_b": {
+            "mod": 1783230551,
+            "type": 1,
+            "queue": 1,
+            "due": 1783230621,
+            "ivl": 0,
+            "factor": 0,
+            "reps": 1,
+            "lapses": 0,
+            "left": 2
+        },
+        "final_a": {
+            "mod": 1783230551,
+            "type": 1,
+            "queue": 1,
+            "due": 1783230621,
+            "ivl": 0,
+            "factor": 0,
+            "reps": 1,
+            "lapses": 0,
+            "left": 2
+        },
+        "final_b": {
+            "mod": 1783230551,
+            "type": 1,
+            "queue": 1,
+            "due": 1783230621,
+            "ivl": 0,
+            "factor": 0,
+            "reps": 1,
+            "lapses": 0,
+            "left": 2
+        },
+        "both_entries_on_a": true,
+        "both_entries_on_b": true,
+        "verdict": {
+            "a_mod": 1783230550,
+            "b_mod": 1783230551,
+            "converged": true,
+            "winner": "B",
+            "reason": "client B's state won: its card.mod (1783230551) is newer, matching rslib's add_or_update_card_if_newer rule",
+            "passed": true
+        }
+    },
+    "failures": [],
+    "exit_code": 0
+}

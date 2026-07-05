@@ -34,7 +34,7 @@ class SpeedrunDashboard(QDialog):
         restoreGeom(self, self.GEOM_KEY, default_size=(1000, 800))
 
         self.web = AnkiWebView(kind=AnkiWebViewKind.SPEEDRUN_DASHBOARD)
-        self.web.set_bridge_command(lambda _cmd: False, self)
+        self.web.set_bridge_command(self._on_bridge_cmd, self)
 
         buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Close)
         qconnect(buttons.rejected, self.reject)
@@ -48,6 +48,17 @@ class SpeedrunDashboard(QDialog):
         self.web.load_sveltekit_page("dashboard")
         self.show()
         self.activateWindow()
+
+    def _on_bridge_cmd(self, cmd: str) -> bool:
+        """Dashboard 'Study this topic' buttons. Everything else is a no-op
+        (the dashboard reads engine data over the RPC bridge, not pycmd)."""
+        import aqt.speedrun_study
+
+        if aqt.speedrun_study.handle_dashboard_command(self.mw, cmd):
+            # entering review; close the modal dashboard so the reviewer shows
+            self.reject()
+            return True
+        return False
 
     def reject(self) -> None:
         self.web.cleanup()

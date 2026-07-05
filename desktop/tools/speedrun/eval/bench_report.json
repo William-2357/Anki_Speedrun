@@ -1,0 +1,482 @@
+{
+    "meta": {
+        "tool": "bench",
+        "generated_at": "2026-07-05T08:02:11+00:00",
+        "machine": {
+            "chip": "Apple M1 Max",
+            "ram_gb": 32.0,
+            "cpu_count": 10,
+            "os": "macOS 26.5.1",
+            "python": "3.13.5"
+        },
+        "percentile_method": "nearest-rank",
+        "rerun": "cd desktop && PYTHONPATH=out/pylib out/pyenv/bin/python tools/speedrun/bench.py",
+        "bench_wall_s": 24.3
+    },
+    "deck": {
+        "spec": {
+            "schema": 1,
+            "seed": 20260704,
+            "cards": 50000,
+            "graded": 1000,
+            "due_spread": 14000,
+            "due_spread_days": 28,
+            "families_per_topic": 40,
+            "new_per_day": 2000,
+            "rev_per_day": 9999
+        },
+        "cached": true,
+        "card_count": 50000,
+        "revlog_count": 15000,
+        "graded": 1000,
+        "build_wall_s": 5.2,
+        "built_at": "2026-07-05T05:13:39+00:00"
+    },
+    "actions": {
+        "button_press_ack": {
+            "samples_ms": [
+                0.588917,
+                0.633416,
+                0.843292,
+                0.96175,
+                0.582167,
+                0.522875,
+                0.706792,
+                0.653542,
+                0.652792,
+                0.634917,
+                0.54675,
+                0.573375,
+                0.64125,
+                0.595583,
+                0.635792,
+                0.61475,
+                0.528875,
+                0.620333,
+                0.61175,
+                0.728833,
+                0.611667,
+                0.548292,
+                0.527084,
+                0.547791,
+                0.559625,
+                0.63625,
+                0.573083,
+                0.539292,
+                0.531375,
+                0.553708,
+                0.544666,
+                0.610666,
+                0.551584,
+                0.531291,
+                0.527334,
+                0.684583,
+                0.676875,
+                0.574792,
+                0.543291,
+                0.537833,
+                0.629875,
+                0.611625,
+                0.630833,
+                0.572,
+                0.523375,
+                0.622917,
+                0.550084,
+                0.659291,
+                0.584042,
+                0.526542,
+                0.527166,
+                0.550709,
+                0.588541,
+                0.650416,
+                0.557792,
+                0.576666,
+                0.526458,
+                0.558458,
+                0.579375,
+                0.644083
+            ],
+            "stats": {
+                "n": 60,
+                "min": 0.523,
+                "p50": 0.579,
+                "p95": 0.707,
+                "worst": 0.962,
+                "mean": 0.599
+            }
+        },
+        "next_card_after_grade": {
+            "samples_ms": [
+                1.01025,
+                1.090666,
+                1.328333,
+                1.37575,
+                0.991083,
+                0.937334,
+                1.296708,
+                1.284083,
+                1.130167,
+                1.082,
+                0.969125,
+                0.984208,
+                1.143333,
+                1.137125,
+                1.0585,
+                1.028708,
+                0.952875,
+                1.071625,
+                1.117541,
+                1.170666,
+                1.035708,
+                0.960125,
+                0.950459,
+                0.975708,
+                1.054542,
+                1.125625,
+                0.9995,
+                0.94775,
+                0.937709,
+                1.0365,
+                1.056875,
+                1.034125,
+                0.962292,
+                0.93875,
+                0.967834,
+                1.216458,
+                1.113417,
+                1.006042,
+                0.962208,
+                0.948,
+                1.189208,
+                1.154166,
+                1.052083,
+                1.010083,
+                0.937667,
+                1.037917,
+                1.103334,
+                1.099041,
+                0.997917,
+                0.937584,
+                0.947708,
+                1.005625,
+                1.092375,
+                1.089333,
+                0.986084,
+                0.985916,
+                0.9335,
+                0.998208,
+                1.107416,
+                1.087292
+            ],
+            "stats": {
+                "n": 60,
+                "min": 0.933,
+                "p50": 1.034,
+                "p95": 1.284,
+                "worst": 1.376,
+                "mean": 1.052
+            }
+        },
+        "dashboard_first_load": {
+            "samples_ms": [
+                401.436375,
+                335.829167,
+                338.285,
+                342.474125,
+                432.233167,
+                339.033625,
+                342.63825,
+                342.462667,
+                343.452417,
+                382.550292
+            ],
+            "stats": {
+                "n": 10,
+                "min": 335.829,
+                "p50": 342.474,
+                "p95": 432.233,
+                "worst": 432.233,
+                "mean": 360.04
+            },
+            "segments": [
+                {
+                    "open_ms": 36.437,
+                    "topic_mastery_ms": 181.39,
+                    "get_readiness_ms": 183.61
+                },
+                {
+                    "open_ms": 1.875,
+                    "topic_mastery_ms": 163.491,
+                    "get_readiness_ms": 170.463
+                },
+                {
+                    "open_ms": 1.733,
+                    "topic_mastery_ms": 164.657,
+                    "get_readiness_ms": 171.895
+                },
+                {
+                    "open_ms": 1.679,
+                    "topic_mastery_ms": 164.467,
+                    "get_readiness_ms": 176.327
+                },
+                {
+                    "open_ms": 1.611,
+                    "topic_mastery_ms": 258.239,
+                    "get_readiness_ms": 172.383
+                },
+                {
+                    "open_ms": 1.616,
+                    "topic_mastery_ms": 164.715,
+                    "get_readiness_ms": 172.703
+                },
+                {
+                    "open_ms": 2.042,
+                    "topic_mastery_ms": 166.537,
+                    "get_readiness_ms": 174.06
+                },
+                {
+                    "open_ms": 1.638,
+                    "topic_mastery_ms": 165.842,
+                    "get_readiness_ms": 174.983
+                },
+                {
+                    "open_ms": 1.782,
+                    "topic_mastery_ms": 166.311,
+                    "get_readiness_ms": 175.36
+                },
+                {
+                    "open_ms": 2.125,
+                    "topic_mastery_ms": 165.658,
+                    "get_readiness_ms": 214.768
+                }
+            ]
+        },
+        "dashboard_refresh": {
+            "samples_ms": [
+                348.846541,
+                333.517875,
+                335.627583,
+                369.456917,
+                333.327375,
+                334.270333,
+                342.261209,
+                334.743542,
+                369.912916,
+                333.682375,
+                333.268125,
+                334.991792,
+                328.089584,
+                328.49975,
+                326.786375,
+                326.566041,
+                328.370375,
+                327.026917,
+                327.546959,
+                326.49725,
+                326.868416,
+                328.00175,
+                334.190833,
+                330.168458,
+                334.235958,
+                376.685291,
+                331.014333,
+                327.75725,
+                328.635709,
+                327.711208,
+                328.591625,
+                329.708416,
+                328.320875,
+                331.42425,
+                332.222708,
+                330.052875,
+                327.634042,
+                327.890166,
+                327.999375,
+                327.297084
+            ],
+            "stats": {
+                "n": 40,
+                "min": 326.497,
+                "p50": 329.708,
+                "p95": 369.457,
+                "worst": 376.685,
+                "mean": 333.993
+            },
+            "warmup_discarded": 2
+        },
+        "session_sync": {
+            "samples_ms": [
+                17.36825,
+                12.469833,
+                12.628125,
+                13.783458,
+                12.6895
+            ],
+            "stats": {
+                "n": 5,
+                "min": 12.47,
+                "p50": 12.69,
+                "p95": 17.368,
+                "worst": 17.368,
+                "mean": 13.788
+            },
+            "session_cards_per_sample": 20,
+            "initial_full_upload_ms_uncounted": 621.6,
+            "endpoint": "http://127.0.0.1:28701/"
+        },
+        "cold_start": {
+            "samples_ms": [
+                178.518,
+                169.71725,
+                170.3415,
+                169.838125,
+                171.436458
+            ],
+            "stats": {
+                "n": 5,
+                "min": 169.717,
+                "p50": 170.341,
+                "p95": 178.518,
+                "worst": 178.518,
+                "mean": 171.97
+            },
+            "in_process_stats": {
+                "n": 5,
+                "min": 123.716,
+                "p50": 124.965,
+                "p95": 129.64,
+                "worst": 129.64,
+                "mean": 126.084
+            },
+            "child_phases": [
+                {
+                    "import_ms": 101.8,
+                    "open_ms": 2.6,
+                    "first_queue_ms": 25.2,
+                    "in_process_total_ms": 129.6
+                },
+                {
+                    "import_ms": 95.9,
+                    "open_ms": 2.6,
+                    "first_queue_ms": 25.2,
+                    "in_process_total_ms": 123.7
+                },
+                {
+                    "import_ms": 97.5,
+                    "open_ms": 2.6,
+                    "first_queue_ms": 24.8,
+                    "in_process_total_ms": 125.0
+                },
+                {
+                    "import_ms": 96.8,
+                    "open_ms": 2.9,
+                    "first_queue_ms": 25.2,
+                    "in_process_total_ms": 124.9
+                },
+                {
+                    "import_ms": 99.2,
+                    "open_ms": 2.9,
+                    "first_queue_ms": 25.1,
+                    "in_process_total_ms": 127.2
+                }
+            ]
+        },
+        "peak_memory": {
+            "measured_mb": 93.9,
+            "stated_limit_mb": 256,
+            "ru_maxrss_raw": 98435072,
+            "ru_maxrss_unit": "bytes",
+            "workload": "open + topic_mastery + get_readiness + queue build + 5 answers",
+            "child_detail": {
+                "ru_maxrss_raw": 98435072,
+                "platform": "darwin",
+                "answered": 5,
+                "topics": 10
+            }
+        }
+    },
+    "targets_table": [
+        {
+            "action": "button_press_ack",
+            "label": "Button press acknowledged (engine ack)",
+            "target_text": "p95 < 50 ms",
+            "metric": "p95",
+            "n": 60,
+            "p50": 0.579,
+            "p95": 0.707,
+            "worst": 0.962,
+            "measured": 0.707,
+            "passed": true
+        },
+        {
+            "action": "next_card_after_grade",
+            "label": "Next card appears after grading (engine path)",
+            "target_text": "p95 < 100 ms",
+            "metric": "p95",
+            "n": 60,
+            "p50": 1.034,
+            "p95": 1.284,
+            "worst": 1.376,
+            "measured": 1.284,
+            "passed": true
+        },
+        {
+            "action": "dashboard_first_load",
+            "label": "Dashboard first load",
+            "target_text": "p95 < 1 s",
+            "metric": "p95",
+            "n": 10,
+            "p50": 342.474,
+            "p95": 432.233,
+            "worst": 432.233,
+            "measured": 432.233,
+            "passed": true
+        },
+        {
+            "action": "dashboard_refresh",
+            "label": "Dashboard refresh",
+            "target_text": "p95 < 500 ms",
+            "metric": "p95",
+            "n": 40,
+            "p50": 329.708,
+            "p95": 369.457,
+            "worst": 376.685,
+            "measured": 369.457,
+            "passed": true
+        },
+        {
+            "action": "session_sync",
+            "label": "Sync of a normal session",
+            "target_text": "< 5 s (p95)",
+            "metric": "p95",
+            "n": 5,
+            "p50": 12.69,
+            "p95": 17.368,
+            "worst": 17.368,
+            "measured": 17.368,
+            "passed": true
+        },
+        {
+            "action": "cold_start",
+            "label": "App cold start (headless engine)",
+            "target_text": "< 5 s",
+            "metric": "p95",
+            "n": 5,
+            "p50": 170.341,
+            "p95": 178.518,
+            "worst": 178.518,
+            "measured": 178.518,
+            "passed": true
+        },
+        {
+            "action": "peak_memory",
+            "label": "Memory use on 50,000 cards",
+            "target_text": "< 256 MB (stated limit)",
+            "metric": "value_mb",
+            "measured": 93.9,
+            "passed": true
+        }
+    ],
+    "target_failures": [],
+    "exit_code": 0
+}

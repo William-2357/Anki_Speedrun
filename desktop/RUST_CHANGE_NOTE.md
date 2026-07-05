@@ -264,8 +264,13 @@ no protobuf field renumbered or removed; the public add-on API is untouched.
 - **Python (5):** `pylib/tests/test_stats.py` — `test_topic_mastery`,
   `test_topic_mastery_tag_map`, `test_concept_graph`, `test_get_readiness`,
   `test_readiness_probe_outcomes` — all through the `Collection` wrapper.
+- **Undo (7a proof):** `pylib/tests/test_schedv3.py` —
+  `test_speedrun_undo_with_toggles_on` answers through the v3 scheduler with
+  contrast + allocation enabled, undoes, and asserts the revlog entry is
+  removed, the card's scheduling state is restored byte-for-byte, the card
+  re-queues, and the engine DB check reports nothing beyond housekeeping.
 - The full `./ninja check` suite (formatters, clippy, mypy, ruff, eslint,
-  svelte-check, 379 Rust tests, Python tests, vitest) passes.
+  svelte-check, 394 Rust tests, Python tests, vitest) passes.
 - End-to-end: importing the sample deck and flipping the toggle changes the
   built queue (max same-cluster run 7 → 4; cluster-to-cluster switches
   4 → 7) while the card multiset stays identical — pure reordering.

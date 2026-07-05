@@ -6,6 +6,9 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
     import type { SubjectRow } from "./metrics";
 
     export let subjects: SubjectRow[];
+    /** Desktop-only: launch a filtered review of one topic. Null on Android /
+     * when the bridge is absent, so no Study affordance renders there. */
+    export let onStudy: ((topicId: string) => void) | null = null;
 
     $: rows = [...subjects].sort((a, b) => b.weightedGap - a.weightedGap);
 
@@ -24,6 +27,9 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
             <th class="memory-col">Memory (recall probability)</th>
             <th>High recall</th>
             <th>Performance*</th>
+            {#if onStudy}
+                <th>Study</th>
+            {/if}
         </tr>
     </thead>
     <tbody>
@@ -69,6 +75,21 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
                         <span class="abstain">—</span>
                     {/if}
                 </td>
+                {#if onStudy}
+                    <td>
+                        <button
+                            type="button"
+                            class="study-btn"
+                            disabled={row.totalCards === 0}
+                            title={row.totalCards === 0
+                                ? "No cards tagged for this topic yet"
+                                : `Review the ${row.totalCards} cards in ${row.topic.name}`}
+                            on:click={() => onStudy?.(row.topic.id)}
+                        >
+                            Study
+                        </button>
+                    </td>
+                {/if}
             </tr>
         {/each}
     </tbody>
@@ -112,6 +133,26 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
 
         tr.uncovered td {
             opacity: 0.65;
+        }
+    }
+
+    .study-btn {
+        font: inherit;
+        font-size: 0.78rem;
+        padding: 0.2rem 0.7rem;
+        border: 1px solid var(--border);
+        border-radius: 5px;
+        background: var(--canvas-inset);
+        color: var(--fg);
+        cursor: pointer;
+
+        &:hover:not(:disabled) {
+            border-color: var(--accent-card, #3b82f6);
+        }
+
+        &:disabled {
+            opacity: 0.5;
+            cursor: default;
         }
     }
 

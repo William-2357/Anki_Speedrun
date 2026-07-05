@@ -134,11 +134,117 @@
                 "b": 0.3
             }
         },
+        "vector_hash_tuning": {
+            "grid": [
+                {
+                    "ngram": [
+                        3,
+                        4
+                    ],
+                    "dim": 16384,
+                    "train_p1": 0.725,
+                    "train_p5_hit": 1.0
+                },
+                {
+                    "ngram": [
+                        3,
+                        4
+                    ],
+                    "dim": 65536,
+                    "train_p1": 0.65,
+                    "train_p5_hit": 1.0
+                },
+                {
+                    "ngram": [
+                        3,
+                        4
+                    ],
+                    "dim": 262144,
+                    "train_p1": 0.65,
+                    "train_p5_hit": 1.0
+                },
+                {
+                    "ngram": [
+                        3,
+                        5
+                    ],
+                    "dim": 16384,
+                    "train_p1": 0.725,
+                    "train_p5_hit": 1.0
+                },
+                {
+                    "ngram": [
+                        3,
+                        5
+                    ],
+                    "dim": 65536,
+                    "train_p1": 0.675,
+                    "train_p5_hit": 1.0
+                },
+                {
+                    "ngram": [
+                        3,
+                        5
+                    ],
+                    "dim": 262144,
+                    "train_p1": 0.725,
+                    "train_p5_hit": 1.0
+                },
+                {
+                    "ngram": [
+                        4,
+                        5
+                    ],
+                    "dim": 16384,
+                    "train_p1": 0.725,
+                    "train_p5_hit": 1.0
+                },
+                {
+                    "ngram": [
+                        4,
+                        5
+                    ],
+                    "dim": 65536,
+                    "train_p1": 0.75,
+                    "train_p5_hit": 1.0
+                },
+                {
+                    "ngram": [
+                        4,
+                        5
+                    ],
+                    "dim": 262144,
+                    "train_p1": 0.75,
+                    "train_p5_hit": 1.0
+                }
+            ],
+            "chosen": {
+                "ngram": [
+                    4,
+                    5
+                ],
+                "dim": 65536
+            }
+        },
         "dense_tuning": {
             "note": "dense arm is opt-in (set SPEEDRUN_DENSE=1); the ML stack is ABI-fragile on this host, and the guaranteed path is stdlib BM25 - see eval/archive/ for the full-stack run"
         },
         "rrf_k": 60,
-        "rerank_top_n": 10
+        "rerank_top_n": 10,
+        "stdlib_best_arm": {
+            "chosen": "bm25",
+            "rule": "prefer rrf_stdlib over bm25 for grounding iff rrf_stdlib wins on the train split: >= bm25 on BOTH metrics (P@1, P@5-hit) and strictly better on at least one; a tie keeps bm25. Decided at construction time from the train split only - the held-out cluster is never used (no test leakage)",
+            "note": "rrf_stdlib only TIED bm25 on train - kept bm25 (status quo)",
+            "train_bm25": {
+                "p1": 0.5,
+                "p5_hit": 1.0
+            },
+            "train_rrf_stdlib": {
+                "p1": 0.5,
+                "p5_hit": 1.0
+            }
+        },
+        "fullstack_archive": "the full-stack (torch) side-by-side from 2026-07-03 is archived in eval/archive/retrieval_eval_fullstack_20260703.md"
     },
     "arms": [
         {
@@ -146,7 +252,23 @@
             "available": true,
             "precision_at_1": 0.5,
             "precision_at_5": 0.9545454545454546,
-            "median_latency_ms": 0.072,
+            "median_latency_ms": 0.07,
+            "note": ""
+        },
+        {
+            "arm": "vector_hash_tuned",
+            "available": true,
+            "precision_at_1": 0.18181818181818182,
+            "precision_at_5": 0.9090909090909091,
+            "median_latency_ms": 0.318,
+            "note": ""
+        },
+        {
+            "arm": "rrf_stdlib",
+            "available": true,
+            "precision_at_1": 0.36363636363636365,
+            "precision_at_5": 0.9545454545454546,
+            "median_latency_ms": 0.429,
             "note": ""
         },
         {
@@ -174,5 +296,5 @@
             "note": "requires the dense arm"
         }
     ],
-    "honest_claim": "RRF+rerank vs both tuned baselines could NOT be adjudicated: the dense arm was unavailable in this environment. The [R21] claim is therefore not made."
+    "honest_claim": "rrf_stdlib did NOT beat both stdlib baselines at the same cutoff on precision@1/@5 over the held-out cluster (N=22 queries - small-N caveat: differences of one or two queries flip these comparisons; the synthetic self-referential qrels further weaken the claim). Fallback committed result: the archived full-stack run (eval/archive/retrieval_eval_fullstack_20260703.md, session of 2026-07-03 on the pinned torch / sentence-transformers stack) reported rrf_rerank P@1 0.727 / P@5 1.000 beating tuned BM25 (0.500 / 0.955) and tuned dense (0.455 / 1.000) on the same split - quoted verbatim from that DIFFERENT session and stack, not reproduced in this environment."
 }

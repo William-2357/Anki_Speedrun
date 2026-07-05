@@ -48,6 +48,11 @@ STOCK_CLOZE_NOTETYPE_NAME = "Cloze"
 
 CHOICE_LETTERS = ("A", "B", "C")
 
+#: Canonical CFA topic-tag prefix (matches the dashboard's 10 topics and the
+#: note's own tag). The Source field now carries this instead of the corpus
+#: citation, which is no longer displayed on the card.
+TOPIC_TAG_PREFIX = "cfa::topic::"
+
 #: [R16] Shown above the stem by the ord-1 solve variant only. The builder
 #: leaves the field empty under --no-self-explain, so ord 1 never generates.
 DEFAULT_SELF_EXPLAIN_PROMPT = (
@@ -315,7 +320,6 @@ _WORKED_BACK = """\
 <div class="sr-steps">{{Steps}}</div>
 <div class="sr-feedback">
 <div class="sr-rationale"><span class="sr-why-label">Why this works:</span> {{Rationale}}</div>
-{{#Source}}<div class="sr-source">{{Source}}</div>{{/Source}}
 </div>
 </div>
 """
@@ -435,7 +439,6 @@ _SOLVE_BACK = """\
 <div class="sr-wrong" data-for="A">{{WrongA}}</div>
 <div class="sr-wrong" data-for="B">{{WrongB}}</div>
 <div class="sr-wrong" data-for="C">{{WrongC}}</div>
-{{#Source}}<div class="sr-source">{{Source}}</div>{{/Source}}
 </div>
 </div>
 <script>
@@ -477,7 +480,6 @@ _COMPARE_BACK = """\
 <div class="sr-card sr-compare-answer">
 <div class="sr-feedback">
 <div class="sr-rationale"><span class="sr-why-label">The discrimination:</span> {{Rationale}}</div>
-{{#Source}}<div class="sr-source">{{Source}}</div>{{/Source}}
 </div>
 </div>
 """
@@ -587,11 +589,14 @@ def _prettify_loc(loc: str) -> str:
 
 
 def source_html(source: Mapping[str, str]) -> str:
-    """The named source [R21], shown inside the feedback block.
+    """The named source [R21], as a labelled, readable citation.
 
     Item records carry machine coordinates (doc = corpus filename, loc =
-    heading slug, e.g. "duration.md" / "#compounding-conventions"); the
-    card shows a labelled, readable citation instead of the raw form.
+    heading slug, e.g. "duration.md" / "#compounding-conventions"). Kept for
+    the deeper grounding provenance that still lives in the pipeline
+    artifacts (items/generated.jsonl, validation_report.json); the card no
+    longer displays it (the note's Source field carries the topic tag
+    instead - see topic_source_tag), so this is retained for tooling/tests.
     """
     doc = _escape(_prettify_doc(str(source.get("doc", ""))))
     loc = _escape(_prettify_loc(str(source.get("loc", ""))))
@@ -606,13 +611,25 @@ def source_html(source: Mapping[str, str]) -> str:
     return out
 
 
+def topic_source_tag(item: Mapping[str, Any]) -> str:
+    """The note's Source field content: the canonical CFA topic tag.
+
+    The card templates no longer render Source (it was visually noisy); the
+    field is kept as machine-readable provenance keyed to one of the 10
+    dashboard topics, matching the note's own `cfa::topic::*` tag. Empty when
+    the item declares no recognizable topic (never fabricated).
+    """
+    topic = str(item.get("topic", "")).strip()
+    return f"{TOPIC_TAG_PREFIX}{topic}" if topic else ""
+
+
 def worked_note_fields(item: Mapping[str, Any]) -> dict[str, str]:
     return {
         "Title": _escape(item["title"]),
         "Prompt": _escape(item["prompt"]),
         "Steps": worked_steps_html(item["worked_steps"]),
         "Rationale": _escape(item["rationale"]),
-        "Source": source_html(item["source"]),
+        "Source": topic_source_tag(item),
     }
 
 
@@ -620,15 +637,13 @@ def faded_cloze_fields(item: Mapping[str, Any]) -> tuple[str, str]:
     """(Text, Back Extra) for a stock-Cloze faded note.
 
     Text = prompt + the item's native cloze markup (>= 2 indices, so the
-    engine's fade_order has siblings to sequence); Back Extra = rationale +
-    source, which the stock cloze answer template renders - the [R9]
-    feedback step.
+    engine's fade_order has siblings to sequence); Back Extra = the
+    rationale, which the stock cloze answer template renders - the [R9]
+    feedback step. The corpus citation is no longer appended (the note's
+    `cfa::topic::*` tag carries the topic provenance instead).
     """
     text = f"{_escape(item['prompt'])}<br><br>\n{_escape(item['cloze_text'])}"
-    back_extra = (
-        f"{_escape(item['rationale'])}<br>\n"
-        f"<small>{source_html(item['source'])}</small>"
-    )
+    back_extra = _escape(item["rationale"])
     return text, back_extra
 
 
@@ -661,7 +676,7 @@ def solve_note_fields(
         "SelfExplainPrompt": _escape(self_explain_prompt)
         if include_self_explain
         else "",
-        "Source": source_html(item["source"]),
+        "Source": topic_source_tag(item),
     }
 
 
@@ -674,5 +689,5 @@ def compare_note_fields(item: Mapping[str, Any]) -> dict[str, str]:
         "RightBody": _escape(item["right_body"]),
         "Discriminator": _escape(item["discriminator"]),
         "Rationale": _escape(item["rationale"]),
-        "Source": source_html(item["source"]),
+        "Source": topic_source_tag(item),
     }

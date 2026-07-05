@@ -1223,3 +1223,60 @@ def test_fade_gating():
     # with an exam date, the unstudied ladder still starts at worked
     col.set_config("speedrun:exam_date", "2099-01-01")
     assert queued_note_ids() == {fronts["worked"]}
+
+
+def test_speedrun_undo_with_toggles_on():
+    """Anki Speedrun: answering + undo stays correct with every fork
+    queue-builder toggle enabled (7a proof: undo works, nothing corrupts)."""
+    col = getEmptyCol()
+    tags = ["cfa::topic::fixed_income", "cluster::fi::duration"]
+    for i in range(3):
+        note = col.newNote()
+        note["Front"] = f"card {i}"
+        note.tags = list(tags)
+        col.addNote(note)
+
+    # enable the fork's queue passes on the deck preset (contrast +
+    # allocation; fade stays off so all three cards remain queued)
+    conf = col.decks.config_dict_for_deck_id(DeckId(1))
+    conf["contrastScheduling"] = True
+    conf["readinessAllocation"] = True
+    col.decks.update_config(conf)
+
+    col.sched.reset()
+    entry = col.sched.get_queued_cards(fetch_limit=1).cards[0]
+    card_id = entry.card.id
+    state_before = col.db.first(
+        "select queue, type, due, ivl from cards where id = ?", card_id
+    )
+    assert col.db.scalar("select count() from revlog") == 0
+
+    # answer through the real v3 path, then undo
+    card = col.get_card(card_id)
+    card.start_timer()
+    answer = col.sched.build_answer(
+        card=card,
+        states=entry.states,
+        rating=3,  # Good
+    )
+    col.sched.answer_card(answer)
+    assert col.db.scalar("select count() from revlog") == 1
+
+    col.undo()
+
+    # the review is unwound: revlog entry gone, card state restored,
+    # the card is queued again, and the DB checks out clean
+    assert col.db.scalar("select count() from revlog") == 0
+    assert (
+        col.db.first("select queue, type, due, ivl from cards where id = ?", card_id)
+        == state_before
+    )
+    col.sched.reset()
+    queued = {e.card.id for e in col.sched.get_queued_cards(fetch_limit=10).cards}
+    assert card_id in queued
+    problems = col.fix_integrity()[0].splitlines()
+    assert not [
+        p
+        for p in problems
+        if "rebuilt" not in p.lower() and "optimized" not in p.lower()
+    ]

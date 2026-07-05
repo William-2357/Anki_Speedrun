@@ -60,6 +60,46 @@ ftl-sync:
 ftl-deprecate:
     {{ ninja }} ftl-deprecate
 
+# Speedrun: one-command 50,000-card benchmark vs the §10 targets (challenge 7h)
+bench *ARGS:
+    {{ ninja }} pylib
+    PYTHONPATH=out/pylib out/pyenv/bin/python tools/speedrun/bench.py {{ ARGS }}
+
+# Speedrun: SIGKILL-mid-review crash test + network-off AI check (challenge 7g)
+crash-test *ARGS:
+    {{ ninja }} pylib
+    PYTHONPATH=out/pylib out/pyenv/bin/python tools/speedrun/crash_test.py {{ ARGS }}
+
+# Speedrun: two-client offline sync + conflict-rule proof (challenge 7b)
+sync-test *ARGS:
+    {{ ninja }} pylib
+    PYTHONPATH=out/pylib out/pyenv/bin/python tools/speedrun/sync_test.py {{ ARGS }}
+
+# Speedrun: FSRS memory calibration on held-out reviews (§9 Step 1)
+memory-calibration *ARGS:
+    {{ ninja }} pylib
+    PYTHONPATH=out/pylib out/pyenv/bin/python tools/speedrun/memory_calibration.py {{ ARGS }}
+
+# Speedrun: gold-set card checker + one-source generated batch (challenge 7f)
+card-check *ARGS:
+    python3 tools/speedrun/card_check.py {{ ARGS }}
+
+# Speedrun: prompt-injection resistance across every model-facing surface (§10 hidden-text)
+injection-eval *ARGS:
+    python3 tools/speedrun/injection_eval.py {{ ARGS }}
+
+# Speedrun: probe bank validation + leakage scan + self-test; --collection for the real bridge/calibration (7d/7e)
+probe-harness *ARGS:
+    python3 tools/speedrun/probe_harness.py {{ ARGS }}
+
+# Speedrun: simulation ablation; --collection for the real-data observational companion (§8)
+ablation *ARGS:
+    python3 tools/speedrun/ablation.py {{ ARGS }}
+
+# Speedrun: run the offline tooling test suite
+speedrun-test:
+    python3 -m unittest discover -s tools/speedrun/tests
+
 # Build documentation site
 docs:
     uv run --group docs sphinx-build -b html docs out/docs/html

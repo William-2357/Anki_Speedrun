@@ -1,0 +1,52 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="760" height="600" viewBox="0 0 760 600" font-family="Helvetica, Arial, sans-serif">
+<rect width="760" height="600" fill="#ffffff"/>
+<text x="100" y="28" font-size="17" font-weight="bold" fill="#222222">FSRS memory calibration — held-out reviews</text>
+<text x="100" y="48" font-size="12" fill="#555555">real_collection_run.anki2 — n=64, Brier 0.000673 (CI 0.000519–0.000826), ECE 0.020159</text>
+<text class="low-n-warning" x="100" y="588" font-size="12" font-weight="bold" fill="#b03a2e">CAVEATS apply (one-sided/degenerate holdout) — see memory_calibration_report.md</text>
+<line class="grid" x1="100.0" y1="70" x2="100.0" y2="430" stroke="#e6e6e6" stroke-width="1"/>
+<line class="grid" x1="100" y1="430.0" x2="580" y2="430.0" stroke="#e6e6e6" stroke-width="1"/>
+<text x="100.0" y="448" font-size="11" fill="#444444" text-anchor="middle">0.0</text>
+<text x="92" y="434.0" font-size="11" fill="#444444" text-anchor="end">0.0</text>
+<line class="grid" x1="196.0" y1="70" x2="196.0" y2="430" stroke="#e6e6e6" stroke-width="1"/>
+<line class="grid" x1="100" y1="358.0" x2="580" y2="358.0" stroke="#e6e6e6" stroke-width="1"/>
+<text x="196.0" y="448" font-size="11" fill="#444444" text-anchor="middle">0.2</text>
+<text x="92" y="362.0" font-size="11" fill="#444444" text-anchor="end">0.2</text>
+<line class="grid" x1="292.0" y1="70" x2="292.0" y2="430" stroke="#e6e6e6" stroke-width="1"/>
+<line class="grid" x1="100" y1="286.0" x2="580" y2="286.0" stroke="#e6e6e6" stroke-width="1"/>
+<text x="292.0" y="448" font-size="11" fill="#444444" text-anchor="middle">0.4</text>
+<text x="92" y="290.0" font-size="11" fill="#444444" text-anchor="end">0.4</text>
+<line class="grid" x1="388.0" y1="70" x2="388.0" y2="430" stroke="#e6e6e6" stroke-width="1"/>
+<line class="grid" x1="100" y1="214.0" x2="580" y2="214.0" stroke="#e6e6e6" stroke-width="1"/>
+<text x="388.0" y="448" font-size="11" fill="#444444" text-anchor="middle">0.6</text>
+<text x="92" y="218.0" font-size="11" fill="#444444" text-anchor="end">0.6</text>
+<line class="grid" x1="484.0" y1="70" x2="484.0" y2="430" stroke="#e6e6e6" stroke-width="1"/>
+<line class="grid" x1="100" y1="142.0" x2="580" y2="142.0" stroke="#e6e6e6" stroke-width="1"/>
+<text x="484.0" y="448" font-size="11" fill="#444444" text-anchor="middle">0.8</text>
+<text x="92" y="146.0" font-size="11" fill="#444444" text-anchor="end">0.8</text>
+<line class="grid" x1="580.0" y1="70" x2="580.0" y2="430" stroke="#e6e6e6" stroke-width="1"/>
+<line class="grid" x1="100" y1="70.0" x2="580" y2="70.0" stroke="#e6e6e6" stroke-width="1"/>
+<text x="580.0" y="448" font-size="11" fill="#444444" text-anchor="middle">1.0</text>
+<text x="92" y="74.0" font-size="11" fill="#444444" text-anchor="end">1.0</text>
+<rect class="frame" x="100" y="70" width="480" height="360" fill="none" stroke="#888888" stroke-width="1"/>
+<line class="diagonal" x1="100.0" y1="430.0" x2="580.0" y2="70.0" stroke="#999999" stroke-width="1.5" stroke-dasharray="6,5"/>
+<text x="340" y="470" font-size="12" fill="#333333" text-anchor="middle">predicted recall (engine retrievability, binned)</text>
+<text x="26" y="250" font-size="12" fill="#333333" text-anchor="middle" transform="rotate(-90 26 250)">observed recall</text>
+<circle class="bin-point" cx="570.3" cy="70.0" r="4" fill="#c44e52" stroke="#ffffff" stroke-width="1"/>
+<text class="bin-count" x="570.3" y="61.0" font-size="10" fill="#c44e52" text-anchor="middle">n=64</text>
+<rect x="112" y="75" width="12" height="12" fill="#c44e52"/>
+<text class="legend" x="130" y="85" font-size="12" fill="#222222">fsrs6-defaults (n=64)</text>
+<text class="legend" x="112" y="103" font-size="11" fill="#999999">dashed diagonal = perfectly calibrated</text>
+<text x="100" y="482" font-size="12" fill="#333333">predictions per bin</text>
+<rect class="hist-bar" x="104.0" y="570.0" width="40.0" height="0.0" fill="#c44e52" fill-opacity="0.75"/>
+<rect class="hist-bar" x="152.0" y="570.0" width="40.0" height="0.0" fill="#c44e52" fill-opacity="0.75"/>
+<rect class="hist-bar" x="200.0" y="570.0" width="40.0" height="0.0" fill="#c44e52" fill-opacity="0.75"/>
+<rect class="hist-bar" x="248.0" y="570.0" width="40.0" height="0.0" fill="#c44e52" fill-opacity="0.75"/>
+<rect class="hist-bar" x="296.0" y="570.0" width="40.0" height="0.0" fill="#c44e52" fill-opacity="0.75"/>
+<rect class="hist-bar" x="344.0" y="570.0" width="40.0" height="0.0" fill="#c44e52" fill-opacity="0.75"/>
+<rect class="hist-bar" x="392.0" y="570.0" width="40.0" height="0.0" fill="#c44e52" fill-opacity="0.75"/>
+<rect class="hist-bar" x="440.0" y="570.0" width="40.0" height="0.0" fill="#c44e52" fill-opacity="0.75"/>
+<rect class="hist-bar" x="488.0" y="570.0" width="40.0" height="0.0" fill="#c44e52" fill-opacity="0.75"/>
+<rect class="hist-bar" x="536.0" y="490.0" width="40.0" height="80.0" fill="#c44e52" fill-opacity="0.75"/>
+<text class="hist-count" x="556.0" y="487.0" font-size="9" fill="#c44e52" text-anchor="middle">64</text>
+<line x1="100" y1="570" x2="580" y2="570" stroke="#888888" stroke-width="1"/>
+</svg>

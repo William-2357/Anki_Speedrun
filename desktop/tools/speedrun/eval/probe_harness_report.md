@@ -1,6 +1,6 @@
 # Probe harness report
 
-Generated: 2026-07-04T13:12:17+00:00 — modes: validation, leakage-scan, self-test
+Generated: 2026-07-05T08:07:44+00:00 — modes: validation, leakage-scan, self-test, collection
 
 ## Bank validation
 
@@ -19,6 +19,16 @@ Seed 20260704; 8 internal checks passed.
 - readiness inputs: x=29 of n=50 delayed performance outcomes
 - bridge gap (memory − delayed performance): 0.2128
 - calibration: n=16, raw log-loss 0.811411 → calibrated 0.677617 at T=4.335954
+
+## Collection analysis
+
+Path: `out/speedrun_eval/real_collection.anki2` — 0 probe cards found.
+
+- readiness inputs: x=0 of n=0 delayed performance outcomes
+- performance: 0 items — 0 delayed (0 never-studied), 0 undelayed (excluded), 0 unanswered; lag {'n': 0}
+- calibration: 0 items — 0 delayed (0 never-studied), 0 undelayed (excluded), 0 unanswered; lag {'n': 0}
+- bridge: retention None (n=0) vs delayed probes None (n=0) → gap None
+- calibration: REFUSING to fit calibration: only 0 delayed calibration-pool outcomes; need >= 10. No record is written - abstention is the honest output.
 
 ## Honesty notes
 

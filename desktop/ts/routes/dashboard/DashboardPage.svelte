@@ -4,6 +4,7 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
 -->
 <script lang="ts">
     import { getReadiness, topicMastery } from "@generated/backend";
+    import { bridgeCommand, bridgeCommandsAvailable } from "@tslib/bridgecommand";
 
     import {
         coachFacts,
@@ -104,6 +105,15 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
     }
 
     refresh();
+
+    // Desktop-only "Study this topic": the assistant host bridge answers only
+    // on desktop (null on Android), and the web view bridge must be present.
+    // No AI is involved - this just launches a filtered review by tag.
+    $: canStudy = assistant !== null && bridgeCommandsAvailable();
+
+    function studyTopic(topicId: string): void {
+        bridgeCommand(`speedrunStudyTopic:${topicId}`);
+    }
 
     // A feature is live only when the bridge exists, the assistant package
     // imported, the master switch is on AND the feature's own flag is on.
@@ -292,16 +302,22 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
                 title="Memory"
                 question="Can you recall the facts you studied, right now?"
                 gauge={model.memory}
+                coverage={model.coverage}
+                updatedAt={model.generatedAt}
             />
             <GaugeCard
                 title="Performance"
                 question="Would you answer a new, exam-style question that uses them?"
                 gauge={model.performance}
+                coverage={model.coverage}
+                updatedAt={model.generatedAt}
             />
             <GaugeCard
                 title="Readiness"
                 question="What is the probability you would pass today?"
                 gauge={model.readiness}
+                coverage={model.coverage}
+                updatedAt={model.generatedAt}
             />
         </section>
 
@@ -723,7 +739,10 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
         {/if}
 
         <section class="table-section">
-            <SubjectTable subjects={model.subjects} />
+            <SubjectTable
+                subjects={model.subjects}
+                onStudy={canStudy ? studyTopic : null}
+            />
             {#if model.aigExclusionNote}
                 <p class="aig-note">{model.aigExclusionNote}.</p>
             {/if}

@@ -8,6 +8,9 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
     export let title: string;
     export let question: string;
     export let gauge: Gauge;
+    /** §4 contract: every score carries exam coverage + its update time. */
+    export let coverage: number | null = null;
+    export let updatedAt: Date | null = null;
 
     function pct(x: number): string {
         return `${Math.round(x * 100)}%`;
@@ -57,6 +60,16 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
                 {/each}
             </ul>
         {/if}
+    {/if}
+    {#if coverage !== null || updatedAt !== null}
+        <div class="card-meta">
+            {#if coverage !== null}
+                <span>exam covered: {pct(coverage)}</span>
+            {/if}
+            {#if updatedAt !== null}
+                <span>updated {updatedAt.toLocaleTimeString()}</span>
+            {/if}
+        </div>
     {/if}
 </div>
 
@@ -162,5 +175,15 @@ License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
 
     .missing li {
         color: var(--fg);
+    }
+
+    .card-meta {
+        margin-top: auto;
+        padding-top: 0.6rem;
+        display: flex;
+        justify-content: space-between;
+        gap: 0.5rem;
+        font-size: 0.7rem;
+        color: var(--fg-subtle);
     }
 </style>

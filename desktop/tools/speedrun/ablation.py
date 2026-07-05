@@ -21,6 +21,26 @@ Writes ``tools/speedrun/eval/ablation_report.json`` (deterministic given the
 CLI parameters) and ``tools/speedrun/eval/ablation_report.md``. Stdlib only -
 no pylib, no cargo, no network.
 
+Real-collection observational companion (``--collection PATH``)
+----------------------------------------------------------------
+
+``python3 tools/speedrun/ablation.py --collection PATH`` reads a real
+collection READ-ONLY (sqlite3 URI ``mode=ro``, never a live profile) and
+writes ``eval/ablation_real_report.{json,md}`` instead of simulating. It is
+NOT an ablation and never pretends to be one: with a single real learner
+there is no counterfactual arm and no random assignment, so the report is
+observational only - (1) which Speedrun deck-config toggles are currently on
+(contrastScheduling / fadeEnabled / readinessAllocation, schema11 JSON names,
+decoded from the deck_config protobuf blobs) and the simulated arm that state
+corresponds to; (2) the memory-side outcome family (overall and per
+cfa::topic::* retention / again-rate on graded study reviews, study days,
+cards touched); (3) delayed held-out probe outcomes under probe_harness's
+exact [R7] rule (reused by import, never reimplemented); (4) the
+speedrun:readinessCalibration record status; and (5) the same-day
+contrast-adjacency share when the feature was on. Every section carries its
+n and abstains, with the reason, where the data cannot support a number. The
+default no-flag invocation still runs the simulation exactly as before.
+
 The simulated learner model (all constants below, all equations here)
 ----------------------------------------------------------------------
 
@@ -154,11 +174,14 @@ weights are the CFA 2026 midpoints
 from __future__ import annotations
 
 import argparse
+import datetime
 import hashlib
 import json
 import math
 import random
+import sqlite3
 import statistics
+import struct
 import sys
 import time
 from collections import Counter
@@ -167,6 +190,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
 
+import probe_harness  # noqa: E402  (read-only import: [R7] outcome extraction)
 from cfa_sample_cards import CARDS  # noqa: E402  (data import, see docstring)
 
 SCHEMA = "speedrun-ablation-v1"
@@ -1358,7 +1382,11 @@ def render_markdown(report: dict) -> str:
     lines: list[str] = []
     add = lines.append
     cfg = report["config"]
-    add("# Ablation report - Anki Speedrun Phase 3 M4")
+    add(
+        "# Ablation report - Anki Speedrun Phase 3 M4 (SIMULATED learner - "
+        "see ablation_real_report.md for the real-collection observational "
+        "companion)"
+    )
     add("")
     add(
         "> **SIMULATION - READ THIS FIRST.** "
@@ -1488,6 +1516,744 @@ def render_markdown(report: dict) -> str:
 
 
 # ---------------------------------------------------------------------------
+# real-collection observational mode (--collection; NOT an ablation)
+# ---------------------------------------------------------------------------
+
+REAL_SCHEMA = "speedrun-ablation-real-v1"
+MS_PER_DAY = probe_harness.MS_PER_DAY
+
+#: Speedrun toggles in the deck-config blob. Keys are the schema11 JSON
+#: names (rslib/src/deckconfig/schema11.rs, ``rename_all = "camelCase"``);
+#: values are the protobuf field numbers of DeckConfig.Config
+#: (proto/anki/deck_config.proto), which is how modern collections store
+#: each preset in the deck_config table.
+FEATURE_FIELDS: dict[str, int] = {
+    "contrastScheduling": 47,
+    "fadeEnabled": 50,
+    "readinessAllocation": 59,
+}
+#: Fade-ladder band + contrast tag prefix (disclosure detail, not toggles).
+FADE_BAND_FIELDS: dict[str, int] = {"fadeUpR": 52, "fadeDownR": 53}
+CONTRAST_TAG_PREFIX_FIELD = 48  # empty string means the "cluster::" default
+
+DEFAULT_ROLLOVER_HOURS = 4  # Anki's default day-cutoff hour (4am local)
+UNTAGGED_BUCKET = "(no cfa::topic tag)"
+DELETED_BUCKET = "(card deleted)"
+
+
+def _scan_message(blob: bytes) -> dict[int, list[tuple[int, int | bytes]]]:
+    """Minimal protobuf wire-format scan: field number -> [(wire_type,
+    value)], varints as int, length-delimited/fixed payloads as bytes.
+    Enough to read scalar deck-config fields without a generated proto
+    module (this harness stays stdlib-only)."""
+    fields: dict[int, list[tuple[int, int | bytes]]] = {}
+    pos = 0
+
+    def varint() -> int:
+        nonlocal pos
+        shift = value = 0
+        while True:
+            byte = blob[pos]
+            pos += 1
+            value |= (byte & 0x7F) << shift
+            if not byte & 0x80:
+                return value
+            shift += 7
+
+    while pos < len(blob):
+        key = varint()
+        number, wire = key >> 3, key & 7
+        value: int | bytes
+        if wire == 0:
+            value = varint()
+        elif wire == 1:
+            value = blob[pos : pos + 8]
+            pos += 8
+        elif wire == 2:
+            length = varint()
+            value = blob[pos : pos + length]
+            pos += length
+        elif wire == 5:
+            value = blob[pos : pos + 4]
+            pos += 4
+        else:  # wire types 3/4 (groups) never appear in anki protos
+            raise ValueError(f"unsupported protobuf wire type {wire}")
+        fields.setdefault(number, []).append((wire, value))
+    return fields
+
+
+def _last_scalar(
+    fields: dict[int, list[tuple[int, int | bytes]]], number: int
+) -> int | bytes | None:
+    """Last occurrence wins, per protobuf scalar-merge semantics."""
+    if number not in fields:
+        return None
+    return fields[number][-1][1]
+
+
+def _preset_feature_state(fields: dict[int, list[tuple[int, int | bytes]]]) -> dict:
+    """Toggle + disclosure-detail state of one deck-config protobuf blob.
+    Absent fields are proto3 defaults (false / 0.0 / '')."""
+    features = {
+        name: bool(_last_scalar(fields, number))
+        for name, number in FEATURE_FIELDS.items()
+    }
+    prefix = _last_scalar(fields, CONTRAST_TAG_PREFIX_FIELD)
+    detail: dict[str, object] = {
+        "contrastTagPrefix": prefix.decode() if isinstance(prefix, bytes) else ""
+    }
+    for name, number in FADE_BAND_FIELDS.items():
+        raw = _last_scalar(fields, number)
+        detail[name] = (
+            _r(struct.unpack("<f", raw)[0]) if isinstance(raw, bytes) else 0.0
+        )
+    return {"features": features, "detail": detail}
+
+
+def _schema11_feature_state(conf: dict) -> dict:
+    """The same state from a legacy schema11 col.dconf JSON preset (field
+    names per rslib/src/deckconfig/schema11.rs; absent means default-off)."""
+    features = {name: bool(conf.get(name, False)) for name in FEATURE_FIELDS}
+    detail: dict[str, object] = {
+        "contrastTagPrefix": str(conf.get("contrastTagPrefix", ""))
+    }
+    for name in FADE_BAND_FIELDS:
+        detail[name] = _r(float(conf.get(name, 0.0)))
+    return {"features": features, "detail": detail}
+
+
+def arm_for_features(contrast: bool, fade: bool, allocation: bool) -> str:
+    """The simulated arm whose feature triple matches a real deck-config
+    state. The real engine has no cross-topic contrast mode, so every real
+    (contrast, fade, allocation) triple maps to exactly one arm."""
+    want = ("within_topic" if contrast else "off", fade, allocation)
+    for arm in default_arms():
+        if arm.contrast == "cross_topic":
+            continue
+        if (arm.contrast, arm.fade, arm.allocation) == want:
+            return arm.name
+    raise AssertionError("unreachable: all 8 feature triples map to an arm")
+
+
+def collection_day(ms: int, mins_west: int, rollover_hours: int) -> int:
+    """Collection-local day index of a revlog timestamp: the scheduler's
+    day cutoff (rollover hour, minutes-west-of-UTC offset)."""
+    return (ms - mins_west * 60_000 - rollover_hours * 3_600_000) // MS_PER_DAY
+
+
+@dataclass(frozen=True)
+class StudyReview:
+    """One graded (ease > 0) non-probe revlog row of a real collection."""
+
+    ms: int
+    day: int  # collection-local day index
+    card_id: int
+    deck_id: int | None  # None once the card has been deleted
+    ease: int
+    topic: str | None  # cfa::topic::* tag suffix, if any
+    cluster: str | None  # cluster::* tag suffix, if any
+    deleted: bool  # card no longer exists (topic/cluster unknowable)
+
+    @property
+    def correct(self) -> bool:
+        return self.ease >= 2  # Again(1) = wrong; Hard/Good/Easy = correct
+
+
+def _unicase(a: str, b: str) -> int:
+    """Read-side stand-in for Anki's unicase collation: the decks table
+    declares it, and sqlite refuses to even prepare statements against the
+    table without the symbol. We never sort by name, so casefold suffices."""
+    left, right = a.casefold(), b.casefold()
+    return (left > right) - (left < right)
+
+
+def read_real_collection(path: str | Path) -> dict:
+    """Everything the observational report needs, over one READ-ONLY
+    connection (sqlite3 URI mode=ro - the file is never mutated). Probe
+    identity and tag parsing mirror probe_harness.read_collection."""
+    con = sqlite3.connect(f"file:{Path(path)}?mode=ro", uri=True)
+    con.create_collation("unicase", _unicase)
+    try:
+        tables = {
+            name
+            for (name,) in con.execute(
+                "select name from sqlite_master where type='table'"
+            )
+        }
+
+        # -- config keys (modern config table, or legacy col.conf JSON) ----
+        if "config" in tables:
+            config = {
+                key: bytes(val)
+                for key, val in con.execute("select key, val from config")
+            }
+        else:
+            (conf_json,) = con.execute("select conf from col").fetchone()
+            config = {
+                key: json.dumps(value).encode()
+                for key, value in json.loads(conf_json or "{}").items()
+            }
+        mins_west = (
+            int(json.loads(config["creationOffset"]))
+            if "creationOffset" in config
+            else 0
+        )
+        rollover = (
+            int(json.loads(config["rollover"]))
+            if "rollover" in config
+            else DEFAULT_ROLLOVER_HOURS
+        )
+
+        # -- deck-config presets + deck attachment --------------------------
+        presets: list[dict] = []
+        deck_preset: dict[int, int | None] = {}
+        deck_names: dict[int, str] = {}
+        if "deck_config" in tables:
+            storage = "deck_config table (protobuf DeckConfig.Config blobs)"
+            for preset_id, name, blob in con.execute(
+                "select id, name, config from deck_config order by id"
+            ):
+                state = _preset_feature_state(_scan_message(bytes(blob)))
+                presets.append({"id": preset_id, "name": name, **state})
+            for did, name, kind in con.execute("select id, name, kind from decks"):
+                deck_names[did] = name
+                normal = _last_scalar(_scan_message(bytes(kind)), 1)  # Deck.kind.normal
+                if isinstance(normal, bytes):  # Normal.config_id = 1; 0/absent -> 1
+                    config_id = _last_scalar(_scan_message(normal), 1)
+                    deck_preset[did] = int(config_id) if config_id else 1
+                else:
+                    deck_preset[did] = None  # filtered decks carry no preset
+        else:
+            storage = "col.dconf (legacy schema11 JSON)"
+            (dconf_json,) = con.execute("select dconf from col").fetchone()
+            for key, conf in sorted(
+                json.loads(dconf_json or "{}").items(), key=lambda kv: int(kv[0])
+            ):
+                state = _schema11_feature_state(conf)
+                presets.append({"id": int(key), "name": conf.get("name", ""), **state})
+            (decks_json,) = con.execute("select decks from col").fetchone()
+            for key, deck in json.loads(decks_json or "{}").items():
+                deck_names[int(key)] = deck.get("name", "")
+                deck_preset[int(key)] = deck.get("conf")
+
+        # -- notes / cards / revlog -----------------------------------------
+        note_tags: dict[int, list[str]] = {}
+        for nid, tags in con.execute("select id, tags from notes"):
+            note_tags[nid] = [t.lower() for t in str(tags).split()]
+        card_info: dict[int, tuple[int, int]] = {
+            cid: (nid, did)
+            for cid, nid, did in con.execute("select id, nid, did from cards")
+        }
+
+        def tag_value(tags: list[str], prefix: str) -> str | None:
+            for tag in tags:
+                if tag.startswith(prefix) and len(tag) > len(prefix):
+                    return tag[len(prefix) :]
+            return None
+
+        probe_note_ids = {
+            nid
+            for nid, tags in note_tags.items()
+            if probe_harness.PROBE_HELD_OUT_TAG in tags
+        }
+        reviews: list[StudyReview] = []
+        revlog_rows = ungraded = probe_answers = 0
+        for ms, cid, ease in con.execute(
+            "select id, cid, ease from revlog order by id"
+        ):
+            revlog_rows += 1
+            if ease <= 0:
+                ungraded += 1  # manual/reschedule entries are not answers
+                continue
+            info = card_info.get(cid)
+            if info is None:  # card deleted since; deck/tags unknowable
+                reviews.append(
+                    StudyReview(
+                        ms,
+                        collection_day(ms, mins_west, rollover),
+                        cid,
+                        None,
+                        ease,
+                        None,
+                        None,
+                        True,
+                    )
+                )
+                continue
+            nid, did = info
+            tags = note_tags.get(nid, [])
+            if nid in probe_note_ids:
+                probe_answers += 1  # probe answers are never study touches
+                continue
+            reviews.append(
+                StudyReview(
+                    ms,
+                    collection_day(ms, mins_west, rollover),
+                    cid,
+                    did,
+                    ease,
+                    tag_value(tags, probe_harness.TOPIC_TAG_PREFIX),
+                    tag_value(tags, probe_harness.CLUSTER_TAG_PREFIX),
+                    False,
+                )
+            )
+
+        (n_cards,) = con.execute("select count(*) from cards").fetchone()
+        (n_notes,) = con.execute("select count(*) from notes").fetchone()
+        return {
+            "storage": storage,
+            "config": config,
+            "mins_west": mins_west,
+            "rollover_hours": rollover,
+            "presets": presets,
+            "deck_preset": deck_preset,
+            "deck_names": deck_names,
+            "study_reviews": reviews,
+            "counts": {
+                "cards": n_cards,
+                "notes": n_notes,
+                "revlog_rows": revlog_rows,
+                "ungraded_rows": ungraded,
+                "graded_probe_answers": probe_answers,
+                "graded_study_reviews": len(reviews),
+            },
+        }
+    finally:
+        con.close()
+
+
+def study_metrics(reviews: list[StudyReview]) -> dict:
+    """Memory-side outcome family on graded study reviews: overall and
+    per-topic retention (ease > 1 share, probe_harness's correctness rule),
+    review counts, study days, cards touched. Sections abstain (None) when
+    there is nothing to count."""
+
+    def bucket_of(review: StudyReview) -> str:
+        if review.deleted:
+            return DELETED_BUCKET
+        return review.topic or UNTAGGED_BUCKET
+
+    def rates(subset: list[StudyReview]) -> dict:
+        n = len(subset)
+        correct = sum(1 for r in subset if r.correct)
+        return {
+            "n": n,
+            "correct": correct,
+            "retention": _r(correct / n) if n else None,
+            "again_rate": _r(1.0 - correct / n) if n else None,
+            "cards": len({r.card_id for r in subset}),
+        }
+
+    by_bucket: dict[str, list[StudyReview]] = {}
+    for review in reviews:
+        by_bucket.setdefault(bucket_of(review), []).append(review)
+    # real topics first (alphabetical), then the disclosed catch-all buckets
+    order = sorted(by_bucket, key=lambda b: (b.startswith("("), b))
+
+    overall = rates(reviews)
+    overall.pop("cards")
+    span = None
+    if reviews:
+        span = [
+            datetime.datetime.fromtimestamp(ms / 1000.0, tz=datetime.timezone.utc)
+            .date()
+            .isoformat()
+            for ms in (reviews[0].ms, reviews[-1].ms)
+        ]
+    return {
+        **overall,
+        "study_days": len({r.day for r in reviews}),
+        "cards_touched": len({r.card_id for r in reviews}),
+        "cards_touched_live": len({r.card_id for r in reviews if not r.deleted}),
+        "first_to_last_review_utc": span,
+        "per_topic": {bucket: rates(by_bucket[bucket]) for bucket in order},
+    }
+
+
+def adjacency_metrics(reviews: list[StudyReview]) -> dict:
+    """The simulated report's adjacency notion, observed: over consecutive
+    same-day pairs of graded study reviews (revlog order), a "true" pair is
+    two different cards sharing one cluster tag ([R8] discrimination
+    training); a "wasted" pair shares only the family name (last ::
+    segment) across different clusters."""
+    same_day = true_pairs = wasted_pairs = 0
+    prev: StudyReview | None = None
+    for review in reviews:
+        if prev is not None and prev.day == review.day:
+            same_day += 1
+            if (
+                review.card_id != prev.card_id
+                and review.cluster is not None
+                and prev.cluster is not None
+            ):
+                if review.cluster == prev.cluster:
+                    true_pairs += 1
+                elif review.cluster.split("::")[-1] == prev.cluster.split("::")[-1]:
+                    wasted_pairs += 1
+        prev = review
+    return {
+        "same_day_pairs": same_day,
+        "true_pairs": true_pairs,
+        "wasted_pairs": wasted_pairs,
+        "true_share": _r(true_pairs / same_day) if same_day else None,
+    }
+
+
+def analyze_real_collection(path: str | Path) -> dict:
+    """Assemble the real-collection OBSERVATIONAL report dict (read-only;
+    never an ablation - see the module docstring). Every section carries
+    its n and abstains, with the reason, where the data permits nothing."""
+    data = read_real_collection(path)
+    reviews: list[StudyReview] = data["study_reviews"]
+    counts: dict = dict(data["counts"])
+    memory = study_metrics(reviews)
+
+    # -- feature states -> the arm the real data observationally matches ----
+    reviews_per_preset = Counter(
+        data["deck_preset"].get(r.deck_id) for r in reviews if not r.deleted
+    )
+    presets: list[dict] = []
+    for preset in data["presets"]:
+        features = preset["features"]
+        presets.append(
+            {
+                **preset,
+                "observational_arm": arm_for_features(
+                    features["contrastScheduling"],
+                    features["fadeEnabled"],
+                    features["readinessAllocation"],
+                ),
+                "decks": sorted(
+                    name
+                    for did, name in data["deck_names"].items()
+                    if data["deck_preset"].get(did) == preset["id"]
+                ),
+                "graded_study_reviews": reviews_per_preset.get(preset["id"], 0),
+            }
+        )
+    active_arms = {p["observational_arm"] for p in presets if p["graded_study_reviews"]}
+    if not active_arms:  # nothing studied yet: fall back to configured state
+        active_arms = {p["observational_arm"] for p in presets}
+    overall_arm = active_arms.pop() if len(active_arms) == 1 else "mixed"
+    n_deleted = sum(1 for r in reviews if r.deleted)
+    if overall_arm == "vanilla":
+        arm_note = (
+            "All Speedrun features are OFF on every preset with review "
+            "history, so the real data observationally corresponds to the "
+            "vanilla arm of the simulation."
+        )
+    elif overall_arm == "mixed":
+        arm_note = (
+            "Reviews span presets with different feature states; no single "
+            "simulated arm corresponds (see the per-preset rows)."
+        )
+    else:
+        arm_note = (
+            f"Every preset with review history has the same feature state, "
+            f"so the real data observationally corresponds to the "
+            f"{overall_arm} arm of the simulation."
+        )
+    feature_states = {
+        "storage": data["storage"],
+        "presets": presets,
+        "observational_arm": overall_arm,
+        "arm_note": arm_note,
+        "history_caveat": (
+            "Feature states are the deck-config values at read time; the "
+            "collection stores no toggle history, so past reviews cannot be "
+            "re-attributed to past states."
+            + (
+                f" {n_deleted} graded reviews sit on since-deleted cards and "
+                "cannot be attributed to any preset."
+                if n_deleted
+                else ""
+            )
+        ),
+    }
+
+    # -- delayed held-out probe outcomes (probe_harness, reused by import) --
+    probe_data = probe_harness.read_collection(path)
+    study_times = {
+        cluster: [ms for ms, _ in cluster_reviews]
+        for cluster, cluster_reviews in probe_data["study_reviews"].items()
+    }
+    outcomes = probe_harness.compute_outcomes(probe_data["probes"], study_times)
+    inputs = probe_harness.readiness_inputs(outcomes)
+    n_delayed_all = sum(pool["delayed"] for pool in outcomes["pools"].values())
+    delayed = {
+        "source": (
+            "probe_harness.read_collection + compute_outcomes (imported, not "
+            "reimplemented); delay rule mirrors rslib/src/readiness/probes.rs: "
+            "first graded answer, delayed iff >= 7 days after the cluster's "
+            "last non-probe study touch, never-studied counts as delayed"
+        ),
+        "probe_cards": len(probe_data["probes"]),
+        "readiness_inputs": inputs,
+        "delayed_outcomes_all_pools": n_delayed_all,
+        "pools": outcomes["pools"],
+    }
+    if not probe_data["probes"]:
+        delayed["abstained"] = True
+        delayed["abstain_reason"] = (
+            "0 probe cards in the collection - the held-out probe deck has "
+            "never been imported/answered; no real bridge measurement yet"
+        )
+    elif n_delayed_all == 0:
+        delayed["abstained"] = True
+        delayed["abstain_reason"] = (
+            "0 delayed probe outcomes - no real bridge measurement yet"
+        )
+    else:
+        delayed["abstained"] = False
+
+    # -- readiness-calibration record status --------------------------------
+    raw_record = data["config"].get(probe_harness.CALIBRATION_CONFIG_KEY)
+    calibration = {
+        "config_key": probe_harness.CALIBRATION_CONFIG_KEY,
+        "present": raw_record is not None,
+        "record": json.loads(raw_record) if raw_record is not None else None,
+        "note": (
+            "record present (written by probe_harness --apply)"
+            if raw_record is not None
+            else "no record - probe_harness --apply has never run (it "
+            "refuses below 10 delayed calibration-pool outcomes)"
+        ),
+    }
+
+    # -- contrast adjacency (observational) ---------------------------------
+    contrast_presets = [
+        f"{p['name']} (id {p['id']})"
+        for p in presets
+        if p["features"]["contrastScheduling"]
+    ]
+    contrast_active = [
+        p["id"]
+        for p in presets
+        if p["features"]["contrastScheduling"] and p["graded_study_reviews"]
+    ]
+    adjacency: dict[str, object] = {
+        "contrast_enabled_presets": contrast_presets,
+    }
+    if contrast_presets and (
+        contrast_active or not any(p["graded_study_reviews"] for p in presets)
+    ):
+        adjacency.update(adjacency_metrics(reviews))
+        adjacency["note"] = (
+            "Mirrors the simulated report's adjacency notion: true = "
+            "same-cluster different-card back-to-back within one day "
+            "(trains discrimination, [R8]); wasted = same family name "
+            "across different clusters. Current-state caveat above applies."
+        )
+        adjacency["applicable"] = True
+    else:
+        adjacency["applicable"] = False
+        adjacency["note"] = "not applicable (feature off for all history)"
+
+    n_graded = len(reviews)
+    headline = (
+        "REAL-COLLECTION OBSERVATIONAL REPORT - this is NOT an ablation: one "
+        f"learner, no counterfactual arm, no random assignment; n=1 with "
+        f"{n_graded} graded reviews. It cannot estimate the feature effects "
+        "the simulation estimates; it exists to ground the simulated claims "
+        "in what real usage exists and to be re-run as real data accumulates."
+    )
+    return {
+        "schema": REAL_SCHEMA,
+        "generated_by": "tools/speedrun/ablation.py --collection",
+        "observational_disclosure": {
+            "is_ablation": False,
+            "headline": headline,
+            "details": [
+                "One real learner, one realized history: counterfactual arms "
+                "(what vanilla/full_on WOULD have produced on the same days) "
+                "do not exist in this data and are not fabricated.",
+                "Simulated companion: ablation_report.{json,md} carries the "
+                "actual (simulated) ablation with equal-budget arms.",
+                "Sections abstain with the reason where the data permits no "
+                "number; nothing here is imputed or guessed.",
+            ],
+        },
+        "collection": {
+            "path": str(path),
+            "opened": "sqlite3 URI mode=ro (read-only)",
+            "generated_at": datetime.datetime.now(datetime.timezone.utc).isoformat(
+                timespec="seconds"
+            ),
+            "mins_west": data["mins_west"],
+            "rollover_hours": data["rollover_hours"],
+            **counts,
+        },
+        "feature_states": feature_states,
+        "memory": memory,
+        "delayed_performance": delayed,
+        "readiness_calibration": calibration,
+        "adjacency": adjacency,
+        "limitations": [
+            "OBSERVATIONAL, not causal: one real learner (n=1), one realized "
+            "history; feature effects are NOT estimable from this data.",
+            "Feature states are current-state only; Anki keeps no toggle "
+            "history in the collection.",
+            "Per-topic rows cover only notes tagged cfa::topic::*; untagged "
+            "and since-deleted cards are reported in their own buckets, "
+            "never guessed into topics.",
+            "Retention here is study-side recognition accuracy (ease > 1 "
+            "share), not the delayed application performance the held-out "
+            "probe bank measures - the two must not be conflated.",
+            f"Power: {n_graded} graded reviews over "
+            f"{memory['study_days']} study days; every number is descriptive "
+            "and should be re-read as data accumulates.",
+        ],
+    }
+
+
+# ---------------------------------------------------------------------------
+# real-collection markdown rendering
+# ---------------------------------------------------------------------------
+
+
+def _cell(value: float | None) -> str:
+    return f"{value:.4f}" if value is not None else "-"
+
+
+def render_real_markdown(report: dict) -> str:
+    lines: list[str] = []
+    add = lines.append
+    add(
+        "# Real-collection observational report - Anki Speedrun Phase 3 "
+        "(companion to the SIMULATED ablation)"
+    )
+    add("")
+    add("> **" + report["observational_disclosure"]["headline"] + "**")
+    for detail in report["observational_disclosure"]["details"]:
+        add("> " + detail)
+    add(">")
+    col = report["collection"]
+    add(
+        f"> Collection: `{col['path']}` ({col['opened']}); "
+        f"{col['cards']} cards, {col['notes']} notes, "
+        f"{col['revlog_rows']} revlog rows. Generated {col['generated_at']}."
+    )
+    add("")
+
+    features = report["feature_states"]
+    add("## Speedrun feature state per deck-config preset")
+    add("")
+    add(
+        "| preset | contrastScheduling | fadeEnabled | readinessAllocation | "
+        "observational arm | decks | graded study reviews |"
+    )
+    add("|---|---|---|---|---|---|---|")
+    for preset in features["presets"]:
+        f = preset["features"]
+        decks = ", ".join(preset["decks"]) if preset["decks"] else "(none)"
+        add(
+            f"| {preset['name']} (id {preset['id']}) | {f['contrastScheduling']} | "
+            f"{f['fadeEnabled']} | {f['readinessAllocation']} | "
+            f"{preset['observational_arm']} | {decks} | "
+            f"{preset['graded_study_reviews']} |"
+        )
+    add("")
+    add(f"**{features['arm_note']}**")
+    add("")
+    add(features["history_caveat"])
+    add("")
+
+    memory = report["memory"]
+    add("## Memory-side outcomes (graded study reviews; probe answers excluded)")
+    add("")
+    if memory["n"]:
+        add(
+            f"Overall: {memory['correct']}/{memory['n']} correct - retention "
+            f"{_cell(memory['retention'])}, again-rate {_cell(memory['again_rate'])} "
+            f"(n={memory['n']}). {memory['study_days']} study days "
+            f"({memory['first_to_last_review_utc'][0]} to "
+            f"{memory['first_to_last_review_utc'][1]} UTC), "
+            f"{memory['cards_touched']} cards touched "
+            f"({memory['cards_touched_live']} still in the collection)."
+        )
+        add("")
+        add("| topic | n | retention | again-rate | cards |")
+        add("|---|---|---|---|---|")
+        for topic, row in memory["per_topic"].items():
+            add(
+                f"| {topic} | {row['n']} | {_cell(row['retention'])} | "
+                f"{_cell(row['again_rate'])} | {row['cards']} |"
+            )
+        add("")
+        add(
+            "Retention = share of graded study reviews answered above Again "
+            "(ease > 1), the same correctness rule probe_harness applies. "
+            "This is recognition-side memory, not delayed application."
+        )
+    else:
+        add("ABSTAIN: 0 graded study reviews - nothing to report yet (n=0).")
+    add("")
+
+    delayed = report["delayed_performance"]
+    add("## Delayed held-out probe outcomes ([R7], via probe_harness import)")
+    add("")
+    if delayed["abstained"]:
+        add(
+            f"ABSTAIN: {delayed['abstain_reason']} (probe cards: {delayed['probe_cards']})."
+        )
+    else:
+        inputs = delayed["readiness_inputs"]
+        add(
+            f"{delayed['probe_cards']} probe cards; readiness inputs "
+            f"x={inputs['x_correct']} of n={inputs['n_delayed']} delayed "
+            f"performance-pool outcomes "
+            f"({delayed['delayed_outcomes_all_pools']} delayed across both "
+            "pools). Per-pool detail in the JSON."
+        )
+    add("")
+    add(delayed["source"] + ".")
+    add("")
+
+    calibration = report["readiness_calibration"]
+    add("## Readiness-calibration record")
+    add("")
+    status = "PRESENT" if calibration["present"] else "ABSENT"
+    add(f"`{calibration['config_key']}`: {status} - {calibration['note']}.")
+    if calibration["record"] is not None:
+        add("")
+        add(f"Record: `{json.dumps(calibration['record'])}`")
+    add("")
+
+    adjacency = report["adjacency"]
+    add("## Contrast adjacency (observational)")
+    add("")
+    if adjacency["applicable"]:
+        add(
+            f"Of {adjacency['same_day_pairs']} consecutive same-day study-review "
+            f"pairs, {adjacency['true_pairs']} were true contrast pairs "
+            f"(same cluster, different card; share "
+            f"{_cell(adjacency['true_share'])}) and "
+            f"{adjacency['wasted_pairs']} were same-name-different-cluster "
+            f"(wasted) pairs. Contrast-enabled presets: "
+            f"{', '.join(adjacency['contrast_enabled_presets'])}."
+        )
+        add("")
+        add(adjacency["note"])
+    else:
+        add(f"{adjacency['note']}.")
+    add("")
+
+    add("## What this report cannot say (read before quoting any number)")
+    add("")
+    for limitation in report["limitations"]:
+        add(f"- {limitation}")
+    add("")
+    add(
+        "Feature-state field names: `rslib/src/deckconfig/schema11.rs` / "
+        "`proto/anki/deck_config.proto`. Outcome extraction: "
+        "`tools/speedrun/probe_harness.py` (imported). The ablation itself "
+        "(simulated): `ablation_report.md`."
+    )
+    add("")
+    return "\n".join(lines)
+
+
+# ---------------------------------------------------------------------------
 # CLI
 # ---------------------------------------------------------------------------
 
@@ -1499,11 +2265,20 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--budget", type=int, default=DEFAULT_BUDGET)
     parser.add_argument("--replications", type=int, default=DEFAULT_REPLICATIONS)
     parser.add_argument(
+        "--collection",
+        help="Anki collection (.anki2) to read READ-ONLY; writes the "
+        "observational companion ablation_real_report.{json,md} instead of "
+        "running the simulation (see module docstring: NOT an ablation)",
+    )
+    parser.add_argument(
         "--output-dir",
         default=str(HERE / "eval"),
         help="where ablation_report.{json,md} are written (default: %(default)s)",
     )
     args = parser.parse_args(argv)
+
+    if args.collection:
+        return _real_collection_main(args.collection, Path(args.output_dir))
 
     start = time.monotonic()
     report = run_ablation(
@@ -1531,6 +2306,40 @@ def main(argv: list[str] | None = None) -> int:
     print(f"wrote {json_path}")
     print(f"wrote {md_path}")
     print(f"runtime: {elapsed:.1f}s")
+    return 0
+
+
+def _real_collection_main(collection: str, out_dir: Path) -> int:
+    """The --collection entry point: observational companion, one command."""
+    report = analyze_real_collection(collection)
+    out_dir.mkdir(parents=True, exist_ok=True)
+    json_path = out_dir / "ablation_real_report.json"
+    md_path = out_dir / "ablation_real_report.md"
+    json_path.write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
+    md_path.write_text(render_real_markdown(report), encoding="utf-8")
+
+    memory = report["memory"]
+    delayed = report["delayed_performance"]
+    print(
+        "OBSERVATIONAL (not an ablation): feature state -> "
+        f"{report['feature_states']['observational_arm']} arm; "
+        f"{memory['n']} graded study reviews over {memory['study_days']} days, "
+        f"overall retention {memory['retention']}"
+    )
+    if delayed["abstained"]:
+        print(f"delayed probes: ABSTAIN - {delayed['abstain_reason']}")
+    else:
+        inputs = delayed["readiness_inputs"]
+        print(
+            f"delayed probes: x={inputs['x_correct']} of n={inputs['n_delayed']} "
+            "delayed performance-pool outcomes"
+        )
+    print(
+        "calibration record: "
+        + ("present" if report["readiness_calibration"]["present"] else "absent")
+    )
+    print(f"wrote {json_path}")
+    print(f"wrote {md_path}")
     return 0
 
 

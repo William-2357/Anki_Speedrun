@@ -1,0 +1,1067 @@
+{
+    "meta": {
+        "tool": "memory_calibration",
+        "generated_at": "2026-07-05T05:28:46+00:00",
+        "modes": [
+            "self-test",
+            "collection"
+        ],
+        "formula": {
+            "expression": "R(t) = (1 + (0.9**(-1/decay) - 1) * t/S) ** -decay",
+            "elapsed_time": "fractional days = (review_ms - prev_ms)/86_400_000",
+            "provenance": [
+                "fsrs-5.2.0 src/inference.rs:60-63 current_retrievability",
+                "fsrs-5.2.0 src/inference.rs:512-519 current_retrievability_seconds (seconds/86400)",
+                "fsrs-5.2.0 src/model.rs:52-56 power_forgetting_curve",
+                "rslib/src/stats/graphs/retrievability.rs:33-34 (engine display path uses the same arithmetic)",
+                "rslib/src/scheduler/fsrs/memory_state.rs:360 compute_memory_state (state recomputed from revlog)"
+            ],
+            "fsrs6_default_decay": 0.1542
+        }
+    },
+    "self_test": {
+        "seed": 20260704,
+        "synthetic": {
+            "cards": 60,
+            "revlog_rows": 432,
+            "seed": 20260704
+        },
+        "checks_passed": [
+            "curve: R(0)=1, R(S)=0.9 for any decay, monotone decreasing",
+            "brier/log-loss match hand-computed values",
+            "binning and ECE match a hand-computed fixture",
+            "bootstrap is deterministic under a fixed seed",
+            "holdout: first-post-cutoff-per-card, manual/cram ignored, post-cutoff-only cards skipped",
+            "leakage guard: zero post-cutoff rows in the truncated copy",
+            "leakage guard: rejects a deliberately contaminated copy",
+            "synthetic pipeline: finite metrics, predictions in [0,1], Brier beats chance on every tier",
+            "chart: SVG renders with diagonal + histogram structure"
+        ],
+        "split": {
+            "rule": "chronological cutoff at the graded-review timestamp quantile 0.75 (last ~25% held out), stepped earlier by 0.05 (floor 0.5) only if needed to reach >= 50 held-out first-post-cutoff-per-card observations; observed recall = ease > 1; eligibility mirrors rslib has_rating_and_affects_scheduling (graded, non-manual, non-cramming)",
+            "requested_quantile": null,
+            "used_quantile": 0.55,
+            "quantiles_tried": [
+                {
+                    "quantile": 0.75,
+                    "observations": 41
+                },
+                {
+                    "quantile": 0.7,
+                    "observations": 46
+                },
+                {
+                    "quantile": 0.65,
+                    "observations": 48
+                },
+                {
+                    "quantile": 0.6,
+                    "observations": 49
+                },
+                {
+                    "quantile": 0.55,
+                    "observations": 50
+                }
+            ],
+            "cutoff_ms": 1764640610621,
+            "cutoff_utc": "2025-12-02T01:56:50+00:00",
+            "train_reviews": 237,
+            "train_recall_rate": 0.957806,
+            "post_cutoff_eligible_rows": 195,
+            "cards_with_post_cutoff_reviews": 50,
+            "skipped_first_seen_post_cutoff": 0,
+            "observations": 50,
+            "skipped_card_deleted": 0
+        },
+        "training": {
+            "status": "ok",
+            "fsrs_items": 153,
+            "num_of_relearning_steps": 1,
+            "equals_defaults": false,
+            "pretrain_only_shape": false
+        },
+        "low_n_warning": false,
+        "tiers": [
+            {
+                "tier": "trained-on-past",
+                "metrics": {
+                    "n": 50,
+                    "brier": 0.233855,
+                    "brier_ci95": [
+                        0.143445,
+                        0.327316
+                    ],
+                    "log_loss": 0.718517,
+                    "log_loss_epsilon": 1e-06,
+                    "ece": 0.190286,
+                    "observed_recall": 0.7,
+                    "mean_predicted": 0.890286,
+                    "caveats": [],
+                    "baselines": {
+                        "constant_train_rate": {
+                            "p": 0.957806,
+                            "brier": 0.276464,
+                            "log_loss": 0.97982,
+                            "note": "predicts the TRAIN-side global recall rate for every held-out review"
+                        },
+                        "chance_0.5": {
+                            "brier": 0.25,
+                            "log_loss": 0.693147
+                        }
+                    },
+                    "bins": [
+                        {
+                            "bin": "[0.0, 0.1)",
+                            "n": 0,
+                            "mean_predicted": null,
+                            "observed": null
+                        },
+                        {
+                            "bin": "[0.1, 0.2)",
+                            "n": 0,
+                            "mean_predicted": null,
+                            "observed": null
+                        },
+                        {
+                            "bin": "[0.2, 0.3)",
+                            "n": 0,
+                            "mean_predicted": null,
+                            "observed": null
+                        },
+                        {
+                            "bin": "[0.3, 0.4)",
+                            "n": 0,
+                            "mean_predicted": null,
+                            "observed": null
+                        },
+                        {
+                            "bin": "[0.4, 0.5)",
+                            "n": 0,
+                            "mean_predicted": null,
+                            "observed": null
+                        },
+                        {
+                            "bin": "[0.5, 0.6)",
+                            "n": 0,
+                            "mean_predicted": null,
+                            "observed": null
+                        },
+                        {
+                            "bin": "[0.6, 0.7)",
+                            "n": 0,
+                            "mean_predicted": null,
+                            "observed": null
+                        },
+                        {
+                            "bin": "[0.7, 0.8)",
+                            "n": 4,
+                            "mean_predicted": 0.760598,
+                            "observed": 0.5
+                        },
+                        {
+                            "bin": "[0.8, 0.9)",
+                            "n": 18,
+                            "mean_predicted": 0.838342,
+                            "observed": 0.555556
+                        },
+                        {
+                            "bin": "[0.9, 1.0]",
+                            "n": 28,
+                            "mean_predicted": 0.942206,
+                            "observed": 0.821429
+                        }
+                    ],
+                    "bootstrap": {
+                        "resamples": 2000,
+                        "seed": 20260704
+                    }
+                }
+            },
+            {
+                "tier": "fsrs6-defaults",
+                "metrics": {
+                    "n": 50,
+                    "brier": 0.216227,
+                    "brier_ci95": [
+                        0.132653,
+                        0.303159
+                    ],
+                    "log_loss": 0.682301,
+                    "log_loss_epsilon": 1e-06,
+                    "ece": 0.163821,
+                    "observed_recall": 0.7,
+                    "mean_predicted": 0.863822,
+                    "caveats": [],
+                    "baselines": {
+                        "constant_train_rate": {
+                            "p": 0.957806,
+                            "brier": 0.276464,
+                            "log_loss": 0.97982,
+                            "note": "predicts the TRAIN-side global recall rate for every held-out review"
+                        },
+                        "chance_0.5": {
+                            "brier": 0.25,
+                            "log_loss": 0.693147
+                        }
+                    },
+                    "bins": [
+                        {
+                            "bin": "[0.0, 0.1)",
+                            "n": 0,
+                            "mean_predicted": null,
+                            "observed": null
+                        },
+                        {
+                            "bin": "[0.1, 0.2)",
+                            "n": 0,
+                            "mean_predicted": null,
+                            "observed": null
+                        },
+                        {
+                            "bin": "[0.2, 0.3)",
+                            "n": 0,
+                            "mean_predicted": null,
+                            "observed": null
+                        },
+                        {
+                            "bin": "[0.3, 0.4)",
+                            "n": 0,
+                            "mean_predicted": null,
+                            "observed": null
+                        },
+                        {
+                            "bin": "[0.4, 0.5)",
+                            "n": 0,
+                            "mean_predicted": null,
+                            "observed": null
+                        },
+                        {
+                            "bin": "[0.5, 0.6)",
+                            "n": 0,
+                            "mean_predicted": null,
+                            "observed": null
+                        },
+                        {
+                            "bin": "[0.6, 0.7)",
+                            "n": 7,
+                            "mean_predicted": 0.677093,
+                            "observed": 0.428571
+                        },
+                        {
+                            "bin": "[0.7, 0.8)",
+                            "n": 8,
+                            "mean_predicted": 0.742366,
+                            "observed": 0.625
+                        },
+                        {
+                            "bin": "[0.8, 0.9)",
+                            "n": 8,
+                            "mean_predicted": 0.855044,
+                            "observed": 0.625
+                        },
+                        {
+                            "bin": "[0.9, 1.0]",
+                            "n": 27,
+                            "mean_predicted": 0.95082,
+                            "observed": 0.814815
+                        }
+                    ],
+                    "bootstrap": {
+                        "resamples": 2000,
+                        "seed": 20260704
+                    }
+                }
+            }
+        ]
+    },
+    "collection": {
+        "path": "out/speedrun_eval/memcal/real_collection_run.anki2",
+        "revlog_rows": 638,
+        "eligible_graded_reviews": 638,
+        "split": {
+            "rule": "chronological cutoff at the graded-review timestamp quantile 0.75 (last ~25% held out), stepped earlier by 0.05 (floor 0.5) only if needed to reach >= 50 held-out first-post-cutoff-per-card observations; observed recall = ease > 1; eligibility mirrors rslib has_rating_and_affects_scheduling (graded, non-manual, non-cramming)",
+            "requested_quantile": null,
+            "used_quantile": 0.75,
+            "quantiles_tried": [
+                {
+                    "quantile": 0.75,
+                    "observations": 67
+                }
+            ],
+            "cutoff_ms": 1783107859215,
+            "cutoff_utc": "2026-07-03T19:44:19+00:00",
+            "train_reviews": 478,
+            "train_recall_rate": 0.945607,
+            "post_cutoff_eligible_rows": 160,
+            "cards_with_post_cutoff_reviews": 101,
+            "skipped_first_seen_post_cutoff": 34,
+            "observations": 64,
+            "skipped_card_deleted": 3
+        },
+        "truncation": {
+            "revlog_rows_deleted": 160,
+            "cards_fsrs_state_cleared": 25
+        },
+        "leakage_guard": {
+            "passed": true,
+            "post_cutoff_revlog_rows": 0,
+            "cards_with_fsrs_state": 0,
+            "cutoff_ms": 1783107859215
+        },
+        "training": {
+            "status": "engine_kept_defaults",
+            "fsrs_items": 46,
+            "note": "engine trained on 46 items but kept the current (default) parameters \u2014 optimized params did not beat them on training log-loss; a trained tier would duplicate the defaults tier"
+        },
+        "tiers": [
+            {
+                "tier": "fsrs6-defaults",
+                "params_source": "FSRS-6 default parameters (no user fit; calibration of the shipped default model)",
+                "params": null,
+                "skipped_no_memory_state": 0,
+                "metrics": {
+                    "n": 64,
+                    "brier": 0.000673,
+                    "brier_ci95": [
+                        0.000519,
+                        0.000826
+                    ],
+                    "log_loss": 0.020503,
+                    "log_loss_epsilon": 1e-06,
+                    "ece": 0.020159,
+                    "observed_recall": 1.0,
+                    "mean_predicted": 0.979841,
+                    "caveats": [
+                        "degenerate holdout: zero lapses among the held-out reviews, so the evidence is one-sided (miscalibration toward over-prediction cannot show up)",
+                        "all predictions fall into a single bin; the reliability curve is a single point, not a curve"
+                    ],
+                    "baselines": {
+                        "constant_train_rate": {
+                            "p": 0.945607,
+                            "brier": 0.002959,
+                            "log_loss": 0.055929,
+                            "note": "predicts the TRAIN-side global recall rate for every held-out review"
+                        },
+                        "chance_0.5": {
+                            "brier": 0.25,
+                            "log_loss": 0.693147
+                        }
+                    },
+                    "bins": [
+                        {
+                            "bin": "[0.0, 0.1)",
+                            "n": 0,
+                            "mean_predicted": null,
+                            "observed": null
+                        },
+                        {
+                            "bin": "[0.1, 0.2)",
+                            "n": 0,
+                            "mean_predicted": null,
+                            "observed": null
+                        },
+                        {
+                            "bin": "[0.2, 0.3)",
+                            "n": 0,
+                            "mean_predicted": null,
+                            "observed": null
+                        },
+                        {
+                            "bin": "[0.3, 0.4)",
+                            "n": 0,
+                            "mean_predicted": null,
+                            "observed": null
+                        },
+                        {
+                            "bin": "[0.4, 0.5)",
+                            "n": 0,
+                            "mean_predicted": null,
+                            "observed": null
+                        },
+                        {
+                            "bin": "[0.5, 0.6)",
+                            "n": 0,
+                            "mean_predicted": null,
+                            "observed": null
+                        },
+                        {
+                            "bin": "[0.6, 0.7)",
+                            "n": 0,
+                            "mean_predicted": null,
+                            "observed": null
+                        },
+                        {
+                            "bin": "[0.7, 0.8)",
+                            "n": 0,
+                            "mean_predicted": null,
+                            "observed": null
+                        },
+                        {
+                            "bin": "[0.8, 0.9)",
+                            "n": 0,
+                            "mean_predicted": null,
+                            "observed": null
+                        },
+                        {
+                            "bin": "[0.9, 1.0]",
+                            "n": 64,
+                            "mean_predicted": 0.979841,
+                            "observed": 1.0
+                        }
+                    ],
+                    "bootstrap": {
+                        "resamples": 2000,
+                        "seed": 20260704
+                    }
+                },
+                "per_observation": [
+                    {
+                        "card_id": 1611133333772,
+                        "elapsed_days": 2.3395,
+                        "stability": 8.2956,
+                        "difficulty": 1.0,
+                        "decay": 0.1542,
+                        "predicted": 0.963059,
+                        "recalled": true,
+                        "ease": 3
+                    },
+                    {
+                        "card_id": 1611133333880,
+                        "elapsed_days": 0.2069,
+                        "stability": 27.1762,
+                        "difficulty": 1.0,
+                        "decay": 0.1542,
+                        "predicted": 0.998854,
+                        "recalled": true,
+                        "ease": 4
+                    },
+                    {
+                        "card_id": 1611133333890,
+                        "elapsed_days": 0.2179,
+                        "stability": 27.1762,
+                        "difficulty": 1.0,
+                        "decay": 0.1542,
+                        "predicted": 0.998794,
+                        "recalled": true,
+                        "ease": 3
+                    },
+                    {
+                        "card_id": 1611133333998,
+                        "elapsed_days": 0.1814,
+                        "stability": 18.1361,
+                        "difficulty": 1.0,
+                        "decay": 0.1542,
+                        "predicted": 0.998497,
+                        "recalled": true,
+                        "ease": 3
+                    },
+                    {
+                        "card_id": 1611133334146,
+                        "elapsed_days": 2.3393,
+                        "stability": 8.2956,
+                        "difficulty": 1.0,
+                        "decay": 0.1542,
+                        "predicted": 0.963061,
+                        "recalled": true,
+                        "ease": 3
+                    },
+                    {
+                        "card_id": 1611133334158,
+                        "elapsed_days": 0.1814,
+                        "stability": 18.3762,
+                        "difficulty": 1.0,
+                        "decay": 0.1542,
+                        "predicted": 0.998516,
+                        "recalled": true,
+                        "ease": 3
+                    },
+                    {
+                        "card_id": 1611133334164,
+                        "elapsed_days": 0.021,
+                        "stability": 8.0075,
+                        "difficulty": 6.008,
+                        "decay": 0.1542,
+                        "predicted": 0.999603,
+                        "recalled": true,
+                        "ease": 3
+                    },
+                    {
+                        "card_id": 1611133334246,
+                        "elapsed_days": 0.39,
+                        "stability": 18.1361,
+                        "difficulty": 1.0,
+                        "decay": 0.1542,
+                        "predicted": 0.996788,
+                        "recalled": true,
+                        "ease": 4
+                    },
+                    {
+                        "card_id": 1611133334264,
+                        "elapsed_days": 2.3392,
+                        "stability": 8.2956,
+                        "difficulty": 1.0,
+                        "decay": 0.1542,
+                        "predicted": 0.963063,
+                        "recalled": true,
+                        "ease": 3
+                    },
+                    {
+                        "card_id": 1611133334274,
+                        "elapsed_days": 2.3393,
+                        "stability": 8.2956,
+                        "difficulty": 1.0,
+                        "decay": 0.1542,
+                        "predicted": 0.963061,
+                        "recalled": true,
+                        "ease": 3
+                    },
+                    {
+                        "card_id": 1611133334340,
+                        "elapsed_days": 1.8764,
+                        "stability": 13.0461,
+                        "difficulty": 1.0,
+                        "decay": 0.1542,
+                        "predicted": 0.979865,
+                        "recalled": true,
+                        "ease": 4
+                    },
+                    {
+                        "card_id": 1611133334420,
+                        "elapsed_days": 2.3393,
+                        "stability": 8.2956,
+                        "difficulty": 1.0,
+                        "decay": 0.1542,
+                        "predicted": 0.963061,
+                        "recalled": true,
+                        "ease": 3
+                    },
+                    {
+                        "card_id": 1611133334462,
+                        "elapsed_days": 0.2179,
+                        "stability": 27.1762,
+                        "difficulty": 1.0,
+                        "decay": 0.1542,
+                        "predicted": 0.998794,
+                        "recalled": true,
+                        "ease": 3
+                    },
+                    {
+                        "card_id": 1611133334492,
+                        "elapsed_days": 2.3393,
+                        "stability": 8.2956,
+                        "difficulty": 1.0,
+                        "decay": 0.1542,
+                        "predicted": 0.963062,
+                        "recalled": true,
+                        "ease": 3
+                    },
+                    {
+                        "card_id": 1611133334534,
+                        "elapsed_days": 1.8579,
+                        "stability": 13.0461,
+                        "difficulty": 1.0,
+                        "decay": 0.1542,
+                        "predicted": 0.98005,
+                        "recalled": true,
+                        "ease": 4
+                    },
+                    {
+                        "card_id": 1611133334554,
+                        "elapsed_days": 0.39,
+                        "stability": 18.1361,
+                        "difficulty": 1.0,
+                        "decay": 0.1542,
+                        "predicted": 0.996789,
+                        "recalled": true,
+                        "ease": 4
+                    },
+                    {
+                        "card_id": 1611133334556,
+                        "elapsed_days": 2.3397,
+                        "stability": 8.2956,
+                        "difficulty": 1.0,
+                        "decay": 0.1542,
+                        "predicted": 0.963056,
+                        "recalled": true,
+                        "ease": 3
+                    },
+                    {
+                        "card_id": 1611133334564,
+                        "elapsed_days": 0.2179,
+                        "stability": 27.1762,
+                        "difficulty": 1.0,
+                        "decay": 0.1542,
+                        "predicted": 0.998794,
+                        "recalled": true,
+                        "ease": 3
+                    },
+                    {
+                        "card_id": 1611133334594,
+                        "elapsed_days": 0.39,
+                        "stability": 18.1361,
+                        "difficulty": 1.0,
+                        "decay": 0.1542,
+                        "predicted": 0.996788,
+                        "recalled": true,
+                        "ease": 3
+                    },
+                    {
+                        "card_id": 1611133334630,
+                        "elapsed_days": 2.2372,
+                        "stability": 8.2956,
+                        "difficulty": 1.0,
+                        "decay": 0.1542,
+                        "predicted": 0.964474,
+                        "recalled": true,
+                        "ease": 3
+                    },
+                    {
+                        "card_id": 1611133334658,
+                        "elapsed_days": 2.3394,
+                        "stability": 8.2956,
+                        "difficulty": 1.0,
+                        "decay": 0.1542,
+                        "predicted": 0.963061,
+                        "recalled": true,
+                        "ease": 3
+                    },
+                    {
+                        "card_id": 1611133334672,
+                        "elapsed_days": 0.021,
+                        "stability": 22.7177,
+                        "difficulty": 1.0,
+                        "decay": 0.1542,
+                        "predicted": 0.99986,
+                        "recalled": true,
+                        "ease": 3
+                    },
+                    {
+                        "card_id": 1611133334686,
+                        "elapsed_days": 2.3393,
+                        "stability": 8.2956,
+                        "difficulty": 1.0,
+                        "decay": 0.1542,
+                        "predicted": 0.963062,
+                        "recalled": true,
+                        "ease": 3
+                    },
+                    {
+                        "card_id": 1611133334700,
+                        "elapsed_days": 2.2211,
+                        "stability": 8.2956,
+                        "difficulty": 1.0,
+                        "decay": 0.1542,
+                        "predicted": 0.964697,
+                        "recalled": true,
+                        "ease": 3
+                    },
+                    {
+                        "card_id": 1611133334712,
+                        "elapsed_days": 2.2372,
+                        "stability": 8.2956,
+                        "difficulty": 1.0,
+                        "decay": 0.1542,
+                        "predicted": 0.964473,
+                        "recalled": true,
+                        "ease": 3
+                    },
+                    {
+                        "card_id": 1611133334732,
+                        "elapsed_days": 1.858,
+                        "stability": 13.0461,
+                        "difficulty": 1.0,
+                        "decay": 0.1542,
+                        "predicted": 0.980049,
+                        "recalled": true,
+                        "ease": 3
+                    },
+                    {
+                        "card_id": 1611133334740,
+                        "elapsed_days": 2.3394,
+                        "stability": 8.2956,
+                        "difficulty": 1.0,
+                        "decay": 0.1542,
+                        "predicted": 0.963061,
+                        "recalled": true,
+                        "ease": 3
+                    },
+                    {
+                        "card_id": 1611133334812,
+                        "elapsed_days": 0.1814,
+                        "stability": 18.1361,
+                        "difficulty": 1.0,
+                        "decay": 0.1542,
+                        "predicted": 0.998497,
+                        "recalled": true,
+                        "ease": 3
+                    },
+                    {
+                        "card_id": 1611133334860,
+                        "elapsed_days": 0.1814,
+                        "stability": 9.6414,
+                        "difficulty": 3.456,
+                        "decay": 0.1542,
+                        "predicted": 0.997186,
+                        "recalled": true,
+                        "ease": 3
+                    },
+                    {
+                        "card_id": 1611133334886,
+                        "elapsed_days": 0.1814,
+                        "stability": 18.1361,
+                        "difficulty": 1.0,
+                        "decay": 0.1542,
+                        "predicted": 0.998497,
+                        "recalled": true,
+                        "ease": 3
+                    },
+                    {
+                        "card_id": 1611133334960,
+                        "elapsed_days": 0.2179,
+                        "stability": 27.1762,
+                        "difficulty": 1.0,
+                        "decay": 0.1542,
+                        "predicted": 0.998794,
+                        "recalled": true,
+                        "ease": 3
+                    },
+                    {
+                        "card_id": 1611133334998,
+                        "elapsed_days": 0.1814,
+                        "stability": 18.3762,
+                        "difficulty": 1.0,
+                        "decay": 0.1542,
+                        "predicted": 0.998516,
+                        "recalled": true,
+                        "ease": 3
+                    },
+                    {
+                        "card_id": 1611133335094,
+                        "elapsed_days": 2.3396,
+                        "stability": 8.2956,
+                        "difficulty": 1.0,
+                        "decay": 0.1542,
+                        "predicted": 0.963058,
+                        "recalled": true,
+                        "ease": 3
+                    },
+                    {
+                        "card_id": 1611133335118,
+                        "elapsed_days": 2.3395,
+                        "stability": 8.2956,
+                        "difficulty": 1.0,
+                        "decay": 0.1542,
+                        "predicted": 0.963059,
+                        "recalled": true,
+                        "ease": 3
+                    },
+                    {
+                        "card_id": 1611133335154,
+                        "elapsed_days": 2.3395,
+                        "stability": 8.2956,
+                        "difficulty": 1.0,
+                        "decay": 0.1542,
+                        "predicted": 0.963059,
+                        "recalled": true,
+                        "ease": 3
+                    },
+                    {
+                        "card_id": 1611133335188,
+                        "elapsed_days": 1.8766,
+                        "stability": 13.0461,
+                        "difficulty": 1.0,
+                        "decay": 0.1542,
+                        "predicted": 0.979864,
+                        "recalled": true,
+                        "ease": 3
+                    },
+                    {
+                        "card_id": 1611133335282,
+                        "elapsed_days": 1.858,
+                        "stability": 13.0461,
+                        "difficulty": 1.0,
+                        "decay": 0.1542,
+                        "predicted": 0.980049,
+                        "recalled": true,
+                        "ease": 3
+                    },
+                    {
+                        "card_id": 1611133335288,
+                        "elapsed_days": 2.3396,
+                        "stability": 8.2956,
+                        "difficulty": 1.0,
+                        "decay": 0.1542,
+                        "predicted": 0.963058,
+                        "recalled": true,
+                        "ease": 3
+                    },
+                    {
+                        "card_id": 1611133335358,
+                        "elapsed_days": 2.3392,
+                        "stability": 8.2956,
+                        "difficulty": 1.0,
+                        "decay": 0.1542,
+                        "predicted": 0.963063,
+                        "recalled": true,
+                        "ease": 3
+                    },
+                    {
+                        "card_id": 1611133335568,
+                        "elapsed_days": 2.3393,
+                        "stability": 8.2956,
+                        "difficulty": 1.0,
+                        "decay": 0.1542,
+                        "predicted": 0.963062,
+                        "recalled": true,
+                        "ease": 3
+                    },
+                    {
+                        "card_id": 1611133335644,
+                        "elapsed_days": 0.021,
+                        "stability": 22.8345,
+                        "difficulty": 1.0,
+                        "decay": 0.1542,
+                        "predicted": 0.999861,
+                        "recalled": true,
+                        "ease": 3
+                    },
+                    {
+                        "card_id": 1611133335696,
+                        "elapsed_days": 1.8579,
+                        "stability": 13.0461,
+                        "difficulty": 1.0,
+                        "decay": 0.1542,
+                        "predicted": 0.98005,
+                        "recalled": true,
+                        "ease": 4
+                    },
+                    {
+                        "card_id": 1611133335716,
+                        "elapsed_days": 0.2179,
+                        "stability": 23.7153,
+                        "difficulty": 1.0,
+                        "decay": 0.1542,
+                        "predicted": 0.998618,
+                        "recalled": true,
+                        "ease": 3
+                    },
+                    {
+                        "card_id": 1611133335812,
+                        "elapsed_days": 0.39,
+                        "stability": 18.1361,
+                        "difficulty": 1.0,
+                        "decay": 0.1542,
+                        "predicted": 0.996788,
+                        "recalled": true,
+                        "ease": 3
+                    },
+                    {
+                        "card_id": 1611133335864,
+                        "elapsed_days": 0.39,
+                        "stability": 18.1361,
+                        "difficulty": 1.0,
+                        "decay": 0.1542,
+                        "predicted": 0.996788,
+                        "recalled": true,
+                        "ease": 3
+                    },
+                    {
+                        "card_id": 1611133336016,
+                        "elapsed_days": 0.1814,
+                        "stability": 18.1361,
+                        "difficulty": 1.0,
+                        "decay": 0.1542,
+                        "predicted": 0.998497,
+                        "recalled": true,
+                        "ease": 3
+                    },
+                    {
+                        "card_id": 1611133336032,
+                        "elapsed_days": 2.3394,
+                        "stability": 8.2956,
+                        "difficulty": 1.0,
+                        "decay": 0.1542,
+                        "predicted": 0.963061,
+                        "recalled": true,
+                        "ease": 3
+                    },
+                    {
+                        "card_id": 1611133336044,
+                        "elapsed_days": 2.3395,
+                        "stability": 8.2956,
+                        "difficulty": 1.0,
+                        "decay": 0.1542,
+                        "predicted": 0.963059,
+                        "recalled": true,
+                        "ease": 3
+                    },
+                    {
+                        "card_id": 1611133336050,
+                        "elapsed_days": 2.3397,
+                        "stability": 8.2956,
+                        "difficulty": 1.0,
+                        "decay": 0.1542,
+                        "predicted": 0.963057,
+                        "recalled": true,
+                        "ease": 3
+                    },
+                    {
+                        "card_id": 1611133336112,
+                        "elapsed_days": 2.3396,
+                        "stability": 8.2956,
+                        "difficulty": 1.0,
+                        "decay": 0.1542,
+                        "predicted": 0.963057,
+                        "recalled": true,
+                        "ease": 3
+                    },
+                    {
+                        "card_id": 1611133336122,
+                        "elapsed_days": 0.1814,
+                        "stability": 18.1361,
+                        "difficulty": 1.0,
+                        "decay": 0.1542,
+                        "predicted": 0.998497,
+                        "recalled": true,
+                        "ease": 3
+                    },
+                    {
+                        "card_id": 1611133336136,
+                        "elapsed_days": 0.1814,
+                        "stability": 13.9845,
+                        "difficulty": 1.0,
+                        "decay": 0.1542,
+                        "predicted": 0.998054,
+                        "recalled": true,
+                        "ease": 3
+                    },
+                    {
+                        "card_id": 1611133336150,
+                        "elapsed_days": 2.3394,
+                        "stability": 8.2956,
+                        "difficulty": 1.0,
+                        "decay": 0.1542,
+                        "predicted": 0.963061,
+                        "recalled": true,
+                        "ease": 3
+                    },
+                    {
+                        "card_id": 1611133336202,
+                        "elapsed_days": 2.3393,
+                        "stability": 8.2956,
+                        "difficulty": 1.0,
+                        "decay": 0.1542,
+                        "predicted": 0.963062,
+                        "recalled": true,
+                        "ease": 3
+                    },
+                    {
+                        "card_id": 1611133336208,
+                        "elapsed_days": 0.2069,
+                        "stability": 22.8345,
+                        "difficulty": 1.0,
+                        "decay": 0.1542,
+                        "predicted": 0.998638,
+                        "recalled": true,
+                        "ease": 4
+                    },
+                    {
+                        "card_id": 1611133336224,
+                        "elapsed_days": 2.3394,
+                        "stability": 8.2956,
+                        "difficulty": 1.0,
+                        "decay": 0.1542,
+                        "predicted": 0.963061,
+                        "recalled": true,
+                        "ease": 3
+                    },
+                    {
+                        "card_id": 1611133336256,
+                        "elapsed_days": 0.021,
+                        "stability": 22.8345,
+                        "difficulty": 1.0,
+                        "decay": 0.1542,
+                        "predicted": 0.999861,
+                        "recalled": true,
+                        "ease": 3
+                    },
+                    {
+                        "card_id": 1611133336268,
+                        "elapsed_days": 0.021,
+                        "stability": 22.7177,
+                        "difficulty": 1.0,
+                        "decay": 0.1542,
+                        "predicted": 0.99986,
+                        "recalled": true,
+                        "ease": 3
+                    },
+                    {
+                        "card_id": 1611133336390,
+                        "elapsed_days": 2.3396,
+                        "stability": 8.2956,
+                        "difficulty": 1.0,
+                        "decay": 0.1542,
+                        "predicted": 0.963058,
+                        "recalled": true,
+                        "ease": 3
+                    },
+                    {
+                        "card_id": 1611133336438,
+                        "elapsed_days": 1.8765,
+                        "stability": 13.0461,
+                        "difficulty": 1.0,
+                        "decay": 0.1542,
+                        "predicted": 0.979864,
+                        "recalled": true,
+                        "ease": 3
+                    },
+                    {
+                        "card_id": 1611133336484,
+                        "elapsed_days": 2.3393,
+                        "stability": 8.2956,
+                        "difficulty": 1.0,
+                        "decay": 0.1542,
+                        "predicted": 0.963062,
+                        "recalled": true,
+                        "ease": 3
+                    },
+                    {
+                        "card_id": 1611133336492,
+                        "elapsed_days": 2.3395,
+                        "stability": 8.2956,
+                        "difficulty": 1.0,
+                        "decay": 0.1542,
+                        "predicted": 0.96306,
+                        "recalled": true,
+                        "ease": 3
+                    },
+                    {
+                        "card_id": 1611133336590,
+                        "elapsed_days": 0.39,
+                        "stability": 2.4339,
+                        "difficulty": 7.991,
+                        "decay": 0.1542,
+                        "predicted": 0.97775,
+                        "recalled": true,
+                        "ease": 3
+                    },
+                    {
+                        "card_id": 1611133336608,
+                        "elapsed_days": 1.858,
+                        "stability": 13.0461,
+                        "difficulty": 1.0,
+                        "decay": 0.1542,
+                        "predicted": 0.980049,
+                        "recalled": true,
+                        "ease": 4
+                    }
+                ]
+            }
+        ],
+        "low_n_warning": false,
+        "truncated_copy": "/Users/william/Anki_Speedrun/desktop/out/speedrun_eval/memcal/truncated_real_collection_run.anki2"
+    },
+    "failures": [],
+    "exit_code": 0,
+    "chart": "/Users/william/Anki_Speedrun/desktop/tools/speedrun/eval/memory_calibration_chart.svg"
+}

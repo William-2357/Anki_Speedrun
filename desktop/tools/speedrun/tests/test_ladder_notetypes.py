@@ -23,6 +23,7 @@ FEEDBACK_MARKER = 'class="sr-feedback" hidden'
 
 def cloze_item() -> dict:
     return {
+        "topic": "fixed_income",
         "prompt": "Fill the <b>blanks</b>.",
         "cloze_text": "First {{c1::alpha}}, then {{c2::beta}}.",
         "rationale": "Alpha precedes beta.",
@@ -32,6 +33,7 @@ def cloze_item() -> dict:
 
 def mcq_item() -> dict:
     return {
+        "topic": "fixed_income",
         "title": "Callable bond",
         "stem": "Which duration measure?",
         "choices": {"A": "modified", "B": "effective", "C": "Macaulay"},
@@ -292,14 +294,16 @@ class FieldHelperTests(unittest.TestCase):
         self.assertIn("{{c1::alpha}}", text)
         self.assertIn("{{c2::beta}}", text)
         self.assertGreaterEqual(len(ladder_schema.cloze_indices(text)), 2)
-        # Back Extra = rationale + source: the [R9] feedback the stock
-        # cloze answer template renders
+        # Back Extra = rationale only (the [R9] feedback the stock cloze
+        # answer template renders); the corpus citation is no longer appended
         self.assertIn("Alpha precedes beta.", back_extra)
-        self.assertIn("Fixture corpus", back_extra)
+        self.assertNotIn("Fixture corpus", back_extra)
+        self.assertNotIn("sr-source", back_extra)
 
     def test_worked_note_fields(self) -> None:
         fields = ladder_notetypes.worked_note_fields(
             {
+                "topic": "quantitative_methods",
                 "title": "T & Co",
                 "prompt": "P",
                 "worked_steps": ["one", "two", "three"],
@@ -310,6 +314,9 @@ class FieldHelperTests(unittest.TestCase):
         self.assertEqual(fields["Title"], "T &amp; Co")
         self.assertEqual(fields["Steps"].count("<li>"), 3)
         self.assertTrue(fields["Steps"].startswith("<ol"))
+        # Source field now carries the canonical CFA topic tag, not the
+        # corpus citation (which is no longer displayed on the card)
+        self.assertEqual(fields["Source"], "cfa::topic::quantitative_methods")
         self.assertEqual(
             set(fields),
             set(ladder_notetypes.WORKED["fields"]),
@@ -318,6 +325,7 @@ class FieldHelperTests(unittest.TestCase):
 
     def test_solve_note_fields(self) -> None:
         fields = ladder_notetypes.solve_note_fields(mcq_item())
+        self.assertEqual(fields["Source"], "cfa::topic::fixed_income")
         self.assertEqual(fields["Correct"], "B")
         self.assertEqual(fields["WrongB"], "", "the correct letter has no wrong-why")
         self.assertEqual(fields["WrongA"], "Fixed cash flows.")
@@ -342,6 +350,7 @@ class FieldHelperTests(unittest.TestCase):
     def test_compare_note_fields(self) -> None:
         fields = ladder_notetypes.compare_note_fields(
             {
+                "topic": "derivatives",
                 "title": "T",
                 "left_title": "L",
                 "left_body": "LB",
@@ -355,7 +364,26 @@ class FieldHelperTests(unittest.TestCase):
         self.assertEqual(fields["LeftTitle"], "L")
         self.assertEqual(fields["RightBody"], "RB")
         self.assertEqual(fields["Discriminator"], "D?")
+        self.assertEqual(fields["Source"], "cfa::topic::derivatives")
         self.assertEqual(set(fields), set(ladder_notetypes.COMPARE["fields"]))
+
+    def test_topic_source_tag(self) -> None:
+        self.assertEqual(
+            ladder_notetypes.topic_source_tag({"topic": "ethics"}),
+            "cfa::topic::ethics",
+        )
+        # never fabricated when the item declares no topic
+        self.assertEqual(ladder_notetypes.topic_source_tag({}), "")
+
+    def test_source_citation_absent_from_all_card_faces(self) -> None:
+        # the corpus citation must no longer render on any card (the user's
+        # cleanliness request); the Source field is metadata-only now
+        for spec in ladder_notetypes.NOTETYPES:
+            for template in spec["templates"]:
+                for side in ("qfmt", "afmt"):
+                    self.assertNotIn("sr-source", template[side])
+                    self.assertNotIn("{{Source}}", template[side])
+                    self.assertNotIn("{{#Source}}", template[side])
 
 
 class CompareLayoutTests(unittest.TestCase):

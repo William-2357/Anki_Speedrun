@@ -1,0 +1,706 @@
+{
+    "meta": {
+        "tool": "crash_test",
+        "generated_at": "2026-07-05T05:53:02+00:00",
+        "seed": 20260704,
+        "iterations": 20,
+        "cards": 400,
+        "collection": "/Users/william/Anki_Speedrun/desktop/out/speedrun_eval/crash/crash_collection.anki2",
+        "python": "3.13.5",
+        "invocation": "PYTHONPATH=out/pylib out/pyenv/bin/python tools/speedrun/crash_test.py"
+    },
+    "honesty": [
+        "SIGKILL of the child review process proves the ENGINE layer (rslib + SQLite, where every collection write lives) survives an abrupt process death mid-transaction. The desktop GUI wraps this same engine in-process, so its writes ride the same journal - but killing the full Qt app additionally exercises window/session teardown, which this script does not simulate. Recommended for the demo video: a manual whole-app `kill -9` spot check while the reviewer is open.",
+        "The child grades with Again/Hard only, so cards recycle intraday forever and the queue never exhausts across 20 iterations. Every grade is the same transaction shape (card update + revlog append); Good/Easy differ only in the state written, not the crash surface.",
+        "Committed answers are counted from the child's flushed COMMIT log lines; SQLite durability means committed-implies-survives. The one in-flight answer may roll back - that is documented SQLite behaviour and is counted separately, never as corruption.",
+        "Opening a killed collection performs SQLite's standard WAL/journal recovery; the integrity checks then run on the recovered database. That recovery is the crash-safety mechanism under test, not a workaround.",
+        "The raw integrity/quick checks run through Python's stdlib sqlite3 (independent of all Anki code), NOT the sqlite3 CLI: Anki's schema declares the custom 'unicase' collation that only rslib registers, so the plain CLI cannot even prepare the pragma. The checker registers a byte-compatible casefold stand-in; a collation divergence could only produce a FALSE index-order complaint, never mask real damage.",
+        "The engine DB check ('fix_integrity') reports fixed problems; the unconditional 'rebuilt and optimized' trailer pylib appends is housekeeping. For a collection this tool built itself, any OTHER line (missing notes, invalid properties, ...) is treated as corruption-class and fails the run - nothing is softened.",
+        "Network-off proof scope: the assistant backend configuration names ONLY the dead loopback endpoint and the call returned the abstain fallback; the gauges are local Rust computations with no network API. The wire was not sniffed - what is proven is that the code path has no other endpoint to talk to and degrades exactly as designed.",
+        "Readiness ABSTAINING on this scratch collection is its designed output (no delayed held-out probe outcomes exist here): the Memory gauge returns computed numbers and Readiness returns its abstention with named reasons. 'Still returns a score' means exactly that pair, stated precisely.",
+        "Android is NOT exercised by this script: android_crash_test.sh ships the equivalent device test and fails fast when no device is attached."
+    ],
+    "crash": {
+        "collection": "/Users/william/Anki_Speedrun/desktop/out/speedrun_eval/crash/crash_collection.anki2",
+        "collection_reused_from_cache": false,
+        "iterations_run": 20,
+        "iterations": [
+            {
+                "iteration": 1,
+                "kill_delay_s": 1.314,
+                "killed": true,
+                "saw_commit_before_kill": true,
+                "child_exited_before_kill": false,
+                "queue_empty_exit": false,
+                "wal_present_after_kill": true,
+                "integrity_check_ok": true,
+                "quick_check_ok": true,
+                "db_check": {
+                    "ok": true,
+                    "corruption_class": [],
+                    "housekeeping": [
+                        "Database rebuilt and optimized."
+                    ]
+                },
+                "revlog_before": 0,
+                "revlog_after": 1327,
+                "revlog_delta": 1327,
+                "attempted": 1327,
+                "committed_logged": 1327,
+                "rolled_back_in_flight": 0,
+                "committed_unlogged": 0,
+                "corruption": [],
+                "anomalies": [],
+                "corrupted": false
+            },
+            {
+                "iteration": 2,
+                "kill_delay_s": 0.394,
+                "killed": true,
+                "saw_commit_before_kill": true,
+                "child_exited_before_kill": false,
+                "queue_empty_exit": false,
+                "wal_present_after_kill": true,
+                "integrity_check_ok": true,
+                "quick_check_ok": true,
+                "db_check": {
+                    "ok": true,
+                    "corruption_class": [],
+                    "housekeeping": [
+                        "Database rebuilt and optimized."
+                    ]
+                },
+                "revlog_before": 1327,
+                "revlog_after": 1725,
+                "revlog_delta": 398,
+                "attempted": 399,
+                "committed_logged": 398,
+                "rolled_back_in_flight": 1,
+                "committed_unlogged": 0,
+                "corruption": [],
+                "anomalies": [],
+                "corrupted": false
+            },
+            {
+                "iteration": 3,
+                "kill_delay_s": 0.923,
+                "killed": true,
+                "saw_commit_before_kill": true,
+                "child_exited_before_kill": false,
+                "queue_empty_exit": false,
+                "wal_present_after_kill": true,
+                "integrity_check_ok": true,
+                "quick_check_ok": true,
+                "db_check": {
+                    "ok": true,
+                    "corruption_class": [],
+                    "housekeeping": [
+                        "Database rebuilt and optimized."
+                    ]
+                },
+                "revlog_before": 1725,
+                "revlog_after": 2645,
+                "revlog_delta": 920,
+                "attempted": 920,
+                "committed_logged": 920,
+                "rolled_back_in_flight": 0,
+                "committed_unlogged": 0,
+                "corruption": [],
+                "anomalies": [],
+                "corrupted": false
+            },
+            {
+                "iteration": 4,
+                "kill_delay_s": 0.939,
+                "killed": true,
+                "saw_commit_before_kill": true,
+                "child_exited_before_kill": false,
+                "queue_empty_exit": false,
+                "wal_present_after_kill": true,
+                "integrity_check_ok": true,
+                "quick_check_ok": true,
+                "db_check": {
+                    "ok": true,
+                    "corruption_class": [],
+                    "housekeeping": [
+                        "Database rebuilt and optimized."
+                    ]
+                },
+                "revlog_before": 2645,
+                "revlog_after": 3583,
+                "revlog_delta": 938,
+                "attempted": 938,
+                "committed_logged": 937,
+                "rolled_back_in_flight": 0,
+                "committed_unlogged": 1,
+                "corruption": [],
+                "anomalies": [],
+                "corrupted": false
+            },
+            {
+                "iteration": 5,
+                "kill_delay_s": 0.366,
+                "killed": true,
+                "saw_commit_before_kill": true,
+                "child_exited_before_kill": false,
+                "queue_empty_exit": false,
+                "wal_present_after_kill": true,
+                "integrity_check_ok": true,
+                "quick_check_ok": true,
+                "db_check": {
+                    "ok": true,
+                    "corruption_class": [],
+                    "housekeeping": [
+                        "Database rebuilt and optimized."
+                    ]
+                },
+                "revlog_before": 3583,
+                "revlog_after": 3911,
+                "revlog_delta": 328,
+                "attempted": 328,
+                "committed_logged": 327,
+                "rolled_back_in_flight": 0,
+                "committed_unlogged": 1,
+                "corruption": [],
+                "anomalies": [],
+                "corrupted": false
+            },
+            {
+                "iteration": 6,
+                "kill_delay_s": 0.541,
+                "killed": true,
+                "saw_commit_before_kill": true,
+                "child_exited_before_kill": false,
+                "queue_empty_exit": false,
+                "wal_present_after_kill": true,
+                "integrity_check_ok": true,
+                "quick_check_ok": true,
+                "db_check": {
+                    "ok": true,
+                    "corruption_class": [],
+                    "housekeeping": [
+                        "Database rebuilt and optimized."
+                    ]
+                },
+                "revlog_before": 3911,
+                "revlog_after": 4352,
+                "revlog_delta": 441,
+                "attempted": 442,
+                "committed_logged": 441,
+                "rolled_back_in_flight": 1,
+                "committed_unlogged": 0,
+                "corruption": [],
+                "anomalies": [],
+                "corrupted": false
+            },
+            {
+                "iteration": 7,
+                "kill_delay_s": 0.249,
+                "killed": true,
+                "saw_commit_before_kill": true,
+                "child_exited_before_kill": false,
+                "queue_empty_exit": false,
+                "wal_present_after_kill": true,
+                "integrity_check_ok": true,
+                "quick_check_ok": true,
+                "db_check": {
+                    "ok": true,
+                    "corruption_class": [],
+                    "housekeeping": [
+                        "Database rebuilt and optimized."
+                    ]
+                },
+                "revlog_before": 4352,
+                "revlog_after": 4573,
+                "revlog_delta": 221,
+                "attempted": 221,
+                "committed_logged": 221,
+                "rolled_back_in_flight": 0,
+                "committed_unlogged": 0,
+                "corruption": [],
+                "anomalies": [],
+                "corrupted": false
+            },
+            {
+                "iteration": 8,
+                "kill_delay_s": 0.671,
+                "killed": true,
+                "saw_commit_before_kill": true,
+                "child_exited_before_kill": false,
+                "queue_empty_exit": false,
+                "wal_present_after_kill": true,
+                "integrity_check_ok": true,
+                "quick_check_ok": true,
+                "db_check": {
+                    "ok": true,
+                    "corruption_class": [],
+                    "housekeeping": [
+                        "Database rebuilt and optimized."
+                    ]
+                },
+                "revlog_before": 4573,
+                "revlog_after": 5239,
+                "revlog_delta": 666,
+                "attempted": 666,
+                "committed_logged": 666,
+                "rolled_back_in_flight": 0,
+                "committed_unlogged": 0,
+                "corruption": [],
+                "anomalies": [],
+                "corrupted": false
+            },
+            {
+                "iteration": 9,
+                "kill_delay_s": 0.404,
+                "killed": true,
+                "saw_commit_before_kill": true,
+                "child_exited_before_kill": false,
+                "queue_empty_exit": false,
+                "wal_present_after_kill": true,
+                "integrity_check_ok": true,
+                "quick_check_ok": true,
+                "db_check": {
+                    "ok": true,
+                    "corruption_class": [],
+                    "housekeeping": [
+                        "Database rebuilt and optimized."
+                    ]
+                },
+                "revlog_before": 5239,
+                "revlog_after": 5593,
+                "revlog_delta": 354,
+                "attempted": 355,
+                "committed_logged": 354,
+                "rolled_back_in_flight": 1,
+                "committed_unlogged": 0,
+                "corruption": [],
+                "anomalies": [],
+                "corrupted": false
+            },
+            {
+                "iteration": 10,
+                "kill_delay_s": 0.797,
+                "killed": true,
+                "saw_commit_before_kill": true,
+                "child_exited_before_kill": false,
+                "queue_empty_exit": false,
+                "wal_present_after_kill": true,
+                "integrity_check_ok": true,
+                "quick_check_ok": true,
+                "db_check": {
+                    "ok": true,
+                    "corruption_class": [],
+                    "housekeeping": [
+                        "Database rebuilt and optimized."
+                    ]
+                },
+                "revlog_before": 5593,
+                "revlog_after": 6389,
+                "revlog_delta": 796,
+                "attempted": 797,
+                "committed_logged": 796,
+                "rolled_back_in_flight": 1,
+                "committed_unlogged": 0,
+                "corruption": [],
+                "anomalies": [],
+                "corrupted": false
+            },
+            {
+                "iteration": 11,
+                "kill_delay_s": 0.769,
+                "killed": true,
+                "saw_commit_before_kill": true,
+                "child_exited_before_kill": false,
+                "queue_empty_exit": false,
+                "wal_present_after_kill": true,
+                "integrity_check_ok": true,
+                "quick_check_ok": true,
+                "db_check": {
+                    "ok": true,
+                    "corruption_class": [],
+                    "housekeeping": [
+                        "Database rebuilt and optimized."
+                    ]
+                },
+                "revlog_before": 6389,
+                "revlog_after": 7150,
+                "revlog_delta": 761,
+                "attempted": 762,
+                "committed_logged": 761,
+                "rolled_back_in_flight": 1,
+                "committed_unlogged": 0,
+                "corruption": [],
+                "anomalies": [],
+                "corrupted": false
+            },
+            {
+                "iteration": 12,
+                "kill_delay_s": 0.622,
+                "killed": true,
+                "saw_commit_before_kill": true,
+                "child_exited_before_kill": false,
+                "queue_empty_exit": false,
+                "wal_present_after_kill": true,
+                "integrity_check_ok": true,
+                "quick_check_ok": true,
+                "db_check": {
+                    "ok": true,
+                    "corruption_class": [],
+                    "housekeeping": [
+                        "Database rebuilt and optimized."
+                    ]
+                },
+                "revlog_before": 7150,
+                "revlog_after": 7741,
+                "revlog_delta": 591,
+                "attempted": 591,
+                "committed_logged": 590,
+                "rolled_back_in_flight": 0,
+                "committed_unlogged": 1,
+                "corruption": [],
+                "anomalies": [],
+                "corrupted": false
+            },
+            {
+                "iteration": 13,
+                "kill_delay_s": 1.203,
+                "killed": true,
+                "saw_commit_before_kill": true,
+                "child_exited_before_kill": false,
+                "queue_empty_exit": false,
+                "wal_present_after_kill": true,
+                "integrity_check_ok": true,
+                "quick_check_ok": true,
+                "db_check": {
+                    "ok": true,
+                    "corruption_class": [],
+                    "housekeeping": [
+                        "Database rebuilt and optimized."
+                    ]
+                },
+                "revlog_before": 7741,
+                "revlog_after": 8837,
+                "revlog_delta": 1096,
+                "attempted": 1096,
+                "committed_logged": 1096,
+                "rolled_back_in_flight": 0,
+                "committed_unlogged": 0,
+                "corruption": [],
+                "anomalies": [],
+                "corrupted": false
+            },
+            {
+                "iteration": 14,
+                "kill_delay_s": 0.413,
+                "killed": true,
+                "saw_commit_before_kill": true,
+                "child_exited_before_kill": false,
+                "queue_empty_exit": false,
+                "wal_present_after_kill": true,
+                "integrity_check_ok": true,
+                "quick_check_ok": true,
+                "db_check": {
+                    "ok": true,
+                    "corruption_class": [],
+                    "housekeeping": [
+                        "Database rebuilt and optimized."
+                    ]
+                },
+                "revlog_before": 8837,
+                "revlog_after": 9251,
+                "revlog_delta": 414,
+                "attempted": 414,
+                "committed_logged": 414,
+                "rolled_back_in_flight": 0,
+                "committed_unlogged": 0,
+                "corruption": [],
+                "anomalies": [],
+                "corrupted": false
+            },
+            {
+                "iteration": 15,
+                "kill_delay_s": 1.467,
+                "killed": true,
+                "saw_commit_before_kill": true,
+                "child_exited_before_kill": false,
+                "queue_empty_exit": false,
+                "wal_present_after_kill": true,
+                "integrity_check_ok": true,
+                "quick_check_ok": true,
+                "db_check": {
+                    "ok": true,
+                    "corruption_class": [],
+                    "housekeeping": [
+                        "Database rebuilt and optimized."
+                    ]
+                },
+                "revlog_before": 9251,
+                "revlog_after": 10703,
+                "revlog_delta": 1452,
+                "attempted": 1452,
+                "committed_logged": 1452,
+                "rolled_back_in_flight": 0,
+                "committed_unlogged": 0,
+                "corruption": [],
+                "anomalies": [],
+                "corrupted": false
+            },
+            {
+                "iteration": 16,
+                "kill_delay_s": 0.223,
+                "killed": true,
+                "saw_commit_before_kill": true,
+                "child_exited_before_kill": false,
+                "queue_empty_exit": false,
+                "wal_present_after_kill": true,
+                "integrity_check_ok": true,
+                "quick_check_ok": true,
+                "db_check": {
+                    "ok": true,
+                    "corruption_class": [],
+                    "housekeeping": [
+                        "Database rebuilt and optimized."
+                    ]
+                },
+                "revlog_before": 10703,
+                "revlog_after": 10914,
+                "revlog_delta": 211,
+                "attempted": 211,
+                "committed_logged": 210,
+                "rolled_back_in_flight": 0,
+                "committed_unlogged": 1,
+                "corruption": [],
+                "anomalies": [],
+                "corrupted": false
+            },
+            {
+                "iteration": 17,
+                "kill_delay_s": 1.169,
+                "killed": true,
+                "saw_commit_before_kill": true,
+                "child_exited_before_kill": false,
+                "queue_empty_exit": false,
+                "wal_present_after_kill": true,
+                "integrity_check_ok": true,
+                "quick_check_ok": true,
+                "db_check": {
+                    "ok": true,
+                    "corruption_class": [],
+                    "housekeeping": [
+                        "Database rebuilt and optimized."
+                    ]
+                },
+                "revlog_before": 10914,
+                "revlog_after": 12056,
+                "revlog_delta": 1142,
+                "attempted": 1143,
+                "committed_logged": 1142,
+                "rolled_back_in_flight": 1,
+                "committed_unlogged": 0,
+                "corruption": [],
+                "anomalies": [],
+                "corrupted": false
+            },
+            {
+                "iteration": 18,
+                "kill_delay_s": 1.213,
+                "killed": true,
+                "saw_commit_before_kill": true,
+                "child_exited_before_kill": false,
+                "queue_empty_exit": false,
+                "wal_present_after_kill": true,
+                "integrity_check_ok": true,
+                "quick_check_ok": true,
+                "db_check": {
+                    "ok": true,
+                    "corruption_class": [],
+                    "housekeeping": [
+                        "Database rebuilt and optimized."
+                    ]
+                },
+                "revlog_before": 12056,
+                "revlog_after": 13253,
+                "revlog_delta": 1197,
+                "attempted": 1198,
+                "committed_logged": 1197,
+                "rolled_back_in_flight": 1,
+                "committed_unlogged": 0,
+                "corruption": [],
+                "anomalies": [],
+                "corrupted": false
+            },
+            {
+                "iteration": 19,
+                "kill_delay_s": 0.55,
+                "killed": true,
+                "saw_commit_before_kill": true,
+                "child_exited_before_kill": false,
+                "queue_empty_exit": false,
+                "wal_present_after_kill": true,
+                "integrity_check_ok": true,
+                "quick_check_ok": true,
+                "db_check": {
+                    "ok": true,
+                    "corruption_class": [],
+                    "housekeeping": [
+                        "Database rebuilt and optimized."
+                    ]
+                },
+                "revlog_before": 13253,
+                "revlog_after": 13797,
+                "revlog_delta": 544,
+                "attempted": 544,
+                "committed_logged": 544,
+                "rolled_back_in_flight": 0,
+                "committed_unlogged": 0,
+                "corruption": [],
+                "anomalies": [],
+                "corrupted": false
+            },
+            {
+                "iteration": 20,
+                "kill_delay_s": 0.404,
+                "killed": true,
+                "saw_commit_before_kill": true,
+                "child_exited_before_kill": false,
+                "queue_empty_exit": false,
+                "wal_present_after_kill": true,
+                "integrity_check_ok": true,
+                "quick_check_ok": true,
+                "db_check": {
+                    "ok": true,
+                    "corruption_class": [],
+                    "housekeeping": [
+                        "Database rebuilt and optimized."
+                    ]
+                },
+                "revlog_before": 13797,
+                "revlog_after": 14152,
+                "revlog_delta": 355,
+                "attempted": 355,
+                "committed_logged": 355,
+                "rolled_back_in_flight": 0,
+                "committed_unlogged": 0,
+                "corruption": [],
+                "anomalies": [],
+                "corrupted": false
+            }
+        ],
+        "corrupted_iterations": [],
+        "corrupted_collections": 0,
+        "headline": "corrupted collections: 0 of 20",
+        "totals": {
+            "committed": 14148,
+            "rolled_back_in_flight": 7,
+            "committed_unlogged": 4,
+            "anomalies": 0
+        }
+    },
+    "network_off": {
+        "dead_endpoint": "http://127.0.0.1:51552",
+        "checks": [
+            {
+                "name": "AI flags default to OFF",
+                "passed": true,
+                "detail": "flags={'speedrun:aiAssist': False, 'speedrun:coachEnabled': False, 'speedrun:debriefEnabled': False}"
+            },
+            {
+                "name": "AI flags enabled on collection config (read back)",
+                "passed": true,
+                "detail": "speedrun:aiBackend='openai-compatible'"
+            },
+            {
+                "name": "backend config names ONLY the dead loopback endpoint",
+                "passed": true,
+                "detail": "base_url='http://127.0.0.1:51552'"
+            },
+            {
+                "name": "coach call abstains gracefully (no exception escapes)",
+                "passed": true,
+                "detail": "reason='backend error or timeout' in 0.016s"
+            },
+            {
+                "name": "grounded_complete abstains on the dead endpoint",
+                "passed": true,
+                "detail": "reason='backend error or timeout'"
+            },
+            {
+                "name": "offline mock fallback renders a deterministic plan",
+                "passed": true,
+                "detail": "outcome='ok'"
+            },
+            {
+                "name": "Memory gauge computes (graded reviews + topic rows)",
+                "passed": true,
+                "detail": "graded_reviews=14152, topics=5, first={'topic': 'economics', 'total': 82, 'studied': 4, 'high_recall': 4, 'avg_retrievability': 1.0}"
+            },
+            {
+                "name": "Readiness returns its designed abstention (kind=ABSTAIN, reasons named)",
+                "passed": true,
+                "detail": "kind=0, missing=['Topic coverage is 56%; need at least 70%. Not studied yet: Financial Statement Analysis, Corporate Issuers, Derivatives, \u2026.', 'Only 0 delayed held-out probe outcomes; need at least 50. The probe bank is not imported (tools/speedrun/build_probe_deck.py builds it).']"
+            },
+            {
+                "name": "gauge parity: AI off vs AI on-but-unreachable outputs identical",
+                "passed": true,
+                "detail": "topic_mastery and get_readiness fingerprints match exactly"
+            }
+        ],
+        "passed": true,
+        "gauges_with_ai_enabled_unreachable": {
+            "topic_mastery": {
+                "graded_reviews": 14152,
+                "total_cards": 400,
+                "fsrs_enabled": true,
+                "topics": [
+                    {
+                        "topic": "economics",
+                        "total": 82,
+                        "studied": 4,
+                        "high_recall": 4,
+                        "avg_retrievability": 1.0
+                    },
+                    {
+                        "topic": "equity_investments",
+                        "total": 91,
+                        "studied": 5,
+                        "high_recall": 5,
+                        "avg_retrievability": 1.0
+                    },
+                    {
+                        "topic": "ethics",
+                        "total": 69,
+                        "studied": 3,
+                        "high_recall": 3,
+                        "avg_retrievability": 1.0
+                    },
+                    {
+                        "topic": "fixed_income",
+                        "total": 68,
+                        "studied": 4,
+                        "high_recall": 4,
+                        "avg_retrievability": 1.0
+                    },
+                    {
+                        "topic": "quantitative_methods",
+                        "total": 90,
+                        "studied": 4,
+                        "high_recall": 4,
+                        "avg_retrievability": 1.0
+                    }
+                ]
+            },
+            "readiness": {
+                "kind": 0,
+                "p_pass_low": 0.0,
+                "p_pass_high": 0.0,
+                "missing": [
+                    "Topic coverage is 56%; need at least 70%. Not studied yet: Financial Statement Analysis, Corporate Issuers, Derivatives, \u2026.",
+                    "Only 0 delayed held-out probe outcomes; need at least 50. The probe bank is not imported (tools/speedrun/build_probe_deck.py builds it).",
+                    "The probability band is too wide to be useful (half-width 0.48 > 0.2). Near the pass boundary this may never clear: the unpublished MPS is irreducible uncertainty."
+                ]
+            }
+        }
+    },
+    "failures": [],
+    "exit_code": 0
+}

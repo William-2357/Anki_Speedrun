@@ -24,8 +24,21 @@ the thin Readiness display layer; frontend constants live there and in
   scheduling target, not a competence threshold.
 - **Give-up.** Abstains (no number, reasons shown) when FSRS is disabled or
   no card has a memory state. No `reviewed/seen` proxy is ever substituted.
-- **Calibration status.** Not yet calibrated; the Brier/log-loss check on
-  held-out reviews is a Phase 3 deliverable and is stated as missing.
+- **Calibration status.** Checked on held-out reviews
+  (`just memory-calibration`, §9 Step 1): a chronological cutoff holds out
+  the last ~25% of graded reviews; the engine recomputes memory states from
+  the truncated history (params never see the holdout) and each held-out
+  first-per-card review is scored against FSRS retrievability. On the real
+  collection (n = 64 held-out observations): **Brier 0.0007** (95% CI
+  0.0005–0.0008), log-loss 0.021, ECE 0.020 — beating the constant-rate
+  baseline (0.0030) and chance (0.25). Honest limits, from the report: the
+  holdout contains **zero lapses** (observed recall 1.0), so the evidence
+  is one-sided — over-prediction could not have shown up — and all
+  predictions fall in the top bin (the reliability "curve" is one point).
+  _Calibrated within the data's reach_; re-run the same command as lapses
+  and longer gaps accumulate. Full report + reliability chart:
+  `tools/speedrun/eval/memory_calibration_report.md` /
+  `memory_calibration_chart.svg`.
 
 ## Performance — "can the student answer a new exam-style question?"
 

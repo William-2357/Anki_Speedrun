@@ -6,13 +6,22 @@
 Covers the spec'd invariants: determinism, the equal-budget invariant,
 within-topic-only discrimination credit ([R8]), abstention accounting
 (lenient vs strict [R1] gate), default-seed scoring sanity, and the report
-schema (primary comparison flagged, disclosure present).
+schema (primary comparison flagged, disclosure present). Plus the
+real-collection observational mode (--collection): feature-flag detection
+from the deck-config blob, per-topic retention math on known rows,
+abstention without probe outcomes, the observational disclaimer, and the
+default-path (simulation) regression.
 """
 
 from __future__ import annotations
 
+import contextlib
+import io
 import json
+import sqlite3
+import struct
 import sys
+import tempfile
 import unittest
 from pathlib import Path
 
@@ -24,11 +33,15 @@ from ablation import (
     DEFAULT_DAYS,
     DEFAULT_REPLICATIONS,
     DEFAULT_SEED,
+    MS_PER_DAY,
     Item,
     adjacency_kind,
+    analyze_real_collection,
+    arm_for_features,
     build_item_bank,
     default_arms,
     render_markdown,
+    render_real_markdown,
     run_ablation,
     simulate_arm,
 )
@@ -374,6 +387,492 @@ class ContrastPermutation(unittest.TestCase):
     def test_noop_without_clusters(self) -> None:
         items = [Item(i, "ethics", None, None, None, None) for i in range(5)]
         self.assertEqual(ablation.apply_contrast(items, "within_topic"), items)
+
+
+# ---------------------------------------------------------------------------
+# real-collection observational mode (--collection)
+# ---------------------------------------------------------------------------
+
+
+def _pb_varint(value: int) -> bytes:
+    out = bytearray()
+    while True:
+        bits = value & 0x7F
+        value >>= 7
+        if value:
+            out.append(bits | 0x80)
+        else:
+            out.append(bits)
+            return bytes(out)
+
+
+def _pb_field_varint(number: int, value: int) -> bytes:
+    return _pb_varint(number << 3) + _pb_varint(value)
+
+
+def _pb_field_float(number: int, value: float) -> bytes:
+    return _pb_varint(number << 3 | 5) + struct.pack("<f", value)
+
+
+def _pb_field_bytes(number: int, payload: bytes) -> bytes:
+    return _pb_varint(number << 3 | 2) + _pb_varint(len(payload)) + payload
+
+
+def deck_config_blob(
+    *,
+    contrast: bool = False,
+    fade: bool = False,
+    allocation: bool = False,
+    tag_prefix: str = "",
+    fade_up_r: float = 0.0,
+    fade_down_r: float = 0.0,
+) -> bytes:
+    """A DeckConfig.Config protobuf blob carrying only the Speedrun fields
+    (proto3 omits defaults, so absent = off, like a real vanilla preset)."""
+    blob = b""
+    if contrast:
+        blob += _pb_field_varint(47, 1)
+    if tag_prefix:
+        blob += _pb_field_bytes(48, tag_prefix.encode())
+    if fade:
+        blob += _pb_field_varint(50, 1)
+    if fade_up_r:
+        blob += _pb_field_float(52, fade_up_r)
+    if fade_down_r:
+        blob += _pb_field_float(53, fade_down_r)
+    if allocation:
+        blob += _pb_field_varint(59, 1)
+    return blob
+
+
+def deck_kind_blob(config_id: int) -> bytes:
+    """Deck.kind with Normal.config_id (oneof field 1, nested field 1)."""
+    return _pb_field_bytes(1, _pb_field_varint(1, config_id))
+
+
+def _ms(day: int, hour: int = 12) -> int:
+    """A revlog timestamp inside collection-local `day` (rollover 4am,
+    creationOffset 0 in the fixtures below)."""
+    return day * MS_PER_DAY + hour * 3_600_000
+
+
+def make_real_collection(
+    path: Path,
+    *,
+    contrast: bool = False,
+    fade: bool = False,
+    allocation: bool = False,
+    revlog: list[tuple[int, int, int]] | None = None,
+    with_probe: bool = False,
+    calibration_record: dict | None = None,
+) -> None:
+    """A minimal modern-schema collection: deck_config protobuf presets,
+    decks with kind blobs, config key/val table, tagged notes (mirrors how
+    test_probe_harness fabricates collections, plus the deck-config side).
+
+    Cards: 11 (fi::duration), 12 (fi::duration, sibling note), 13
+    (eq::duration - same family, different cluster), 14 (untagged note),
+    and with_probe adds probe card 15 (held-out, cluster fi::duration).
+    """
+    con = sqlite3.connect(path)
+    con.execute("create table notes (id integer primary key, tags text)")
+    con.execute("create table cards (id integer primary key, nid integer, did integer)")
+    con.execute(
+        "create table revlog (id integer primary key, cid integer, ease integer)"
+    )
+    con.execute(
+        "create table deck_config (id integer primary key, name text, config blob)"
+    )
+    con.execute("create table decks (id integer primary key, name text, kind blob)")
+    con.execute("create table config (key text primary key, val blob)")
+
+    con.execute(
+        "insert into deck_config values (1, 'Default', ?)",
+        (deck_config_blob(contrast=contrast, fade=fade, allocation=allocation),),
+    )
+    con.execute("insert into decks values (10, 'CFA', ?)", (deck_kind_blob(1),))
+    con.execute("insert into config values ('rollover', ?)", (b"4",))
+    con.execute("insert into config values ('creationOffset', ?)", (b"0",))
+    if calibration_record is not None:
+        con.execute(
+            "insert into config values ('speedrun:readinessCalibration', ?)",
+            (json.dumps(calibration_record).encode(),),
+        )
+
+    con.execute(
+        "insert into notes values (1, ' cfa::topic::fixed_income "
+        "cluster::fi::duration ')"
+    )
+    con.execute(
+        "insert into notes values (2, ' cfa::topic::fixed_income "
+        "cluster::fi::duration ')"
+    )
+    con.execute(
+        "insert into notes values (3, ' cfa::topic::equity_investments "
+        "cluster::eq::duration ')"
+    )
+    con.execute("insert into notes values (4, ' untagged::note ')")
+    con.execute("insert into cards values (11, 1, 10)")
+    con.execute("insert into cards values (12, 2, 10)")
+    con.execute("insert into cards values (13, 3, 10)")
+    con.execute("insert into cards values (14, 4, 10)")
+    if with_probe:
+        con.execute(
+            "insert into notes values (5, ' probe::held_out "
+            "probe::pool::performance cfa::topic::fixed_income "
+            "cluster::fi::duration probe::concept::c01 probe::variant::a ')"
+        )
+        con.execute("insert into cards values (15, 5, 10)")
+
+    for ms, cid, ease in revlog or []:
+        con.execute("insert into revlog values (?, ?, ?)", (ms, cid, ease))
+    con.commit()
+    con.close()
+
+
+#: One known-answer revlog: day 10 sequence 11, 12 (true contrast pair),
+#: 13 (same family, different cluster: wasted), 14, 14 (same card: no
+#: pair); day 11: 11 again. 6 graded reviews, 4 correct.
+KNOWN_REVLOG: list[tuple[int, int, int]] = [
+    (_ms(10, 10), 11, 3),
+    (_ms(10, 11), 12, 1),
+    (_ms(10, 12), 13, 3),
+    (_ms(10, 13), 14, 4),
+    (_ms(10, 14), 14, 1),
+    (_ms(11, 10), 11, 3),
+]
+
+
+class FeatureFlagDetection(unittest.TestCase):
+    """Speedrun toggles decoded from the deck-config protobuf blob."""
+
+    def analyze(self, tmp: str, **kwargs) -> dict:
+        path = Path(tmp) / "collection.anki2"
+        make_real_collection(path, revlog=KNOWN_REVLOG, **kwargs)
+        return analyze_real_collection(path)
+
+    def test_all_off_is_vanilla(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            report = self.analyze(tmp)
+        (preset,) = report["feature_states"]["presets"]
+        self.assertEqual(
+            preset["features"],
+            {
+                "contrastScheduling": False,
+                "fadeEnabled": False,
+                "readinessAllocation": False,
+            },
+        )
+        self.assertEqual(preset["observational_arm"], "vanilla")
+        self.assertEqual(report["feature_states"]["observational_arm"], "vanilla")
+        self.assertIn("vanilla arm", report["feature_states"]["arm_note"])
+
+    def test_all_on_is_full_on(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            report = self.analyze(tmp, contrast=True, fade=True, allocation=True)
+        (preset,) = report["feature_states"]["presets"]
+        self.assertEqual(
+            preset["features"],
+            {
+                "contrastScheduling": True,
+                "fadeEnabled": True,
+                "readinessAllocation": True,
+            },
+        )
+        self.assertEqual(report["feature_states"]["observational_arm"], "full_on")
+
+    def test_blob_detail_fields_decoded(self) -> None:
+        blob = deck_config_blob(
+            contrast=True, tag_prefix="cluster::", fade_up_r=0.9, fade_down_r=0.8
+        )
+        state = ablation._preset_feature_state(ablation._scan_message(blob))
+        self.assertTrue(state["features"]["contrastScheduling"])
+        self.assertFalse(state["features"]["fadeEnabled"])
+        self.assertEqual(state["detail"]["contrastTagPrefix"], "cluster::")
+        self.assertAlmostEqual(state["detail"]["fadeUpR"], 0.9, places=6)
+        self.assertAlmostEqual(state["detail"]["fadeDownR"], 0.8, places=6)
+
+    def test_every_feature_triple_maps_to_one_arm(self) -> None:
+        expected = {
+            (False, False, False): "vanilla",
+            (True, False, False): "contrast_on",
+            (False, True, False): "fade_on",
+            (False, False, True): "allocation_on",
+            (True, True, False): "full_minus_allocation",
+            (True, False, True): "full_minus_fade",
+            (False, True, True): "full_minus_contrast",
+            (True, True, True): "full_on",
+        }
+        for triple, arm in expected.items():
+            self.assertEqual(arm_for_features(*triple), arm, triple)
+
+    def test_legacy_schema11_dconf_json(self) -> None:
+        """Old collections store presets as JSON in col.dconf, with the
+        schema11 camelCase names."""
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "legacy.anki2"
+            con = sqlite3.connect(path)
+            con.execute("create table notes (id integer primary key, tags text)")
+            con.execute(
+                "create table cards (id integer primary key, nid integer, did integer)"
+            )
+            con.execute(
+                "create table revlog (id integer primary key, cid integer, "
+                "ease integer)"
+            )
+            con.execute("create table col (conf text, dconf text, decks text)")
+            dconf = {
+                "1": {
+                    "name": "Legacy",
+                    "contrastScheduling": True,
+                    "fadeEnabled": False,
+                    "readinessAllocation": True,
+                }
+            }
+            decks = {"10": {"name": "CFA", "conf": 1}}
+            con.execute(
+                "insert into col values (?, ?, ?)",
+                (json.dumps({"rollover": 4}), json.dumps(dconf), json.dumps(decks)),
+            )
+            con.commit()
+            con.close()
+            report = analyze_real_collection(path)
+        (preset,) = report["feature_states"]["presets"]
+        self.assertEqual(preset["name"], "Legacy")
+        self.assertTrue(preset["features"]["contrastScheduling"])
+        self.assertTrue(preset["features"]["readinessAllocation"])
+        self.assertEqual(preset["observational_arm"], "full_minus_fade")
+
+
+class RealCollectionMetrics(unittest.TestCase):
+    """Known-answer outcome math over the fixture revlog."""
+
+    @classmethod
+    def setUpClass(cls) -> None:
+        cls.tmp = tempfile.TemporaryDirectory()
+        path = Path(cls.tmp.name) / "collection.anki2"
+        make_real_collection(path, contrast=True, revlog=KNOWN_REVLOG)
+        cls.report = analyze_real_collection(path)
+
+    @classmethod
+    def tearDownClass(cls) -> None:
+        cls.tmp.cleanup()
+
+    def test_overall_retention(self) -> None:
+        memory = self.report["memory"]
+        self.assertEqual(memory["n"], 6)
+        self.assertEqual(memory["correct"], 4)
+        self.assertAlmostEqual(memory["retention"], 4 / 6, places=6)
+        self.assertAlmostEqual(memory["again_rate"], 2 / 6, places=6)
+        self.assertEqual(memory["study_days"], 2)
+        self.assertEqual(memory["cards_touched"], 4)
+
+    def test_per_topic_retention(self) -> None:
+        per_topic = self.report["memory"]["per_topic"]
+        fi = per_topic["fixed_income"]  # cards 11, 12, 11 -> 2 of 3
+        self.assertEqual((fi["n"], fi["correct"], fi["cards"]), (3, 2, 2))
+        self.assertAlmostEqual(fi["retention"], 2 / 3, places=6)
+        eq = per_topic["equity_investments"]  # card 13 -> 1 of 1
+        self.assertEqual((eq["n"], eq["correct"]), (1, 1))
+        untagged = per_topic["(no cfa::topic tag)"]  # card 14 -> 1 of 2
+        self.assertEqual((untagged["n"], untagged["correct"]), (2, 1))
+        self.assertAlmostEqual(untagged["retention"], 0.5, places=6)
+
+    def test_adjacency_known_pairs(self) -> None:
+        adjacency = self.report["adjacency"]
+        self.assertTrue(adjacency["applicable"])
+        # day-10 consecutive pairs: (11,12) (12,13) (13,14) (14,14);
+        # the day-11 review pairs with nothing
+        self.assertEqual(adjacency["same_day_pairs"], 4)
+        self.assertEqual(adjacency["true_pairs"], 1)  # 11->12 same cluster
+        self.assertEqual(adjacency["wasted_pairs"], 1)  # 12->13 family only
+        self.assertAlmostEqual(adjacency["true_share"], 0.25, places=6)
+
+    def test_adjacency_not_applicable_when_feature_off(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "collection.anki2"
+            make_real_collection(path, contrast=False, revlog=KNOWN_REVLOG)
+            report = analyze_real_collection(path)
+        adjacency = report["adjacency"]
+        self.assertFalse(adjacency["applicable"])
+        self.assertEqual(
+            adjacency["note"], "not applicable (feature off for all history)"
+        )
+        self.assertNotIn("true_pairs", adjacency)
+
+
+class RealCollectionAbstention(unittest.TestCase):
+    """No data -> a stated abstention, never a guessed number."""
+
+    def test_abstains_without_probe_cards(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "collection.anki2"
+            make_real_collection(path, revlog=KNOWN_REVLOG)
+            report = analyze_real_collection(path)
+        delayed = report["delayed_performance"]
+        self.assertTrue(delayed["abstained"])
+        self.assertIn("no real bridge measurement yet", delayed["abstain_reason"])
+        self.assertEqual(delayed["probe_cards"], 0)
+        md = render_real_markdown(report)
+        self.assertIn("ABSTAIN", md)
+        self.assertIn("no real bridge measurement yet", md)
+
+    def test_abstains_with_probe_cards_but_no_delayed_outcomes(self) -> None:
+        # probe card exists but was never answered -> still an abstention
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "collection.anki2"
+            make_real_collection(path, revlog=KNOWN_REVLOG, with_probe=True)
+            report = analyze_real_collection(path)
+        delayed = report["delayed_performance"]
+        self.assertTrue(delayed["abstained"])
+        self.assertEqual(delayed["probe_cards"], 1)
+        self.assertIn("0 delayed probe outcomes", delayed["abstain_reason"])
+
+    def test_delayed_outcome_via_probe_harness_import(self) -> None:
+        # study touch day 10, probe answered day 19 (lag 9 >= 7): the
+        # imported probe_harness rule must yield x=1 of n=1
+        revlog = KNOWN_REVLOG + [(_ms(19), 15, 3)]
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "collection.anki2"
+            make_real_collection(path, revlog=revlog, with_probe=True)
+            report = analyze_real_collection(path)
+        delayed = report["delayed_performance"]
+        self.assertFalse(delayed["abstained"])
+        self.assertEqual(delayed["readiness_inputs"], {"x_correct": 1, "n_delayed": 1})
+        # ... and the probe answer is never a study review
+        self.assertEqual(report["memory"]["n"], 6)
+        self.assertEqual(report["collection"]["graded_probe_answers"], 1)
+
+    def test_calibration_record_status(self) -> None:
+        record = {
+            "fitted_at": "2026-07-04",
+            "brier": 0.2,
+            "log_loss": 0.5,
+            "n": 12,
+            "temperature": 1.5,
+        }
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "collection.anki2"
+            make_real_collection(path, revlog=KNOWN_REVLOG, calibration_record=record)
+            report = analyze_real_collection(path)
+            self.assertTrue(report["readiness_calibration"]["present"])
+            self.assertEqual(report["readiness_calibration"]["record"], record)
+            # absent case
+            bare = Path(tmp) / "bare.anki2"
+            make_real_collection(bare, revlog=KNOWN_REVLOG)
+            bare_report = analyze_real_collection(bare)
+        self.assertFalse(bare_report["readiness_calibration"]["present"])
+        self.assertIsNone(bare_report["readiness_calibration"]["record"])
+
+
+class RealCollectionReport(unittest.TestCase):
+    """Report shape: the observational disclaimer is unmissable."""
+
+    @classmethod
+    def setUpClass(cls) -> None:
+        cls.tmp = tempfile.TemporaryDirectory()
+        path = Path(cls.tmp.name) / "collection.anki2"
+        make_real_collection(path, contrast=True, revlog=KNOWN_REVLOG)
+        cls.report = analyze_real_collection(path)
+
+    @classmethod
+    def tearDownClass(cls) -> None:
+        cls.tmp.cleanup()
+
+    def test_disclosure_headline(self) -> None:
+        disclosure = self.report["observational_disclosure"]
+        self.assertFalse(disclosure["is_ablation"])
+        self.assertIn("NOT an ablation", disclosure["headline"])
+        self.assertIn("no counterfactual arm", disclosure["headline"])
+        self.assertIn("n=1 with 6 graded reviews", disclosure["headline"])
+
+    def test_schema_and_sections(self) -> None:
+        self.assertEqual(self.report["schema"], "speedrun-ablation-real-v1")
+        for key in (
+            "observational_disclosure",
+            "collection",
+            "feature_states",
+            "memory",
+            "delayed_performance",
+            "readiness_calibration",
+            "adjacency",
+            "limitations",
+        ):
+            self.assertIn(key, self.report)
+        self.assertEqual(self.report["collection"]["opened"].split()[-1], "(read-only)")
+
+    def test_markdown_renders_disclaimer_and_serializes(self) -> None:
+        json.dumps(self.report)  # would raise on non-serializable content
+        md = render_real_markdown(self.report)
+        self.assertIn("NOT an ablation", md)
+        self.assertIn("OBSERVATIONAL", md)
+        self.assertIn("observational arm", md)
+        self.assertIn("| fixed_income |", md)
+        self.assertNotIn("SIMULATION ONLY", md)  # never claims to simulate
+
+    def test_collection_mode_via_main(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "collection.anki2"
+            make_real_collection(path, revlog=KNOWN_REVLOG)
+            stdout = io.StringIO()
+            with contextlib.redirect_stdout(stdout):
+                code = ablation.main(["--collection", str(path), "--output-dir", tmp])
+            self.assertEqual(code, 0)
+            self.assertIn("OBSERVATIONAL (not an ablation)", stdout.getvalue())
+            real_json = Path(tmp) / "ablation_real_report.json"
+            self.assertTrue(real_json.exists())
+            self.assertTrue((Path(tmp) / "ablation_real_report.md").exists())
+            # --collection must never write (or overwrite) the simulated pair
+            self.assertFalse((Path(tmp) / "ablation_report.json").exists())
+            report = json.loads(real_json.read_text())
+            self.assertEqual(report["schema"], "speedrun-ablation-real-v1")
+
+
+class SimulationDefaultPathRegression(unittest.TestCase):
+    """main() without --collection still runs the simulation, unchanged."""
+
+    def test_default_path_writes_simulated_report(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            stdout = io.StringIO()
+            with contextlib.redirect_stdout(stdout):
+                code = ablation.main(
+                    [
+                        "--seed",
+                        "123",
+                        "--days",
+                        "10",
+                        "--budget",
+                        "8",
+                        "--replications",
+                        "2",
+                        "--output-dir",
+                        tmp,
+                    ]
+                )
+            self.assertEqual(code, 0)
+            self.assertIn("SIMULATION ONLY", stdout.getvalue())
+            report = json.loads((Path(tmp) / "ablation_report.json").read_text())
+            md = (Path(tmp) / "ablation_report.md").read_text()
+            # the real-report pair is not produced on the simulation path
+            self.assertFalse((Path(tmp) / "ablation_real_report.json").exists())
+        # unchanged simulated structure (same keys the M4 spec asserts on)
+        for key in (
+            "schema",
+            "simulation_disclosure",
+            "config",
+            "item_bank",
+            "primary_comparison",
+            "arms",
+            "spov_contributions",
+            "abstention_analysis",
+            "limitations",
+        ):
+            self.assertIn(key, report)
+        self.assertEqual(report["schema"], "speedrun-ablation-v1")
+        self.assertTrue(report["simulation_disclosure"]["is_simulation"])
+        # the headline marks the report simulated and points at the companion
+        self.assertIn("SIMULATED learner", md.splitlines()[0])
+        self.assertIn("ablation_real_report.md", md.splitlines()[0])
 
 
 if __name__ == "__main__":

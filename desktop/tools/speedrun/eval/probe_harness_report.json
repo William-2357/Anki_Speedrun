@@ -1,12 +1,13 @@
 {
     "meta": {
         "tool": "probe_harness",
-        "generated_at": "2026-07-04T13:12:17+00:00",
+        "generated_at": "2026-07-05T08:07:44+00:00",
         "bank": "/Users/william/Anki_Speedrun/desktop/tools/speedrun/probes/probe_bank.jsonl",
         "modes": [
             "validation",
             "leakage-scan",
-            "self-test"
+            "self-test",
+            "collection"
         ],
         "delay_rule": "first graded answer; delayed iff >= 7.0 days after the last graded non-probe review of the probe's cluster; never-studied clusters count as delayed"
     },
@@ -113,8 +114,8 @@
                     "lag_distribution": {
                         "n": 42,
                         "min": 8.0,
-                        "median": 10.0,
-                        "mean": 9.81,
+                        "median": 9.0,
+                        "mean": 9.74,
                         "max": 12.0
                     },
                     "undelayed_lags": []
@@ -186,6 +187,71 @@
                 "temperature": 4.335954
             },
             "note": "record carries the post-temperature scores; with one fitted scalar on a small n they are mildly optimistic in-sample (disclosed; see PROBE_SCHEMA.md)"
+        }
+    },
+    "collection": {
+        "path": "out/speedrun_eval/real_collection.anki2",
+        "probe_cards": 0,
+        "outcomes": {
+            "rows": [],
+            "pools": {
+                "performance": {
+                    "items": 0,
+                    "correct": 0,
+                    "delayed": 0,
+                    "undelayed": 0,
+                    "unanswered": 0,
+                    "never_studied": 0,
+                    "lag_distribution": {
+                        "n": 0
+                    },
+                    "undelayed_lags": []
+                },
+                "calibration": {
+                    "items": 0,
+                    "correct": 0,
+                    "delayed": 0,
+                    "undelayed": 0,
+                    "unanswered": 0,
+                    "never_studied": 0,
+                    "lag_distribution": {
+                        "n": 0
+                    },
+                    "undelayed_lags": []
+                }
+            }
+        },
+        "readiness_inputs": {
+            "x_correct": 0,
+            "n_delayed": 0
+        },
+        "bridge": {
+            "retention": {
+                "window_days": 30,
+                "n_reviews": 0,
+                "accuracy": null
+            },
+            "delayed_probe_accuracy": {
+                "performance_pool": {
+                    "accuracy": null,
+                    "n": 0
+                },
+                "both_pools": {
+                    "accuracy": null,
+                    "n": 0
+                }
+            },
+            "memory_minus_performance_gap": null,
+            "note": "gap = trailing-window retention accuracy on the probes' source clusters (non-probe cards) minus delayed performance-pool probe accuracy; positive = recognition memory outruns delayed application, the transfer gap the probes exist to measure"
+        },
+        "calibration": {
+            "pool": "calibration",
+            "outcomes_used": 0,
+            "min_outcomes": 10,
+            "proxy": "accuracy of the most recent <= 20 graded non-probe reviews of the probe's cluster before its first answer, add-one smoothed; never-studied clusters predict 1/3 (3-choice chance rate)",
+            "per_probe": [],
+            "abstained": true,
+            "message": "REFUSING to fit calibration: only 0 delayed calibration-pool outcomes; need >= 10. No record is written - abstention is the honest output."
         }
     },
     "failures": [],

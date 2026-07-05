@@ -39,6 +39,9 @@ const IGNORED_FOLDERS: &[&str] = &[
     "./.venv",
     "./qt/installer/windows-template",
     "./qt/installer/mac-template",
+    // Anki Speedrun: local user-testing scratch harness (vendored
+    // playwright node_modules + run artifacts); never shipped/committed.
+    "./tools/speedrun/usertest",
 ];
 
 fn main() -> Result<()> {

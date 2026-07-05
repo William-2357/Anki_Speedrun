@@ -61,6 +61,16 @@ struct State {
 pub enum VersionKind {
     PyOxidizer(String),
     Uv(String),
+    /// Wheels shipped in the launcher's resources dir, for distributing
+    /// builds that are not published to PyPI.
+    Bundled(BundledWheels),
+}
+
+#[derive(Debug, Clone)]
+pub struct BundledWheels {
+    anki_wheel: std::path::PathBuf,
+    aqt_wheel: std::path::PathBuf,
+    version: String,
 }
 
 #[derive(Debug)]
@@ -786,6 +796,24 @@ fn apply_version_kind(version_kind: &VersionKind, state: &State) -> Result<()> {
             "anki-release",
             &format!("anki-release=={version}\",\n  \"anki=={version}\",\n  \"aqt=={version}"),
         ),
+        VersionKind::Bundled(bundle) => {
+            let version = &bundle.version;
+            // There is no anki-release wheel for bundled builds; aqt's
+            // qt/audio extras provide the pinned Qt/audio dependencies
+            // that anki-release would otherwise supply.
+            let mut updated = content_str.replace(
+                "anki-release",
+                &format!("anki=={version}\",\n  \"aqt[qt,audio]=={version}"),
+            );
+            // Pin anki/aqt to the bundled wheel files so uv installs
+            // them from disk instead of consulting PyPI.
+            updated.push_str(&format!(
+                "\n[tool.uv.sources]\nanki = {{ path = \"{}\" }}\naqt = {{ path = \"{}\" }}\n",
+                toml_path_str(&bundle.anki_wheel),
+                toml_path_str(&bundle.aqt_wheel),
+            ));
+            updated
+        }
     };
 
     let final_content = if state.system_qt {
@@ -813,7 +841,7 @@ fn apply_version_kind(version_kind: &VersionKind, state: &State) -> Result<()> {
         VersionKind::PyOxidizer(_) => {
             write_file(&state.user_python_version_path, "3.9")?;
         }
-        VersionKind::Uv(_) => {
+        VersionKind::Uv(_) | VersionKind::Bundled(_) => {
             copy_file(
                 &state.dist_python_version_path,
                 &state.user_python_version_path,
@@ -826,10 +854,21 @@ fn apply_version_kind(version_kind: &VersionKind, state: &State) -> Result<()> {
 fn update_pyproject_for_version(menu_choice: MainMenuChoice, state: &State) -> Result<()> {
     match menu_choice {
         MainMenuChoice::Latest => {
-            // Get the latest release version and create a VersionKind for it
-            let releases = get_releases(state)?;
-            let latest_version = releases.latest.first().context("No latest version found")?;
-            apply_version_kind(&VersionKind::Uv(latest_version.clone()), state)?;
+            // If wheels were bundled with the launcher, install those instead
+            // of consulting PyPI, so installers can ship builds that are not
+            // published there.
+            if let Some(bundle) = bundled_wheels(state) {
+                println!(
+                    "Installing the Anki build bundled with this launcher ({}).\n",
+                    bundle.version
+                );
+                apply_version_kind(&VersionKind::Bundled(bundle), state)?;
+            } else {
+                // Get the latest release version and create a VersionKind for it
+                let releases = get_releases(state)?;
+                let latest_version = releases.latest.first().context("No latest version found")?;
+                apply_version_kind(&VersionKind::Uv(latest_version.clone()), state)?;
+            }
         }
         MainMenuChoice::KeepExisting => {
             // Do nothing - keep existing pyproject.toml and .python-version
@@ -851,6 +890,46 @@ fn update_pyproject_for_version(menu_choice: MainMenuChoice, state: &State) -> R
         }
     }
     Ok(())
+}
+
+/// Returns the anki/aqt wheels in the resources `wheels/` folder, if both are
+/// present. Installers can bundle wheels there so that "Latest" installs them
+/// instead of a PyPI release.
+fn bundled_wheels(state: &State) -> Option<BundledWheels> {
+    let wheels_dir = state.resources_dir.join("wheels");
+    let mut anki_wheel = None;
+    let mut aqt_wheel = None;
+    let mut version = None;
+    for entry in std::fs::read_dir(&wheels_dir).ok()? {
+        let path = entry.ok()?.path();
+        let name = path.file_name()?.to_str()?.to_owned();
+        if !name.ends_with(".whl") {
+            continue;
+        }
+        // wheel filenames are <distribution>-<version>-<tags>.whl
+        let mut parts = name.split('-');
+        match (parts.next(), parts.next()) {
+            (Some("anki"), Some(wheel_version)) => {
+                version = Some(wheel_version.to_owned());
+                anki_wheel = Some(path);
+            }
+            (Some("aqt"), Some(_)) => {
+                aqt_wheel = Some(path);
+            }
+            _ => {}
+        }
+    }
+    Some(BundledWheels {
+        anki_wheel: anki_wheel?,
+        aqt_wheel: aqt_wheel?,
+        version: version?,
+    })
+}
+
+/// Path in a form suitable for a TOML basic string (Windows paths would
+/// otherwise contain escape characters).
+fn toml_path_str(path: &std::path::Path) -> String {
+    path.to_string_lossy().replace('\\', "/")
 }
 
 fn parse_version_kind(version: &str) -> Option<VersionKind> {

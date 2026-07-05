@@ -1,4 +1,4 @@
-# Ablation report - Anki Speedrun Phase 3 M4
+# Ablation report - Anki Speedrun Phase 3 M4 (SIMULATED learner - see ablation_real_report.md for the real-collection observational companion)
 
 > **SIMULATION - READ THIS FIRST.** SIMULATION ONLY - every number below comes from a synthetic learner model, not from human study data.
 > Learner model: single hand-specified exponential-forgetting model (n=1 learner model); see the module docstring of ablation.py for the exact equations.

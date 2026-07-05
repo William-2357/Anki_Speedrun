@@ -1,0 +1,207 @@
+{
+    "schema": "speedrun-ablation-real-v1",
+    "generated_by": "tools/speedrun/ablation.py --collection",
+    "observational_disclosure": {
+        "is_ablation": false,
+        "headline": "REAL-COLLECTION OBSERVATIONAL REPORT - this is NOT an ablation: one learner, no counterfactual arm, no random assignment; n=1 with 638 graded reviews. It cannot estimate the feature effects the simulation estimates; it exists to ground the simulated claims in what real usage exists and to be re-run as real data accumulates.",
+        "details": [
+            "One real learner, one realized history: counterfactual arms (what vanilla/full_on WOULD have produced on the same days) do not exist in this data and are not fabricated.",
+            "Simulated companion: ablation_report.{json,md} carries the actual (simulated) ablation with equal-budget arms.",
+            "Sections abstain with the reason where the data permits no number; nothing here is imputed or guessed."
+        ]
+    },
+    "collection": {
+        "path": "out/speedrun_eval/real_collection.anki2",
+        "opened": "sqlite3 URI mode=ro (read-only)",
+        "generated_at": "2026-07-05T08:04:19+00:00",
+        "mins_west": 300,
+        "rollover_hours": 4,
+        "cards": 3153,
+        "notes": 1582,
+        "revlog_rows": 638,
+        "ungraded_rows": 0,
+        "graded_probe_answers": 0,
+        "graded_study_reviews": 638
+    },
+    "feature_states": {
+        "storage": "deck_config table (protobuf DeckConfig.Config blobs)",
+        "presets": [
+            {
+                "id": 1,
+                "name": "Default",
+                "features": {
+                    "contrastScheduling": true,
+                    "fadeEnabled": false,
+                    "readinessAllocation": false
+                },
+                "detail": {
+                    "contrastTagPrefix": "",
+                    "fadeUpR": 0.0,
+                    "fadeDownR": 0.0
+                },
+                "observational_arm": "contrast_on",
+                "decks": [
+                    "CFA Level 1",
+                    "Default"
+                ],
+                "graded_study_reviews": 506
+            },
+            {
+                "id": 1783015724534,
+                "name": "CFA Speedrun",
+                "features": {
+                    "contrastScheduling": true,
+                    "fadeEnabled": true,
+                    "readinessAllocation": false
+                },
+                "detail": {
+                    "contrastTagPrefix": "cluster::",
+                    "fadeUpR": 0.9,
+                    "fadeDownR": 0.8
+                },
+                "observational_arm": "full_minus_allocation",
+                "decks": [],
+                "graded_study_reviews": 0
+            },
+            {
+                "id": 1783065808803,
+                "name": "CFA Speedrun",
+                "features": {
+                    "contrastScheduling": true,
+                    "fadeEnabled": false,
+                    "readinessAllocation": false
+                },
+                "detail": {
+                    "contrastTagPrefix": "cluster::",
+                    "fadeUpR": 0.9,
+                    "fadeDownR": 0.8
+                },
+                "observational_arm": "contrast_on",
+                "decks": [],
+                "graded_study_reviews": 0
+            },
+            {
+                "id": 1783099577024,
+                "name": "CFA Speedrun",
+                "features": {
+                    "contrastScheduling": true,
+                    "fadeEnabled": false,
+                    "readinessAllocation": false
+                },
+                "detail": {
+                    "contrastTagPrefix": "cluster::",
+                    "fadeUpR": 0.9,
+                    "fadeDownR": 0.8
+                },
+                "observational_arm": "contrast_on",
+                "decks": [
+                    "CFA Level 1 Speedrun"
+                ],
+                "graded_study_reviews": 65
+            }
+        ],
+        "observational_arm": "contrast_on",
+        "arm_note": "Every preset with review history has the same feature state, so the real data observationally corresponds to the contrast_on arm of the simulation.",
+        "history_caveat": "Feature states are the deck-config values at read time; the collection stores no toggle history, so past reviews cannot be re-attributed to past states. 67 graded reviews sit on since-deleted cards and cannot be attributed to any preset."
+    },
+    "memory": {
+        "n": 638,
+        "correct": 609,
+        "retention": 0.954545,
+        "again_rate": 0.045455,
+        "study_days": 5,
+        "cards_touched": 384,
+        "cards_touched_live": 335,
+        "first_to_last_review_utc": [
+            "2026-06-29",
+            "2026-07-04"
+        ],
+        "per_topic": {
+            "fixed_income": {
+                "n": 65,
+                "correct": 62,
+                "retention": 0.953846,
+                "again_rate": 0.046154,
+                "cards": 20
+            },
+            "(card deleted)": {
+                "n": 67,
+                "correct": 65,
+                "retention": 0.970149,
+                "again_rate": 0.029851,
+                "cards": 49
+            },
+            "(no cfa::topic tag)": {
+                "n": 506,
+                "correct": 482,
+                "retention": 0.952569,
+                "again_rate": 0.047431,
+                "cards": 315
+            }
+        }
+    },
+    "delayed_performance": {
+        "source": "probe_harness.read_collection + compute_outcomes (imported, not reimplemented); delay rule mirrors rslib/src/readiness/probes.rs: first graded answer, delayed iff >= 7 days after the cluster's last non-probe study touch, never-studied counts as delayed",
+        "probe_cards": 0,
+        "readiness_inputs": {
+            "x_correct": 0,
+            "n_delayed": 0
+        },
+        "delayed_outcomes_all_pools": 0,
+        "pools": {
+            "performance": {
+                "items": 0,
+                "correct": 0,
+                "delayed": 0,
+                "undelayed": 0,
+                "unanswered": 0,
+                "never_studied": 0,
+                "lag_distribution": {
+                    "n": 0
+                },
+                "undelayed_lags": []
+            },
+            "calibration": {
+                "items": 0,
+                "correct": 0,
+                "delayed": 0,
+                "undelayed": 0,
+                "unanswered": 0,
+                "never_studied": 0,
+                "lag_distribution": {
+                    "n": 0
+                },
+                "undelayed_lags": []
+            }
+        },
+        "abstained": true,
+        "abstain_reason": "0 probe cards in the collection - the held-out probe deck has never been imported/answered; no real bridge measurement yet"
+    },
+    "readiness_calibration": {
+        "config_key": "speedrun:readinessCalibration",
+        "present": false,
+        "record": null,
+        "note": "no record - probe_harness --apply has never run (it refuses below 10 delayed calibration-pool outcomes)"
+    },
+    "adjacency": {
+        "contrast_enabled_presets": [
+            "Default (id 1)",
+            "CFA Speedrun (id 1783015724534)",
+            "CFA Speedrun (id 1783065808803)",
+            "CFA Speedrun (id 1783099577024)"
+        ],
+        "same_day_pairs": 633,
+        "true_pairs": 62,
+        "wasted_pairs": 0,
+        "true_share": 0.097946,
+        "note": "Mirrors the simulated report's adjacency notion: true = same-cluster different-card back-to-back within one day (trains discrimination, [R8]); wasted = same family name across different clusters. Current-state caveat above applies.",
+        "applicable": true
+    },
+    "limitations": [
+        "OBSERVATIONAL, not causal: one real learner (n=1), one realized history; feature effects are NOT estimable from this data.",
+        "Feature states are current-state only; Anki keeps no toggle history in the collection.",
+        "Per-topic rows cover only notes tagged cfa::topic::*; untagged and since-deleted cards are reported in their own buckets, never guessed into topics.",
+        "Retention here is study-side recognition accuracy (ease > 1 share), not the delayed application performance the held-out probe bank measures - the two must not be conflated.",
+        "Power: 638 graded reviews over 5 study days; every number is descriptive and should be re-read as data accumulates."
+    ]
+}

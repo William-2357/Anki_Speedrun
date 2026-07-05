@@ -327,6 +327,10 @@ class DeckBrowser:
         qconnect(
             a.triggered, lambda b, did=did: self._speedrun_onboard(DeckId(int(did)))
         )
+        # Anki Speedrun: study one CFA topic (filtered-deck review by tag)
+        a = m.addAction(tr.qt_misc_speedrun_study_topic())
+        assert a is not None
+        qconnect(a.triggered, lambda b: self._speedrun_study_topic())
         a = m.addAction(tr.actions_delete())
         assert a is not None
         qconnect(a.triggered, lambda b, did=did: self._delete(DeckId(int(did))))
@@ -340,6 +344,11 @@ class DeckBrowser:
         import aqt.speedrun_onboard
 
         aqt.speedrun_onboard.show_onboard_dialog(self.mw, int(did))
+
+    def _speedrun_study_topic(self) -> None:
+        import aqt.speedrun_study
+
+        aqt.speedrun_study.choose_and_study_topic(self.mw)
 
     def _export(self, did: DeckId) -> None:
         self.mw.onExport(did=did)
