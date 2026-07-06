@@ -15,3 +15,4 @@ Speedrun_ A Desktop + Mobile Study App Built on Anki.pdf
 # Local user-testing scratch harness (vendored playwright node_modules + run
 # artifacts); not part of the project.
 desktop/tools/speedrun/usertest/
+node_modules/

@@ -327,10 +327,14 @@ class DeckBrowser:
         qconnect(
             a.triggered, lambda b, did=did: self._speedrun_onboard(DeckId(int(did)))
         )
-        # Anki Speedrun: study one CFA topic (filtered-deck review by tag)
-        a = m.addAction(tr.qt_misc_speedrun_study_topic())
-        assert a is not None
-        qconnect(a.triggered, lambda b: self._speedrun_study_topic())
+        # Anki Speedrun: study one CFA topic (filtered-deck review by tag).
+        # A native submenu (not a menu popped from this menu's click handler)
+        # so entering review never runs inside the gear menu's tracking session.
+        import aqt.speedrun_study
+
+        study_menu = m.addMenu(tr.qt_misc_speedrun_study_topic())
+        assert study_menu is not None
+        aqt.speedrun_study.populate_topic_menu(study_menu, self.mw)
         a = m.addAction(tr.actions_delete())
         assert a is not None
         qconnect(a.triggered, lambda b, did=did: self._delete(DeckId(int(did))))

@@ -334,6 +334,7 @@ class Reviewer:
         return f"""
 <div id="_mark" hidden>&#x2605;</div>
 <div id="_flag" hidden>&#x2691;</div>
+<div id="_tags" hidden></div>
 {fade}
 <div id="qa" dir="auto"></div>
 {extra}
@@ -400,6 +401,7 @@ class Reviewer:
         )
         self._update_flag_icon()
         self._update_mark_icon()
+        self._update_tags()
         self._showAnswerButton()
         self.mw.web.setFocus()
         # user hook
@@ -453,6 +455,12 @@ class Reviewer:
     def _update_mark_icon(self) -> None:
         self.web.eval(f"_drawMark({json.dumps(self.card.note().has_tag(MARKED_TAG))});")
 
+    def _update_tags(self) -> None:
+        # the "marked" tag is already represented by the star icon, so don't
+        # duplicate it as a chip
+        tags = [t for t in self.card.note().tags if t != MARKED_TAG]
+        self.web.eval(f"_drawTags({json.dumps(tags)});")
+
     _drawMark = _update_mark_icon
     _drawFlag = _update_flag_icon
 
@@ -479,6 +487,7 @@ class Reviewer:
         a = gui_hooks.card_will_show(a, c, "reviewAnswer")
         # render and update bottom
         self.web.eval(f"_showAnswer({json.dumps(a)});")
+        self._update_tags()
         self._showEaseButtons()
         self.mw.web.setFocus()
         # user hook

@@ -113,25 +113,46 @@ def study_topic(mw: aqt.main.AnkiQt, topic_id: str) -> None:
     changes = col.sched.add_or_update_filtered_deck(deck)
     did = DeckId(changes.id)
 
-    def _on_done() -> None:
-        col.decks.select(did)
-        mw.moveToState("review")
-
+    col.decks.select(did)
     mw.update_undo_actions()
-    mw.reset()
-    _on_done()
+    # Enter review directly. Do NOT call mw.reset() here: it starts an async
+    # deck-browser re-render whose callback lands after the reviewer has taken
+    # over mw.web, replacing the card with the deck list while still in the
+    # "review" state. The reviewer's bridge then rejects the deck list's
+    # `open:` clicks ("unrecognized anki link: open:<id>") and the screen looks
+    # frozen. The reviewer rebuilds its own queue on show(), so no reset is
+    # needed to enter review correctly.
+    mw.moveToState("review")
 
 
-def choose_and_study_topic(mw: aqt.main.AnkiQt) -> None:
-    """Pop a small menu of the 10 topics and study the chosen one."""
-    menu = QMenu(mw)
+def populate_topic_menu(menu: QMenu, mw: aqt.main.AnkiQt) -> None:
+    """Add the 10 topic actions to ``menu``.
+
+    Studying is launched on a fresh event-loop iteration via ``single_shot``,
+    never straight from the ``triggered`` handler. Entering review is a
+    main-window state change (and, for an empty topic, a modal dialog); doing
+    that from inside a menu's native tracking session froze the main window on
+    macOS. Deferring runs it after the menu has closed.
+    """
     for topic_id, display in CFA_TOPICS:
         action = QAction(display, menu)
         action.triggered.connect(
-            lambda _checked=False, tid=topic_id: study_topic(mw, tid)
+            lambda _checked=False, tid=topic_id: mw.progress.single_shot(
+                0, lambda: study_topic(mw, tid)
+            )
         )
         menu.addAction(action)
-    menu.exec(QCursor.pos())
+
+
+def choose_and_study_topic(mw: aqt.main.AnkiQt) -> None:
+    """Pop a standalone menu of the 10 topics and study the chosen one.
+
+    The deck browser's gear menu embeds these as a native submenu (see
+    ``populate_topic_menu``); this standalone popup is kept for other callers.
+    """
+    menu = QMenu(mw)
+    populate_topic_menu(menu, mw)
+    menu.popup(QCursor.pos())
 
 
 def handle_dashboard_command(mw: aqt.main.AnkiQt, cmd: str) -> bool:
@@ -145,7 +166,10 @@ def handle_dashboard_command(mw: aqt.main.AnkiQt, cmd: str) -> bool:
         return False
     topic_id = cmd[len(prefix) :].strip()
     if topic_id in _TOPIC_NAMES:
-        study_topic(mw, topic_id)
+        # Defer out of the web view's bridge callback: enter review on a fresh
+        # event-loop iteration (after the dashboard dialog has closed) rather
+        # than switching main-window state from inside the bridge handler.
+        mw.progress.single_shot(0, lambda: study_topic(mw, topic_id))
     else:
         tooltip("Unknown topic", parent=mw)
     return True

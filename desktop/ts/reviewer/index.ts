@@ -221,6 +221,19 @@ export function _drawMark(mark: boolean): void {
     document.getElementById("_mark")!.toggleAttribute("hidden", !mark);
 }
 
+export function _drawTags(tags: string[]): void {
+    const elem = document.getElementById("_tags")!;
+    elem.replaceChildren();
+    elem.toggleAttribute("hidden", tags.length === 0);
+    for (const tag of tags) {
+        const span = document.createElement("span");
+        span.className = "tag";
+        // textContent (not innerHTML) so tag names can't inject markup
+        span.textContent = tag;
+        elem.appendChild(span);
+    }
+}
+
 export function _typeAnsPress(): void {
     const key = (window.event as KeyboardEvent).key;
     if (key === "Enter") {
