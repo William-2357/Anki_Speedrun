@@ -309,7 +309,7 @@ Companion offline tools (all under `desktop/tools/speedrun/`):
   live point-biserial shows no discrimination (`--apply` tags them
   `aig::retired`).
 - `python3 -m unittest discover -s tools/speedrun/tests` (or
-  `just speedrun-test`) runs the 547-test suite (schema/lint, generators,
+  `just speedrun-test`) runs the 570-test suite (schema/lint, generators,
   gates, retrieval, confusability mining, retirement, the runtime
   assistant's grounding / abstention / bridge gating, Phase 3's probe
   bank/harness, ablation and onboarding suites — and the measurement
@@ -342,19 +342,31 @@ quoted from the archived full-stack (torch) run, clearly caveated.
 
 ## Packaged builds (installers)
 
-Shipped artifacts, how they were built, clean-machine install steps for
-both apps (including the Gatekeeper and fallback-keystore caveats), the
-AI-off verification procedure, and exactly what was / was not verified:
-[`desktop/SHIPPING.md`](desktop/SHIPPING.md).
+**Downloads** — the latest release is
+[**v26.05b1**](https://github.com/William-2357/Anki_Speedrun/releases/tag/v26.05b1)
+(public GitHub release; SHA-256s recorded in
+[`desktop/SHIPPING.md`](desktop/SHIPPING.md)):
 
-- macOS: `desktop/out/launcher/anki-speedrun-launcher-26.05b1-mac.dmg` —
-  the fork's wheels are **bundled in the .app** (a small launcher change
-  installs them instead of PyPI's upstream anki; ad-hoc signed, so
-  right-click → Open on first launch).
-- Android: `android/AnkiDroid/build/outputs/apk/full/release/AnkiDroid-full-arm64-v8a-release.apk`
+- macOS (Apple Silicon):
+  [`anki-speedrun-launcher-26.05b1-mac.dmg`](https://github.com/William-2357/Anki_Speedrun/releases/download/v26.05b1/anki-speedrun-launcher-26.05b1-mac.dmg)
+  — the fork's wheels are **bundled in the .app** (a small launcher change
+  installs them instead of PyPI's upstream anki). Ad-hoc signed / not
+  notarized, so on first launch right-click → **Open** (or
+  `xattr -dr com.apple.quarantine /Applications/Anki.app`). Intel Macs are
+  not supported by this DMG (the bundled `anki` wheel is arm64-only).
+- Android (arm64-v8a):
+  [`AnkiDroid-full-arm64-v8a-release.apk`](https://github.com/William-2357/Anki_Speedrun/releases/download/v26.05b1/AnkiDroid-full-arm64-v8a-release.apk)
   — the sideload flavor, signed with the repo's **fallback keystore**
-  (debug-grade, disclosed in SHIPPING.md), engine `.aar` built from
+  (debug-grade, disclosed in SHIPPING.md); engine `.aar` built from
   `desktop/rslib` and byte-verified inside the APK.
+
+How they were built, clean-machine install steps for both apps (including the
+Gatekeeper and fallback-keystore caveats), the AI-off verification procedure,
+and exactly what was / was not verified:
+[`desktop/SHIPPING.md`](desktop/SHIPPING.md). The build outputs land at
+`desktop/out/launcher/…dmg` and
+`android/AnkiDroid/build/outputs/apk/full/release/…apk` (both git-ignored and
+distributed via the release above).
 
 ## Building the Android app
 
